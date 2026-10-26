@@ -15,12 +15,6 @@ export interface EdgeApi {
     settings: Settings
     version: string
     isStoreBuild?: boolean
-    updateInfo?: {
-      hasUpdate: boolean
-      latestVersion: string
-      downloaded: boolean
-      downloadProgress?: { percent: number; bytesPerSecond?: number; transferred?: number; total?: number }
-    } | null
   }>
   setPinned: (id: string, pinned: boolean) => Promise<import('./types').ClipboardItemDto[]>
   deleteItem: (id: string) => Promise<import('./types').ClipboardItemDto[]>
@@ -34,15 +28,6 @@ export interface EdgeApi {
   pasteSubitem: (req: DragRequest) => Promise<boolean>
   pasteEmoji: (text: string) => Promise<boolean>
   emojiGlyphs: (files: string[]) => Promise<Record<string, string>>
-  installUpdate: () => Promise<void>
-  checkForUpdatesManual: () => Promise<{ status: string; version?: string; error?: string }>
-  startUpdateDownload: () => Promise<void>
-  getUpdateState: () => Promise<{
-    hasUpdate: boolean
-    latestVersion: string
-    downloaded: boolean
-    downloadProgress?: { percent: number; bytesPerSecond?: number; transferred?: number; total?: number }
-  } | null>
   quitApp: () => Promise<void>
   /**
    * Begin a native OS drag-out. Fire-and-forget: must be called synchronously
@@ -104,8 +89,5 @@ export interface EdgeApi {
   onToast: (cb: (toast: { id: string; message: string; tone: 'info' | 'error'; params?: Record<string, string | number> }) => void) => () => void
   onCopyFlare: (cb: () => void) => () => void
   onTutorialStep: (cb: (step: number) => void) => () => void
-  onUpdateAvailable: (cb: (info: { version: string }) => void) => () => void
-  onUpdateProgress: (cb: (progress: { percent: number; bytesPerSecond?: number; transferred?: number; total?: number }) => void) => () => void
-  onUpdateDownloaded: (cb: (info: { version: string }) => void) => () => void
 }
 

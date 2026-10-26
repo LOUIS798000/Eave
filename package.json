@@ -63,11 +63,6 @@
       "**/node_modules/@koromix/**/*",
       "**/node_modules/@resvg/**/*"
     ],
-    "publish": {
-      "provider": "github",
-      "owner": "Deepender25",
-      "repo": "Edge-Drop"
-    },
     "win": {
       "target": [
         {
@@ -132,7 +127,6 @@
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
-    "electron-updater": "^6.8.9",
     "koffi": "^3.3.4",
     "react": "^18.2.0",
     "zustand": "^4.5.2"

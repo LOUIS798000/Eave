@@ -1,9 +1,8 @@
 import { useEffect, useState, useRef, useLayoutEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '../store/appStore'
-import type { DisplayInfo, UpdateMode } from '../../shared/types'
+import type { DisplayInfo } from '../../shared/types'
 import {
-  resolveUpdateMode,
   normalizeHoverOpenDelay,
   HOVER_OPEN_DELAY_MIN,
   HOVER_OPEN_DELAY_MAX,
@@ -17,7 +16,6 @@ import {
 } from './CopyIndicatorCurve'
 import { ChevronRightIcon, CloseIcon, LogOutIcon } from './icons'
 import { HotkeyRecorder } from './HotkeyRecorder'
-import { SlideCommit } from './SlideCommit'
 import { WakeSlider } from './WakeSlider'
 import { PanelSizeControls } from './PanelSizeControls'
 import {
@@ -148,9 +146,6 @@ export function Settings({
   ]
   const patch = useStore((s) => s.patchSettings)
   const pushToast = useStore((s) => s.pushToast)
-  const updateInfo = useStore((s) => s.updateInfo)
-  const isStoreBuild = useStore((s) => s.isStoreBuild)
-  const currentVersion = useStore((s) => s.currentVersion)
   const styleFlyoutOpen = useStore((s) => s.styleFlyoutOpen)
   const setStyleFlyoutOpen = useStore((s) => s.setStyleFlyoutOpen)
   const languageFlyoutOpen = useStore((s) => s.languageFlyoutOpen)
@@ -379,19 +374,6 @@ export function Settings({
     }
   }, [])
 
-  const updateDownloaded = updateInfo?.downloaded ? { version: updateInfo.latestVersion } : null
-  const updateMode = resolveUpdateMode(settings)
-
-  const checkState = useStore((s) => s.manualCheckState)
-  const handleManualCheck = () => useStore.getState().startManualCheck()
-  const handleStartDownload = () => useStore.getState().startManualDownload()
-
-  const isManualDownloading = checkState.status === 'downloading'
-  const isDownloading = isManualDownloading || (!updateDownloaded && !!updateInfo?.hasUpdate && (updateMode === 'auto' || !!updateInfo?.downloadProgress))
-  // Update waiting for a user decision (Notify mode prompt or available check).
-  const hasBackgroundUpdate = !updateDownloaded && !isDownloading && (!!updateInfo?.hasUpdate || checkState.status === 'available')
-  const downloadPercent = updateInfo?.downloadProgress?.percent ?? 0
-
   // ── Tab state & Independent Scroll Memory per section ──────────────────────
   const activeTab = useStore((s) => s.settingsTab)
   const setActiveTab = useStore((s) => s.setSettingsTab)
@@ -432,36 +414,6 @@ export function Settings({
     }
   }, [activeTab])
 
-  // When update check finds a new update, smoothly scroll to top/front to highlight the update card
-  useEffect(() => {
-    if (checkState.status === 'available') {
-      const behavior = settings.reduceMotion ? 'auto' : 'smooth'
-      if (isHorizontal) {
-        if (shelfTrackRef.current) {
-          shelfTrackRef.current.scrollTo({ left: 0, behavior })
-        }
-        horizontalTabScrollPositions.current.behaviour = 0
-      } else {
-        if (scrollListRef.current) {
-          scrollListRef.current.scrollTo({ top: 0, behavior })
-        }
-        tabScrollPositions.current.behaviour = 0
-      }
-    }
-  }, [checkState.status, isHorizontal, settings.reduceMotion])
-
-  // ── Promoted Active Update State ───────────────────────────────────────────
-  // The top card shows all active update lifecycle stages:
-  // 1) Downloaded update -> 'Restart to Update'
-  // 2) Downloading in progress -> Live progress bar
-  // 3) Update found & available -> 'Download & Update' / 'Skip'
-  const hasPromotedTopUpdate = !isStoreBuild && (
-    !!updateDownloaded ||
-    isDownloading ||
-    hasBackgroundUpdate
-  )
-  const updateBannerRef = useRef<HTMLDivElement | null>(null)
-
   // ── Footer ─────────────────────────────────────────────────────────────
   // One action only: leaving the app. Everything promotional was removed so
   // Settings stays a pure configuration surface.
@@ -480,337 +432,6 @@ export function Settings({
       </button>
     </div>
   )
-
-  // ── Promoted Top Update Card Renderer (Vertical Layout) ────────────────────
-  const renderPromotedTopUpdateCard = () => {
-    if (isStoreBuild) return null
-    if (!hasPromotedTopUpdate) return null
-
-    if (updateDownloaded) {
-      return (
-        <div className="setting-card update-promoted-card">
-          <div className="shelf-card-top">
-            <div className="update-header-row">
-              <div className="update-group-label">
-                <span className="update-dot" />
-                <span>{t('behaviour.updateLabelReady') || 'UPDATE READY'}</span>
-              </div>
-            </div>
-            <div className="setting-title">
-              {t('behaviour.updateReadyTitle', { version: updateDownloaded.version })}
-            </div>
-            <div className="setting-desc">
-              {t('behaviour.updateReadyDesc')}
-            </div>
-          </div>
-          <div className="shelf-card-bottom">
-            <SlideCommit
-              label={t('behaviour.restart') || 'Restart'}
-              doneLabel={t('behaviour.restarting') || 'Restarting...'}
-              errorLabel={t('behaviour.restartFailed') || 'Restart failed'}
-              height={32}
-              radius={10}
-              onConfirm={() => {
-                playButtonClickSound()
-                void window.edge.installUpdate()
-              }}
-            />
-          </div>
-        </div>
-      )
-    }
-
-    if (isDownloading) {
-      return (
-        <div className="setting-card update-promoted-card">
-          <div className="shelf-card-top">
-            <div className="update-header-row">
-              <div className="update-group-label">
-                <span className="update-dot checking" />
-                <span>{t('behaviour.updateLabelDownloading') || 'DOWNLOADING UPDATE'}</span>
-              </div>
-            </div>
-            <div className="setting-title">
-              {updateInfo?.latestVersion
-                ? t('behaviour.updateAvailableTitle', { version: updateInfo.latestVersion })
-                : t('behaviour.downloadingUpdate')}
-            </div>
-            <div className="setting-desc">
-              {downloadPercent > 0 ? t('behaviour.downloadingWithPercent', { percent: downloadPercent }) : t('behaviour.downloadingUpdate')}
-            </div>
-          </div>
-          <div className="shelf-card-bottom">
-            <div className="shelf-update-progress-wrap">
-              <div className="shelf-progress-bar" style={{ width: `${downloadPercent}%` }} />
-              <span className="shelf-progress-text">{downloadPercent > 0 ? `${downloadPercent}%` : 'Connecting...'}</span>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    if (checkState.status === 'available' || hasBackgroundUpdate) {
-      const versionStr = checkState.version || updateInfo?.latestVersion || ''
-      return (
-        <div className="setting-card update-promoted-card">
-          <div className="shelf-card-top">
-            <div className="update-header-row">
-              <div className="update-group-label">
-                <span className="update-dot" />
-                <span>{t('behaviour.updateLabelAvailable') || 'NEW UPDATE AVAILABLE'}</span>
-              </div>
-            </div>
-            <div className="setting-title">
-              {t('behaviour.updateAvailableTitle', { version: versionStr })}
-            </div>
-            <div className="setting-desc">
-              {t('behaviour.updateAvailableDesc')}
-            </div>
-          </div>
-          <div className="shelf-card-bottom">
-            <div className="update-action-row">
-              <button
-                type="button"
-                className="update-action-btn primary"
-                style={{ flex: 1 }}
-                onClick={() => {
-                  playButtonClickSound()
-                  handleStartDownload()
-                }}
-              >
-                {t('behaviour.update') || 'Update'}
-              </button>
-              <button
-                type="button"
-                className="update-action-btn secondary"
-                style={{ flex: '0 0 68px' }}
-                onClick={() => {
-                  playButtonClickSound()
-                  useStore.getState().dismissUpdate()
-                }}
-              >
-                {t('behaviour.skip')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    return null
-  }
-
-  // ── Promoted Front Update Card Renderer (Horizontal Shelf Layout) ──────────
-  const renderPromotedHorizontalUpdateCard = () => {
-    if (isStoreBuild) return null
-    if (!hasPromotedTopUpdate) return null
-
-    if (updateDownloaded) {
-      return (
-        <div className="settings-shelf-card update-promoted-card behaviour-col">
-          <div className="shelf-card-top">
-            <div className="update-header-row">
-              <div className="update-group-label">
-                <span className="update-dot" />
-                <span>{t('behaviour.updateLabelReady') || 'UPDATE READY'}</span>
-              </div>
-            </div>
-            <div className="setting-title">
-              {t('behaviour.updateReadyTitle', { version: updateDownloaded.version })}
-            </div>
-            <div className="setting-desc">
-              {t('behaviour.updateReadyDesc')}
-            </div>
-          </div>
-          <div className="shelf-card-bottom">
-            <SlideCommit
-              label={t('behaviour.restart') || 'Restart'}
-              doneLabel={t('behaviour.restarting') || 'Restarting...'}
-              errorLabel={t('behaviour.restartFailed') || 'Restart failed'}
-              height={32}
-              radius={10}
-              onConfirm={() => {
-                playButtonClickSound()
-                void window.edge.installUpdate()
-              }}
-            />
-          </div>
-        </div>
-      )
-    }
-
-    if (isDownloading) {
-      return (
-        <div className="settings-shelf-card update-promoted-card behaviour-col">
-          <div className="shelf-card-top">
-            <div className="update-header-row">
-              <div className="update-group-label">
-                <span className="update-dot checking" />
-                <span>{t('behaviour.updateLabelDownloading') || 'DOWNLOADING UPDATE'}</span>
-              </div>
-            </div>
-            <div className="setting-title">
-              {updateInfo?.latestVersion
-                ? t('behaviour.updateAvailableTitle', { version: updateInfo.latestVersion })
-                : t('behaviour.downloadingUpdate')}
-            </div>
-            <div className="setting-desc">
-              {downloadPercent > 0 ? t('behaviour.downloadingWithPercent', { percent: downloadPercent }) : t('behaviour.downloadingUpdate')}
-            </div>
-          </div>
-          <div className="shelf-card-bottom">
-            <div className="shelf-update-progress-wrap">
-              <div className="shelf-progress-bar" style={{ width: `${downloadPercent}%` }} />
-              <span className="shelf-progress-text">{downloadPercent > 0 ? `${downloadPercent}%` : 'Connecting...'}</span>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    if (checkState.status === 'available' || hasBackgroundUpdate) {
-      const versionStr = checkState.version || updateInfo?.latestVersion || ''
-      return (
-        <div className="settings-shelf-card update-promoted-card behaviour-col">
-          <div className="shelf-card-top">
-            <div className="update-header-row">
-              <div className="update-group-label">
-                <span className="update-dot" />
-                <span>{t('behaviour.updateLabelAvailable') || 'NEW UPDATE AVAILABLE'}</span>
-              </div>
-            </div>
-            <div className="setting-title">
-              {t('behaviour.updateAvailableTitle', { version: versionStr })}
-            </div>
-            <div className="setting-desc">
-              {t('behaviour.updateAvailableDesc')}
-            </div>
-          </div>
-          <div className="shelf-card-bottom">
-            <div className="update-action-row">
-              <button
-                type="button"
-                className="update-action-btn primary"
-                style={{ flex: 1 }}
-                onClick={() => {
-                  playButtonClickSound()
-                  handleStartDownload()
-                }}
-              >
-                {t('behaviour.update') || 'Update'}
-              </button>
-              <button
-                type="button"
-                className="update-action-btn secondary"
-                style={{ flex: '0 0 68px' }}
-                onClick={() => {
-                  playButtonClickSound()
-                  useStore.getState().dismissUpdate()
-                }}
-              >
-                {t('behaviour.skip')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    return null
-  }
-
-  // ── Manual update card renderer (idle/check states at the bottom) ──
-  const renderManualUpdateCard = (withRef = false) => {
-    // Hidden while the promoted top card shows an actionable state — the
-    // top card already carries Download/Skip/Restart/progress, so rendering
-    // both would duplicate the prompt. The idle branch below IS the Check
-    // button, which is exactly what belongs at the bottom.
-    if (isStoreBuild || hasPromotedTopUpdate) return null
-    return (
-      <div className="manual-update-section" ref={withRef ? updateBannerRef : undefined} style={{ width: '100%' }}>
-        <div className="manual-update-card">
-          {checkState.status === 'checking' ? (
-            <>
-              <div className="manual-update-info">
-                <div className="manual-update-title">{t('behaviour.checkForUpdates')}</div>
-                <div className="manual-update-desc">{t('behaviour.checkingForUpdates')}</div>
-              </div>
-              <button
-                type="button"
-                className="manual-update-pill outline"
-                disabled
-              >
-                <span className="update-dot checking" />
-                <span>{t('behaviour.checkingForUpdates')}</span>
-              </button>
-            </>
-          ) : checkState.status === 'up-to-date' ? (
-            <>
-              <div className="manual-update-info">
-                <div className="manual-update-title">
-                  <span className="update-dot available" />
-                  <span>{t('behaviour.isUpToDate')}</span>
-                </div>
-                <div className="manual-update-desc">
-                  {t('footer.version')} {currentVersion || '0.3.1'}
-                </div>
-              </div>
-              <button
-                type="button"
-                className="manual-update-pill outline"
-                onClick={() => {
-                  playButtonClickSound()
-                  handleManualCheck()
-                }}
-              >
-                {t('behaviour.checkAgain')}
-              </button>
-            </>
-          ) : checkState.status === 'error' ? (
-            <>
-              <div className="manual-update-info">
-                <div className="manual-update-title error">
-                  {t('behaviour.updateCheckFailed')}
-                </div>
-                <div className="manual-update-desc error">
-                  {checkState.error || t('behaviour.updateCheckFailed')}
-                </div>
-              </div>
-              <button
-                type="button"
-                className="manual-update-pill outline"
-                onClick={() => {
-                  playButtonClickSound()
-                  handleManualCheck()
-                }}
-              >
-                {t('behaviour.tryAgain')}
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="manual-update-info">
-                <div className="manual-update-title">{t('behaviour.checkForUpdates')}</div>
-                <div className="manual-update-desc">
-                  {t('footer.version')} {currentVersion || '0.3.1'}
-                </div>
-              </div>
-              <button
-                type="button"
-                className="manual-update-pill outline"
-                onClick={() => {
-                  playButtonClickSound()
-                  handleManualCheck()
-                }}
-              >
-                {t('behaviour.checkForUpdates')}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    )
-  }
 
   // ── Horizontal Layout (Top / Bottom Dock Position) ────────────────────────
   if (isHorizontal) {
@@ -842,8 +463,6 @@ export function Settings({
           {/* ── TAB 1: BEHAVIOUR ── */}
           {horizontalTab === 'behaviour' && (
             <>
-              {renderPromotedHorizontalUpdateCard()}
-
               {/* ── SUB-GROUP 1 DIVIDER: General & Startup ── */}
               <div className="shelf-section-divider">
                 <span className="shelf-section-divider-text">{t('tabs.generalStartup') || 'GENERAL & STARTUP'}</span>
@@ -1121,103 +740,6 @@ export function Settings({
                   </div>
                 </div>
               </div>
-
-              {/* ── SUB-GROUP 5 DIVIDER: Updates ── */}
-              {!isStoreBuild && (
-                <div className="shelf-section-divider">
-                  <span className="shelf-section-divider-text">{t('tabs.updates') || 'UPDATES'}</span>
-                </div>
-              )}
-
-              {/* Card 11: Application Updates (3-mode selector) */}
-              <div className="settings-shelf-card updates-card behaviour-col">
-                <div className="shelf-card-top">
-                  <div className="setting-group-label">{t('groups.updates') || 'UPDATES'}</div>
-                  <div className="setting-title">{t('behaviour.autoUpdatesTitle')}</div>
-                  <div className="setting-desc">
-                    {!isStoreBuild
-                      ? (updateMode === 'auto'
-                        ? t('behaviour.autoUpdatesDescOn')
-                        : updateMode === 'notify'
-                        ? (t('behaviour.updateModeNotifyDesc') || 'Notify when updates are available without downloading')
-                        : t('behaviour.autoUpdatesDescOff'))
-                      : 'Managed by Microsoft Store'}
-                  </div>
-                </div>
-                {!isStoreBuild && (
-                  <div className="shelf-card-bottom">
-                    <div className="setting-pills" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5, width: '100%' }}>
-                      {([
-                        { id: 'auto' as UpdateMode, label: t('behaviour.updateModeAuto') || 'Automatic' },
-                        { id: 'notify' as UpdateMode, label: t('behaviour.updateModeNotify') || 'Notify me' },
-                        { id: 'off' as UpdateMode, label: t('behaviour.updateModeOff') || 'Off' }
-                      ]).map((opt) => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          className={`pill ${updateMode === opt.id ? 'active' : ''}`}
-                          style={{ fontSize: 11, fontWeight: 500, padding: '0 4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', justifyContent: 'center' }}
-                          onClick={() => { playButtonClickSound(); patch({ updateMode: opt.id }) }}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Card 12: Update Status & Actions (idle/check states; hidden
-                  while the promoted front card shows an actionable state) */}
-              {!isStoreBuild && !hasPromotedTopUpdate && (
-                <div className="settings-shelf-card check-updates-card behaviour-col" ref={updateBannerRef}>
-                  <div className="shelf-card-top">
-                    <div className="setting-group-label">
-                      UPDATE STATUS
-                    </div>
-                    <div className="setting-title" style={{ lineHeight: 1.3 }}>
-                      {checkState.status === 'checking'
-                        ? t('behaviour.checkingForUpdates')
-                        : checkState.status === 'up-to-date'
-                        ? t('behaviour.isUpToDate')
-                        : checkState.status === 'error'
-                        ? t('behaviour.updateCheckFailed')
-                        : t('behaviour.checkForUpdates')}
-                    </div>
-                    <div className="setting-desc">
-                      {checkState.status === 'error'
-                        ? (checkState.error || t('behaviour.updateCheckFailed'))
-                        : `Edge-Drop v${currentVersion || '0.3.1'}`}
-                    </div>
-                  </div>
-                  <div className="shelf-card-bottom">
-                    <button
-                      type="button"
-                      className="pill display-pill"
-                      style={{ width: '100%', justifyContent: 'center', fontSize: 11.5 }}
-                      disabled={checkState.status === 'checking'}
-                      onClick={() => {
-                        playButtonClickSound()
-                        handleManualCheck()
-                      }}
-                    >
-                      {checkState.status === 'checking' ? (
-                        <>
-                          <span className="update-dot checking" style={{ marginRight: 6 }} />
-                          <span>{t('behaviour.checkingForUpdates')}</span>
-                        </>
-                      ) : checkState.status === 'up-to-date' ? (
-                        t('behaviour.checkAgain')
-                      ) : checkState.status === 'error' ? (
-                        t('behaviour.tryAgain')
-                      ) : (
-                        t('behaviour.checkForUpdates')
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-
 
               <div className="settings-shelf-card quit-card">
                 <button
@@ -1674,8 +1196,6 @@ export function Settings({
                   exit={{ opacity: 0, scale: 0.98, y: -4 }}
                   transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                 >
-                  {renderPromotedTopUpdateCard()}
-
                   {/* ── SUB-GROUP 1: General & Startup ───────────────── */}
                   <div className="setting-section-divider">
                     <span className="setting-section-divider-text">{t('tabs.generalStartup') || 'GENERAL & STARTUP'}</span>
@@ -1921,49 +1441,6 @@ export function Settings({
                       </div>
                     </div>
                   </div>
-
-                  {/* ── UPDATES SECTION ── */}
-                  {!isStoreBuild && (
-                    <>
-                      <div className="setting-section-divider">
-                        <span className="setting-section-divider-text">{t('tabs.updates') || 'UPDATES'}</span>
-                      </div>
-
-                      {/* Card 11: Auto Updates (3-way selector) */}
-                      <div className="setting-card">
-                        <div className="shelf-card-top">
-                          <div className="setting-group-label">{t('groups.updates') || 'UPDATES'}</div>
-                          <div className="setting-title">{t('behaviour.autoUpdatesTitle')}</div>
-                          <div className="setting-desc">
-                            {updateMode === 'auto'
-                              ? t('behaviour.autoUpdatesDescOn')
-                              : updateMode === 'notify'
-                              ? (t('behaviour.updateModeNotifyDesc') || 'Notify when updates are available without downloading')
-                              : t('behaviour.autoUpdatesDescOff')}
-                          </div>
-                        </div>
-                        <div className="shelf-card-bottom">
-                          <div className="setting-pills" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
-                            {([
-                              { label: t('behaviour.updateModeAuto') || 'Automatic', val: 'auto' as UpdateMode },
-                              { label: t('behaviour.updateModeNotify') || 'Notify me', val: 'notify' as UpdateMode },
-                              { label: t('behaviour.updateModeOff') || 'Off', val: 'off' as UpdateMode }
-                            ]).map((opt) => (
-                              <button
-                                key={opt.val}
-                                className={`pill ${updateMode === opt.val ? 'active' : ''}`}
-                                onClick={() => { playButtonClickSound(); patch({ updateMode: opt.val }) }}
-                              >
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {renderManualUpdateCard(true)}
-                    </>
-                  )}
 
                   {PersistentFooter}
                 </motion.div>

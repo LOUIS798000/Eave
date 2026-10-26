@@ -260,32 +260,10 @@ export default function App() {
     const offTutorialStep = edge.onTutorialStep((step) => {
       useStore.getState().setTutorialStep(step)
     })
-    const offUpdateAvailable = edge.onUpdateAvailable((info) => {
-      useStore.getState().setUpdateAvailable(info)
-    })
-    const offUpdateProgress = edge.onUpdateProgress((progress) => {
-      useStore.getState().setUpdateProgress(progress)
-    })
-    const offUpdateDownloaded = edge.onUpdateDownloaded((info) => {
-      useStore.getState().setUpdateDownloaded(info)
-    })
     const offCopyFlare = edge.onCopyFlare(() => {
       if (useStore.getState().isInternalCopying) return
       useStore.getState().triggerCopyFlare()
     })
-    // Recover any update findings that landed before we subscribed (slow
-    // first load can miss the startup check's fire-and-forget push).
-    // Skip-filtering applies automatically inside setUpdateAvailable.
-    void edge.getUpdateState().then((s) => {
-      if (!s) return
-      const st = useStore.getState()
-      if (s.downloaded) {
-        st.setUpdateDownloaded({ version: s.latestVersion })
-      } else if (s.hasUpdate) {
-        st.setUpdateAvailable({ version: s.latestVersion })
-        if (s.downloadProgress) st.setUpdateProgress(s.downloadProgress)
-      }
-    }).catch(() => {})
     return () => {
       offItems()
       offSettings()
@@ -293,9 +271,6 @@ export default function App() {
       offToggle()
       offOpenSettings()
       offTutorialStep()
-      offUpdateAvailable()
-      offUpdateProgress()
-      offUpdateDownloaded()
       offCopyFlare()
     }
   }, [hydrate, setItems, setSettings, pushToast])

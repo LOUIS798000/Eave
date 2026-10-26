@@ -375,9 +375,12 @@ export function Panel() {
   if (frostLive) {
     ;(bladeStyle as Record<string, unknown>)['--live-sheet'] = String(liveSheetAlpha(frostIntensity))
   }
+  /* Settings is a flat, opaque surface: the clipboard list (and any snapshot
+   * of it) must never show through behind the cards, and the live acrylic
+   * would otherwise sample whatever was on screen when the panel opened. */
   const bladeClass = frostLive
-    ? `blade blade-live${open && liveGlassOn ? ' blade-live-shown' : ''}`
-    : 'blade'
+    ? `blade blade-live${open && liveGlassOn ? ' blade-live-shown' : ''}${settingsOpen ? ' blade-settings' : ''}`
+    : `blade${settingsOpen ? ' blade-settings' : ''}`
 
   /* The frame on which the open clip-path settles is the only one where the
    * blade exactly covers the acrylic sheet (same rect, same radius). Report it
@@ -476,7 +479,7 @@ export function Panel() {
   ])
 
   useEffect(() => {
-    if (!backdrop || frostIntensity <= 0 || frostLive) {
+    if (!backdrop || frostIntensity <= 0 || frostLive || settingsOpen) {
       setFrostStyle(null)
       return
     }

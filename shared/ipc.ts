@@ -94,22 +94,6 @@ export interface InvokeMap {
   /** Request explicit OS focus for the main window (e.g. for recording hotkeys). */
   'window:focus': { args: [focusable?: boolean]; result: void }
 
-  /** Trigger a download of the already-available update and quit-and-install. */
-  'app:install-update': { args: []; result: void }
-
-  /** Manually check for updates on user click. */
-  'updater:check-manual': { args: []; result: { status: string; version?: string; error?: string } }
-
-  /** Start background download of an update in manual mode. */
-  'updater:start-download': { args: []; result: void }
-
-  /**
-   * Current update state snapshot (background findings so far). Lets a
-   * freshly subscribed renderer recover pushes it missed (slow load after
-   * the startup check already fired). Null when nothing is known.
-   */
-  'updater:get-state': { args: []; result: { hasUpdate: boolean; latestVersion: string; downloaded: boolean; downloadProgress?: { percent: number; bytesPerSecond?: number; transferred?: number; total?: number } } | null }
-
   /** Quit the application process. */
   'app:quit': { args: []; result: void }
 
@@ -162,12 +146,6 @@ export interface EventMap {
   'ui:toast': [toast: { id: string; message: string; tone: 'info' | 'error'; params?: Record<string, string | number> }]
   /** Fired when an OS copy event (Ctrl+C) is detected by the main process watcher. */
   'ui:copy-flare': []
-  /** Fired by electron-updater when a new update is available for GitHub builds. */
-  'app:update-available': [info: { version: string }]
-  /** Fired by electron-updater with download progress for GitHub builds. */
-  'app:update-progress': [progress: { percent: number; bytesPerSecond?: number; transferred?: number; total?: number }]
-  /** Fired by electron-updater when the update has been fully downloaded and is ready to install. */
-  'app:update-downloaded': [info: { version: string }]
   /**
    * Main-process cursor poll signals: fired when the cursor enters/leaves
    * the screen-edge hot zone. The renderer uses this to open/close the panel

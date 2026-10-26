@@ -190,10 +190,6 @@ const api = {
   pasteSubitem: (req: import('../../shared/types').DragRequest) => invoke('item:paste-subitem', req),
   pasteEmoji: (text: string) => invoke('emoji:paste', text),
   emojiGlyphs: (files: string[]) => invoke('emoji:glyphs', files),
-  installUpdate: () => invoke('app:install-update'),
-  checkForUpdatesManual: () => invoke('updater:check-manual'),
-  startUpdateDownload: () => invoke('updater:start-download'),
-  getUpdateState: () => invoke('updater:get-state'),
   quitApp: () => invoke('app:quit'),
   startDrag: (req: DragRequest) => {
     setInternalDragState(true)
@@ -239,9 +235,6 @@ const api = {
   onToast: (cb: (toast: { id: string; message: string; tone: 'info' | 'error' }) => void) => on('ui:toast', cb),
   onCopyFlare: (cb: () => void) => on('ui:copy-flare', cb),
   onTutorialStep: (cb: (step: number) => void) => on('tutorial:step', cb),
-  onUpdateAvailable: (cb: (info: { version: string }) => void) => on('app:update-available', cb),
-  onUpdateProgress: (cb: (progress: { percent: number; bytesPerSecond?: number; transferred?: number; total?: number }) => void) => on('app:update-progress', cb),
-  onUpdateDownloaded: (cb: (info: { version: string }) => void) => on('app:update-downloaded', cb),
 
   /* Drag helpers */
   // (Handled natively by capturing drop event above)

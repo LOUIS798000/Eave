@@ -105,6 +105,20 @@
   /* The sheen would otherwise stack a second white wash on the glass. */
   opacity: 0.18;
 }
+/* Settings replaces the clipboard view: paint the blade flat and opaque so no
+   list rows, no frost snapshot and no live-acrylic sample of the old frame can
+   show between the cards. */
+.blade.blade-settings {
+  background-color: #fbfbfd;
+  background-image: none;
+}
+.blade.blade-settings::before {
+  opacity: 0;
+}
+.blade.blade-settings .blade-frost {
+  display: none;
+}
+
 .blade.blade-live .blade-frost {
   display: none;
 }

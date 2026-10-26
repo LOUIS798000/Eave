@@ -74,7 +74,6 @@ describe('GitHub vs Store packaging contracts (on-disk, not assumed)', () => {
   it('keeps only runtime packages as production dependencies', () => {
     expect(Object.keys(pkg.dependencies).sort()).toEqual([
       '@resvg/resvg-js',
-      'electron-updater',
       'koffi',
       'react',
       'zustand'
@@ -131,12 +130,10 @@ describe('GitHub vs Store packaging contracts (on-disk, not assumed)', () => {
     expect(unpack).toMatch(/\{node,dll\}/)
   })
 
-  it('keeps GitHub Releases as the NSIS publish source and NSIS artifact name', () => {
-    expect(pkg.build.publish).toEqual({
-      provider: 'github',
-      owner: 'Deepender25',
-      repo: 'Edge-Drop'
-    })
+  it('ships without a publish target and keeps the NSIS artifact name', () => {
+    // The app no longer talks to any update service, so there is nobody to
+    // publish to either.
+    expect(pkg.build.publish).toBeUndefined()
     expect(pkg.build.nsis.artifactName).toContain('${version}')
     expect(pkg.build.nsis.artifactName).toMatch(/\.\$\{ext\}$/)
   })
@@ -165,12 +162,13 @@ describe('GitHub vs Store packaging contracts (on-disk, not assumed)', () => {
     expect(src).not.toMatch(/setAppUserModelId\([\s\S]*isStoreBuild\(\)/)
   })
 
-  it('Settings hides the in-app updater on Store builds', () => {
+  it('Settings ships no in-app updater surface at all', () => {
     const src = read('src/components/Settings.tsx')
-    expect(src).toContain('{!isStoreBuild && (')
-    expect(src).toContain('behaviour.autoUpdatesTitle')
-    expect(src).toContain('hasPromotedTopUpdate = !isStoreBuild &&')
-    expect(src).toContain('if (isStoreBuild) return null')
+    expect(src).not.toContain('autoUpdatesTitle')
+    expect(src).not.toContain('hasPromotedTopUpdate')
+    expect(src).not.toContain('installUpdate')
+    expect(src).not.toContain('checkForUpdates')
+    expect(existsSync(join(root, 'electron/main/updater.ts'))).toBe(false)
   })
 
   it('Settings ships no promotional surface in either packaging flavour', () => {
@@ -184,12 +182,4 @@ describe('GitHub vs Store packaging contracts (on-disk, not assumed)', () => {
     expect(src).not.toContain('supportedgedrop')
   })
 
-  it('updater module hard-returns on Store for every public entry', () => {
-    const src = read('electron/main/updater.ts')
-    expect(src).toMatch(/export function quitAndInstallUpdate[\s\S]*if \(isStoreBuild\(\)\) return/)
-    expect(src).toMatch(/export function syncAutoUpdaterState[\s\S]*if \(isStoreBuild\(\)/)
-    expect(src).toMatch(/export async function checkForUpdatesManual[\s\S]*if \(isStoreBuild\(\)\)/)
-    expect(src).toMatch(/export async function startUpdateDownload[\s\S]*if \(isStoreBuild\(\)/)
-    expect(src).toMatch(/export function initAutoUpdater[\s\S]*if \(isStoreBuild\(\)\)/)
-  })
 })

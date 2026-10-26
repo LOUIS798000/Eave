@@ -45,7 +45,7 @@ describe('Desktop frost backdrop', () => {
   it('gates the frost layer on the setting and the snapshot', () => {
     const src = read('src/components/Panel.tsx')
     expect(src).toContain('const frostIntensity = settings.frostIntensity ?? 1')
-    expect(src).toContain('if (!backdrop || frostIntensity <= 0 || frostLive)')
+    expect(src).toContain('if (!backdrop || frostIntensity <= 0 || frostLive || settingsOpen)')
     expect(src).toContain('<div className="blade-frost" style={frostStyle} aria-hidden="true" />')
     expect(src).toContain("'--frost-size'")
     expect(src).toContain("'--frost-pos'")
@@ -66,6 +66,16 @@ describe('Desktop frost backdrop', () => {
     const types = read('shared/types.ts')
     expect(types).toContain('frostLive?: boolean')
     expect(DEFAULT_SETTINGS.frostLive).toBe(false)
+  })
+
+  it('paints the blade flat and opaque while Settings is open', () => {
+    // The clipboard list sits behind the settings view; neither a snapshot of
+    // it nor a live-acrylic sample of the previous frame may show through.
+    const panel = read('src/components/Panel.tsx')
+    expect(panel).toContain("settingsOpen ? ' blade-settings' : ''")
+    const css = read('src/styles/panel.css')
+    expect(css).toContain('.blade.blade-settings {')
+    expect(css).toContain('.blade.blade-settings .blade-frost {')
   })
 })
 

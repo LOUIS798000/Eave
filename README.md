@@ -6,7 +6,13 @@
 
 <p align="center"><strong>从屏幕顶边滑出的毛玻璃搁板，收住你复制的一切。</strong></p>
 
-<p align="center">Windows 10 / 11 · Electron + React + TypeScript · Apache-2.0</p>
+<p align="center">
+  <a href="https://github.com/LOUIS798000/Eave/releases/latest"><img src="https://img.shields.io/github/v/release/LOUIS798000/Eave?style=flat-square&labelColor=23272e&color=3A78F5" alt="Release"></a>
+  &nbsp;
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-3A78F5?style=flat-square&labelColor=23272e" alt="License"></a>
+  &nbsp;
+  <img src="https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-3A78F5?style=flat-square&labelColor=23272e" alt="Platform">
+</p>
 
 ---
 
@@ -36,6 +42,10 @@
 - **设置界面重做** — 统一卡片网格、光学居中的分段控件、去掉多余开关。
 - **移除应用内更新器与上游脚手架** — 不再检查更新，不再有官网 / 商店跳转。
 - **修复** — 热键取消时的模糊残影、边缘悬停丢失、全屏切换后毛玻璃消失、堆叠布局退出按钮错位。
+
+## 下载
+
+[Releases](https://github.com/LOUIS798000/Eave/releases/latest) 里的 `Eave-Setup-x.y.z.exe`，Windows 10 / 11 x64。装进用户目录，不需要管理员权限。安装包未做代码签名，首次运行若被 SmartScreen 拦下，点「更多信息 → 仍要运行」。
 
 ## 构建
 

@@ -108,7 +108,7 @@ describe('GitHub vs Store packaging contracts (on-disk, not assumed)', () => {
     expect(pkg.devDependencies['emoji-datasource-twitter']).toBeTruthy()
   })
 
-  it('keeps onboarding videos in public/ and README images out of the pack', () => {
+  it('keeps onboarding videos in public/ and no docs media alongside them', () => {
     const publicFiles = readdirSync(join(root, 'public'))
     expect(publicFiles.sort()).toEqual([
       'copy.webm',
@@ -119,28 +119,9 @@ describe('GitHub vs Store packaging contracts (on-disk, not assumed)', () => {
       'ungroup.webm',
       'welcome.webm'
     ])
-    const readmeDir = join(root, '.github/readme')
-    for (const name of [
-      'Logo.gif',
-      'open.gif',
-      'browser-demo.gif',
-      'paste.gif',
-      'file-stacks-demo.gif',
-      'ungroup.gif',
-      'stack.gif',
-      'preview.gif',
-      'kofi-qr.png',
-      'upi-sponsor-qr.png'
-    ]) {
-      expect(existsSync(join(readmeDir, name))).toBe(true)
-    }
-    const readme = read('README.md')
-    expect(readme).toContain('.github/readme/Logo.gif')
-    expect(readme).toContain('.github/readme/open.gif')
-    expect(readme).toContain('.github/readme/kofi-qr.png')
-    expect(readme).toContain('.github/readme/upi-sponsor-qr.png')
-    expect(readme).not.toMatch(/src="public\/[^"]+\.(gif|png)"/)
-    expect(readme).not.toContain('/main/public/')
+    // The app package ships onboarding media only: README screenshots, promo
+    // GIFs and sponsorship QR codes no longer live in the tree at all.
+    expect(publicFiles.every((name) => name.endsWith('.webm'))).toBe(true)
   })
 
   it('unpacks native addons the Store package must load from disk', () => {

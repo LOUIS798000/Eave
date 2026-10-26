@@ -660,6 +660,7 @@ export function Panel() {
   if (isHorizontal) containerClass += ' horizontal-dock'
   if (isHorizontal && panelH < 210) containerClass += ' blade-top-compact'
   if (isHorizontal && panelH < 180) containerClass += ' blade-top-ultra'
+  if (isHorizontal && panelH < 136) containerClass += ' blade-top-tiny'
   if (!isHorizontal && panelWidth < 300) containerClass += ' blade-compact'
   if (!isHorizontal && panelWidth < 260) containerClass += ' blade-narrow'
   if (!isHorizontal && panelH < 380) containerClass += ' blade-short'

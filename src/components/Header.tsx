@@ -1,6 +1,6 @@
 import { useStore } from '../store/appStore'
 import { SegmentedControl, type SegmentedItem } from './SegmentedControl'
-import { GearIcon, CloseIcon, InfoIcon, ClockIcon, TypeIcon, LinkIcon, ImageIcon, FilesIcon, PaletteIcon, EmojiSmileIcon } from './icons'
+import { GearIcon, CloseIcon, ClockIcon, TypeIcon, LinkIcon, ImageIcon, FilesIcon, PaletteIcon, EmojiSmileIcon } from './icons'
 import { playButtonClickSound } from '../lib/soundEffects'
 import { loadEmojiCatalog } from '../lib/emoji/load'
 import { ShelfSearch } from './ShelfSearch'
@@ -29,22 +29,8 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
   const settingsOpen = useStore((s) => s.settingsOpen)
   const updateInfo = useStore((s) => s.updateInfo)
   const settings = useStore((s) => s.settings)
-  const patchSettings = useStore((s) => s.patchSettings)
-  const currentVersion = useStore((s) => s.currentVersion)
   const settingsTab = useStore((s) => s.settingsTab)
   const setSettingsTab = useStore((s) => s.setSettingsTab)
-
-  const isChangelogUnread = settingsOpen && (
-    !settings.lastSeenChangelogVersion ||
-    (currentVersion && settings.lastSeenChangelogVersion !== currentVersion && settings.lastSeenChangelogVersion !== `v${currentVersion}`)
-  )
-
-  const handleOpenChangelog = () => {
-    if (currentVersion) {
-      patchSettings({ lastSeenChangelogVersion: currentVersion })
-    }
-    window.open('https://www.edgedrop.app/changelog', '_blank')
-  }
 
   const typeFilter = useStore((s) => s.typeFilter)
   const setTypeFilter = useStore((s) => s.setTypeFilter)
@@ -248,51 +234,6 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
         {isHorizontal && clearProps && !settingsOpen && (
           <ClearMenu {...clearProps} menuDirection="down" />
         )}
-        {settingsOpen && (
-          <button
-            type="button"
-            className="icon-btn"
-            title={t('header.whatsNew')}
-            onClick={() => {
-              playButtonClickSound()
-              handleOpenChangelog()
-            }}
-            style={{
-              color: 'rgba(60, 60, 67, 0.72)',
-              background: 'transparent',
-              border: 'none',
-              boxShadow: 'none',
-              flexShrink: 0,
-              cursor: 'pointer',
-              width: 32,
-              height: 32,
-              display: 'grid',
-              placeItems: 'center',
-              position: 'relative',
-              borderRadius: 8,
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <InfoIcon width={16} height={16} />
-            {isChangelogUnread && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 6,
-                  right: 6,
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  backgroundColor: '#0a84ff',
-                  boxShadow: '0 0 6px rgba(10, 132, 255, 0.5)',
-                  border: '1.5px solid rgba(255, 255, 255, 0.9)',
-                  pointerEvents: 'none'
-                }}
-              />
-            )}
-          </button>
-        )}
-
         <button
           type="button"
           className={`icon-btn${settingsOpen ? ' active' : ''}`}

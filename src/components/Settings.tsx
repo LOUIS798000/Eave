@@ -15,7 +15,7 @@ import {
   CopyIndicatorIcon,
   SparkleIndicatorIcon
 } from './CopyIndicatorCurve'
-import { ChevronRightIcon, CloseIcon, LogOutIcon, StarIcon, InfoIcon, GithubOctocatLogo, MicrosoftStoreLogo } from './icons'
+import { ChevronRightIcon, CloseIcon, LogOutIcon } from './icons'
 import { HotkeyRecorder } from './HotkeyRecorder'
 import { SlideCommit } from './SlideCommit'
 import { WakeSlider } from './WakeSlider'
@@ -271,7 +271,7 @@ export function Settings({
       >
         <div className="shelf-card-top">
           <div className="setting-group-label">{t('groups.hoverDelay') || 'HOVER DELAY'}</div>
-          <div className="setting-slider-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <div className="setting-slider-header">
             <div>
               <div className="setting-title">{t('behaviour.hoverDelayTitle') || 'Open Delay'}</div>
               <div className="setting-desc">
@@ -462,128 +462,24 @@ export function Settings({
   )
   const updateBannerRef = useRef<HTMLDivElement | null>(null)
 
-  // ── Persistent footer shared across all tabs ───────────────────────────
+  // ── Footer ─────────────────────────────────────────────────────────────
+  // One action only: leaving the app. Everything promotional was removed so
+  // Settings stays a pure configuration surface.
   const PersistentFooter = (
-    <>
-      {/* Community & Support */}
-      <div className="setting-section-divider">
-        <span className="setting-section-divider-text">{t('footer.communityAndSupport') || 'COMMUNITY & SUPPORT'}</span>
-      </div>
-
-      <div className="setting-card">
-        <div className="shelf-card-top">
-          <div className="setting-group-label">{t('groups.feedback') || 'FEEDBACK'}</div>
-          <div className="setting-title">{t('footer.feedbackTitle')}</div>
-          <div className="setting-desc">{t('footer.feedbackDesc')}</div>
-        </div>
-        <div className="shelf-card-bottom">
-          <button
-            className="pill display-pill"
-            style={{ width: '100%', justifyContent: 'center', padding: '7px 14px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '12.5px' }}
-            onClick={() => {
-              playButtonClickSound()
-              window.open('https://github.com/Deepender25/Edge-Drop/issues/new/choose', '_blank')
-            }}
-          >
-            {t('footer.submitFeedback')}
-          </button>
-        </div>
-      </div>
-
-      {/* Support & GitHub Promo Card */}
-      <div className="setting-card" style={{ padding: '14px' }}>
-        <div className="support-promo" style={{ margin: 0, padding: 0, background: 'transparent', border: 'none' }}>
-          <div className="support-promo-title">
-            {t('footer.supportPromo')}
-          </div>
-          <div className="support-buttons-group">
-            {/* Primary Action: Support via Ko-fi / UPI */}
-            <button
-              className="kofi-support-btn"
-              onClick={() => {
-                playButtonClickSound()
-                window.open('https://www.edgedrop.app/supportedgedrop', '_blank')
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff4757" stroke="none" style={{ flexShrink: 0 }}>
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
-              <span>{t('footer.supportOnKofi')}</span>
-            </button>
-
-            {/* Secondary Action: GitHub Star on GitHub builds / Review on Microsoft Store for Store builds */}
-            {isStoreBuild ? (
-              <button
-                type="button"
-                className="store-review-promo-btn"
-                onClick={() => {
-                  playButtonClickSound()
-                  window.open('ms-windows-store://review/?ProductId=9P3JMHN9M4NR', '_blank')
-                }}
-              >
-                <MicrosoftStoreLogo width={14} height={14} className="store-logo-icon" />
-                <span>{t('footer.reviewOnStore')}</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="github-promo-btn"
-                onClick={() => {
-                  playButtonClickSound()
-                  window.open('https://github.com/Deepender25/Edge-Drop', '_blank')
-                }}
-              >
-                <GithubOctocatLogo width={14} height={14} className="github-octocat-icon" />
-                <span>{t('footer.starOnGithub')}</span>
-                <StarIcon width={13} height={13} className="star-icon" weight="fill" fill="#fbbf24" style={{ marginLeft: 2 }} />
-              </button>
-            )}
-          </div>
-          <div className="app-version-footer">
-            <span>{t('footer.version')} {currentVersion || '0.3.1'}</span>
-            <span className="version-separator">·</span>
-            <button
-              type="button"
-              className="version-changelog-link"
-              onClick={() => {
-                playButtonClickSound()
-                if (currentVersion) {
-                  patch({ lastSeenChangelogVersion: currentVersion })
-                }
-                window.open('https://www.edgedrop.app/changelog', '_blank')
-              }}
-            >
-              <span>{t('header.whatsNew')}</span>
-              <span style={{ fontSize: 10, opacity: 0.7 }}>↗</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Subtle Bottom Quit Button */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12, marginBottom: 8 }}>
-        <button
-          className="subtle-quit-btn"
-          onClick={() => {
-            playButtonClickSound()
-            void window.edge.quitApp()
-          }}
-        >
-          <LogOutIcon width={13} height={13} />
-          <span>{t('tray.quit')}</span>
-        </button>
-      </div>
-    </>
+    <div className="settings-quit-row">
+      <button
+        type="button"
+        className="subtle-quit-btn"
+        onClick={() => {
+          playButtonClickSound()
+          void window.edge.quitApp()
+        }}
+      >
+        <LogOutIcon width={13} height={13} />
+        <span>{t('tray.quit')}</span>
+      </button>
+    </div>
   )
-
-  const handleOpenChangelog = () => {
-    playButtonClickSound()
-    const targetVersion = checkState.version || updateInfo?.latestVersion || currentVersion
-    if (targetVersion) {
-      patch({ lastSeenChangelogVersion: targetVersion })
-    }
-    window.open('https://www.edgedrop.app/changelog', '_blank')
-  }
 
   // ── Promoted Top Update Card Renderer (Vertical Layout) ────────────────────
   const renderPromotedTopUpdateCard = () => {
@@ -599,15 +495,6 @@ export function Settings({
                 <span className="update-dot" />
                 <span>{t('behaviour.updateLabelReady') || 'UPDATE READY'}</span>
               </div>
-              <button
-                type="button"
-                className="update-info-btn"
-                title={t('header.whatsNew') || "What's New"}
-                aria-label={t('header.whatsNew') || "What's New"}
-                onClick={handleOpenChangelog}
-              >
-                <InfoIcon width={13} height={13} />
-              </button>
             </div>
             <div className="setting-title">
               {t('behaviour.updateReadyTitle', { version: updateDownloaded.version })}
@@ -642,15 +529,6 @@ export function Settings({
                 <span className="update-dot checking" />
                 <span>{t('behaviour.updateLabelDownloading') || 'DOWNLOADING UPDATE'}</span>
               </div>
-              <button
-                type="button"
-                className="update-info-btn"
-                title={t('header.whatsNew') || "What's New"}
-                aria-label={t('header.whatsNew') || "What's New"}
-                onClick={handleOpenChangelog}
-              >
-                <InfoIcon width={13} height={13} />
-              </button>
             </div>
             <div className="setting-title">
               {updateInfo?.latestVersion
@@ -681,15 +559,6 @@ export function Settings({
                 <span className="update-dot" />
                 <span>{t('behaviour.updateLabelAvailable') || 'NEW UPDATE AVAILABLE'}</span>
               </div>
-              <button
-                type="button"
-                className="update-info-btn"
-                title={t('header.whatsNew') || "What's New"}
-                aria-label={t('header.whatsNew') || "What's New"}
-                onClick={handleOpenChangelog}
-              >
-                <InfoIcon width={13} height={13} />
-              </button>
             </div>
             <div className="setting-title">
               {t('behaviour.updateAvailableTitle', { version: versionStr })}
@@ -745,15 +614,6 @@ export function Settings({
                 <span className="update-dot" />
                 <span>{t('behaviour.updateLabelReady') || 'UPDATE READY'}</span>
               </div>
-              <button
-                type="button"
-                className="update-info-btn"
-                title={t('header.whatsNew') || "What's New"}
-                aria-label={t('header.whatsNew') || "What's New"}
-                onClick={handleOpenChangelog}
-              >
-                <InfoIcon width={13} height={13} />
-              </button>
             </div>
             <div className="setting-title">
               {t('behaviour.updateReadyTitle', { version: updateDownloaded.version })}
@@ -788,15 +648,6 @@ export function Settings({
                 <span className="update-dot checking" />
                 <span>{t('behaviour.updateLabelDownloading') || 'DOWNLOADING UPDATE'}</span>
               </div>
-              <button
-                type="button"
-                className="update-info-btn"
-                title={t('header.whatsNew') || "What's New"}
-                aria-label={t('header.whatsNew') || "What's New"}
-                onClick={handleOpenChangelog}
-              >
-                <InfoIcon width={13} height={13} />
-              </button>
             </div>
             <div className="setting-title">
               {updateInfo?.latestVersion
@@ -827,15 +678,6 @@ export function Settings({
                 <span className="update-dot" />
                 <span>{t('behaviour.updateLabelAvailable') || 'NEW UPDATE AVAILABLE'}</span>
               </div>
-              <button
-                type="button"
-                className="update-info-btn"
-                title={t('header.whatsNew') || "What's New"}
-                aria-label={t('header.whatsNew') || "What's New"}
-                onClick={handleOpenChangelog}
-              >
-                <InfoIcon width={13} height={13} />
-              </button>
             </div>
             <div className="setting-title">
               {t('behaviour.updateAvailableTitle', { version: versionStr })}
@@ -988,106 +830,6 @@ export function Settings({
       }
       horizontalTabScrollPositions.current[horizontalTab] = e.currentTarget.scrollLeft
     }
-
-    const renderHorizontalCommunityCard = () => (
-      <div className="settings-shelf-card support-card">
-        <div className="shelf-card-top">
-          <div className="setting-group-label">{t('footer.communityAndSupport') || 'COMMUNITY & SUPPORT'}</div>
-          <div className="setting-title">{t('footer.communityAndSupport')}</div>
-          <div className="setting-desc">{t('footer.supportTagline') || '100% free & open-source clipboard'}</div>
-        </div>
-        <div className="shelf-card-bottom">
-          <button
-            type="button"
-            className="shelf-kofi-btn"
-            onClick={() => {
-              playButtonClickSound()
-              window.open('https://www.edgedrop.app/supportedgedrop', '_blank')
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="#ff4757" stroke="none" style={{ flexShrink: 0 }}>
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
-            <span>{t('footer.supportOnKofi')}</span>
-          </button>
-          {isStoreBuild ? (
-            <button
-              type="button"
-              className="shelf-github-btn"
-              onClick={() => {
-                playButtonClickSound()
-                window.open('ms-windows-store://review/?ProductId=9P3JMHN9M4NR', '_blank')
-              }}
-            >
-              <MicrosoftStoreLogo width={13} height={13} className="store-logo-icon" />
-              <span>{t('footer.reviewOnStore')}</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="shelf-github-btn"
-              onClick={() => {
-                playButtonClickSound()
-                window.open('https://github.com/Deepender25/Edge-Drop', '_blank')
-              }}
-            >
-              <GithubOctocatLogo width={13} height={13} className="github-octocat-icon" />
-              <span>{t('footer.starOnGithub')}</span>
-              <StarIcon width={12} height={12} className="star-icon" weight="fill" fill="#fbbf24" style={{ marginLeft: 2 }} />
-            </button>
-          )}
-        </div>
-      </div>
-    )
-
-    const renderHorizontalAboutCard = () => (
-      <div className="settings-shelf-card about-card">
-        <div className="shelf-card-top">
-          <div className="setting-group-label">{t('groups.aboutEdgeDrop') || 'ABOUT EDGE-DROP'}</div>
-          <div className="setting-title">Edge-Drop v{currentVersion || '0.3.2'}</div>
-          <div className="setting-desc">{t('footer.feedbackDesc')}</div>
-        </div>
-        <div className="shelf-card-bottom">
-          <button
-            type="button"
-            className="pill display-pill"
-            style={{ width: '100%', justifyContent: 'center', height: 30, fontSize: 11.5, fontWeight: 550, borderRadius: 999 }}
-            onClick={() => {
-              playButtonClickSound()
-              window.open('https://github.com/Deepender25/Edge-Drop/issues/new/choose', '_blank')
-            }}
-          >
-            {t('footer.submitFeedback')}
-          </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 2 }}>
-            <button
-              type="button"
-              className="version-changelog-link"
-              style={{ fontSize: 11 }}
-              onClick={() => {
-                playButtonClickSound()
-                if (currentVersion) patch({ lastSeenChangelogVersion: currentVersion })
-                window.open('https://www.edgedrop.app/changelog', '_blank')
-              }}
-            >
-              {t('header.whatsNew')} ↗
-            </button>
-            <button
-              type="button"
-              className="shelf-quit-btn"
-              onClick={() => {
-                playButtonClickSound()
-                void window.edge.quitApp()
-              }}
-            >
-              <LogOutIcon width={11} height={11} />
-              <span>{t('tray.quit')}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    )
 
     return (
       <div className="settings-horizontal-shelf">
@@ -1340,7 +1082,7 @@ export function Settings({
                         key={opt.val}
                         type="button"
                         className={`pill ${settings.historyLimit === opt.val ? 'active' : ''}`}
-                        style={{ height: 32, fontSize: 11.5, fontWeight: 500, padding: 0 }}
+                        style={{ fontSize: 11.5, fontWeight: 500, padding: 0 }}
                         onClick={() => { playButtonClickSound(); patch({ historyLimit: opt.val }) }}
                       >
                         {opt.label}
@@ -1370,7 +1112,7 @@ export function Settings({
                         key={opt.val}
                         type="button"
                         className={`pill ${settings.autoDeleteHours === opt.val ? 'active' : ''}`}
-                        style={{ height: 32, fontSize: 11, fontWeight: 500, padding: 0 }}
+                        style={{ fontSize: 11, fontWeight: 500, padding: 0 }}
                         onClick={() => { playButtonClickSound(); patch({ autoDeleteHours: opt.val }) }}
                       >
                         {opt.label}
@@ -1414,7 +1156,7 @@ export function Settings({
                           key={opt.id}
                           type="button"
                           className={`pill ${updateMode === opt.id ? 'active' : ''}`}
-                          style={{ height: 32, fontSize: 11, fontWeight: 500, padding: '0 4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', justifyContent: 'center' }}
+                          style={{ fontSize: 11, fontWeight: 500, padding: '0 4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', justifyContent: 'center' }}
                           onClick={() => { playButtonClickSound(); patch({ updateMode: opt.id }) }}
                         >
                           {opt.label}
@@ -1452,7 +1194,7 @@ export function Settings({
                     <button
                       type="button"
                       className="pill display-pill"
-                      style={{ width: '100%', justifyContent: 'center', fontSize: 11.5, height: 32 }}
+                      style={{ width: '100%', justifyContent: 'center', fontSize: 11.5 }}
                       disabled={checkState.status === 'checking'}
                       onClick={() => {
                         playButtonClickSound()
@@ -1476,16 +1218,21 @@ export function Settings({
                 </div>
               )}
 
-              {/* ── SUB-GROUP 6 DIVIDER: Community & Support ── */}
-              <div className="shelf-section-divider">
-                <span className="shelf-section-divider-text">{t('footer.communityAndSupport') || 'COMMUNITY & SUPPORT'}</span>
+
+              <div className="settings-shelf-card quit-card">
+                <button
+                  type="button"
+                  className="shelf-quit-tile"
+                  onClick={() => {
+                    playButtonClickSound()
+                    void window.edge.quitApp()
+                  }}
+                >
+                  <LogOutIcon width={13} height={13} />
+                  <span>{t('tray.quit')}</span>
+                </button>
               </div>
 
-              {/* Card 13: Community & Feedback */}
-              {renderHorizontalCommunityCard()}
-
-              {/* Card 14: About & Quit */}
-              {renderHorizontalAboutCard()}
             </>
           )}
 
@@ -1566,7 +1313,7 @@ export function Settings({
                           key={d.id}
                           type="button"
                           className={`pill display-pill ${isActive ? 'active' : ''}`}
-                          style={{ width: '100%', justifyContent: 'space-between', padding: '6px 14px', fontSize: 11.5, height: 32, flexShrink: 0 }}
+                          style={{ width: '100%', justifyContent: 'space-between', padding: '0 12px', fontSize: 11.5, flexShrink: 0 }}
                           onClick={() => {
                             playButtonClickSound()
                             patch({ stickDisplayId: d.id })
@@ -1624,7 +1371,7 @@ export function Settings({
                         key={opt.val}
                         type="button"
                         className={`pill ${Math.abs(settings.hotZoneHeight - opt.val) < 0.08 ? 'active' : ''}`}
-                        style={{ height: 32, fontSize: 11.5, fontWeight: 500, padding: 0 }}
+                        style={{ fontSize: 11.5, fontWeight: 500, padding: 0 }}
                         onClick={() => {
                           playButtonClickSound()
                           patch({ hotZoneHeight: opt.val })
@@ -1641,7 +1388,7 @@ export function Settings({
               <div className="settings-shelf-card trigger-thickness-card position-col">
                 <div className="shelf-card-top">
                   <div className="setting-group-label">{t('groups.triggerThickness') || 'TRIGGER THICKNESS'}</div>
-                  <div className="setting-slider-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <div className="setting-slider-header">
                     <div>
                       <div className="setting-title">{t('position.edgeTriggerThicknessTitle')}</div>
                       <div className="setting-desc">{t('position.edgeTriggerThicknessDesc')}</div>
@@ -1703,16 +1450,21 @@ export function Settings({
                 </div>
               </div>
 
-              {/* ── SUB-GROUP 3 DIVIDER: Community & Support ── */}
-              <div className="shelf-section-divider">
-                <span className="shelf-section-divider-text">{t('footer.communityAndSupport') || 'COMMUNITY & SUPPORT'}</span>
+
+              <div className="settings-shelf-card quit-card">
+                <button
+                  type="button"
+                  className="shelf-quit-tile"
+                  onClick={() => {
+                    playButtonClickSound()
+                    void window.edge.quitApp()
+                  }}
+                >
+                  <LogOutIcon width={13} height={13} />
+                  <span>{t('tray.quit')}</span>
+                </button>
               </div>
 
-              {/* Card 9: Community & Feedback */}
-              {renderHorizontalCommunityCard()}
-
-              {/* Card 10: About & Quit */}
-              {renderHorizontalAboutCard()}
             </>
           )}
 
@@ -1798,7 +1550,7 @@ export function Settings({
                       </button>
                     ))}
                   </div>
-                  <div className="setting-pills" style={{ marginTop: 8 }}>
+                  <div className="setting-pills">
                     {[
                       { label: t('appearance.frostStill'), live: false },
                       { label: t('appearance.frostLive'), live: true }
@@ -1855,16 +1607,21 @@ export function Settings({
                 </div>
               </div>
 
-              {/* ── SUB-GROUP 3 DIVIDER: Community & Support ── */}
-              <div className="shelf-section-divider">
-                <span className="shelf-section-divider-text">{t('footer.communityAndSupport') || 'COMMUNITY & SUPPORT'}</span>
+
+              <div className="settings-shelf-card quit-card">
+                <button
+                  type="button"
+                  className="shelf-quit-tile"
+                  onClick={() => {
+                    playButtonClickSound()
+                    void window.edge.quitApp()
+                  }}
+                >
+                  <LogOutIcon width={13} height={13} />
+                  <span>{t('tray.quit')}</span>
+                </button>
               </div>
 
-              {/* Card 5: Community & Feedback */}
-              {renderHorizontalCommunityCard()}
-
-              {/* Card 6: About & Quit */}
-              {renderHorizontalAboutCard()}
             </>
           )}
         </div>
@@ -2165,7 +1922,7 @@ export function Settings({
                     </div>
                   </div>
 
-                  {/* ── UPDATES SECTION (Consolidated above Community & Support) ── */}
+                  {/* ── UPDATES SECTION ── */}
                   {!isStoreBuild && (
                     <>
                       <div className="setting-section-divider">
@@ -2280,7 +2037,7 @@ export function Settings({
                       <div className="setting-card">
                         <div className="shelf-card-top">
                           <div className="setting-group-label">{t('groups.alignment') || 'ALIGNMENT'}</div>
-                          <div className="setting-slider-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                          <div className="setting-slider-header">
                             <div>
                               <div className="setting-title">{sliderTitle}</div>
                               <div className="setting-desc">{sliderDesc}</div>
@@ -2478,7 +2235,7 @@ export function Settings({
                   <div className="setting-card">
                     <div className="shelf-card-top">
                       <div className="setting-group-label">{t('groups.triggerThickness') || 'TRIGGER THICKNESS'}</div>
-                      <div className="setting-slider-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <div className="setting-slider-header">
                         <div>
                           <div className="setting-title">{t('position.edgeTriggerThicknessTitle')}</div>
                           <div className="setting-desc">{t('position.edgeTriggerThicknessDesc')}</div>
@@ -2794,7 +2551,7 @@ export function Settings({
                           </button>
                         ))}
                       </div>
-                      <div className="setting-pills" style={{ marginTop: 8 }}>
+                      <div className="setting-pills">
                         {[
                           { label: t('appearance.frostStill'), live: false },
                           { label: t('appearance.frostLive'), live: true }

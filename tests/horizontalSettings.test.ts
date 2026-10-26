@@ -116,7 +116,9 @@ describe('Horizontal Card Shelf Settings Layout', () => {
     expect(css).toContain('.settings-header-pill')
     expect(css).toContain('.shelf-indicator-grid')
     expect(css).toContain('.shelf-indicator-item')
-    expect(css).toContain('.shelf-quit-btn')
+    // Settings ends on a quiet quit tile instead of the old promo footer.
+    expect(css).toContain('.shelf-quit-tile')
+    expect(css).toContain('.settings-shelf-card.quit-card')
   })
 
   it('getHorizontalDockMetrics scales trigger bar length based on hotZoneHeight (+25% increase)', async () => {
@@ -189,9 +191,11 @@ describe('Horizontal Card Shelf Settings Layout', () => {
     // Should contain clearUnpinnedOnRestart
     expect(horizontalBlock).toContain('clearUnpinnedTitle')
     expect(horizontalBlock).toContain('clearUnpinnedOnRestart')
-    // Should contain support links
-    expect(horizontalBlock).toContain('supportOnKofi')
-    expect(horizontalBlock).toContain('starOnGithub')
+    // Settings is a configuration surface: no upstream promo links survive.
+    expect(horizontalBlock).not.toContain('supportOnKofi')
+    expect(horizontalBlock).not.toContain('starOnGithub')
+    expect(horizontalBlock).not.toContain('github.com')
+    expect(horizontalBlock).not.toContain('edgedrop.app')
   })
 
   it('Vertical left/right settings remain untouched with position slider, window size and vertical controls intact', () => {
@@ -219,9 +223,9 @@ describe('Horizontal Card Shelf Settings Layout', () => {
     const src = read('src/components/Settings.tsx')
     const horizontalBlock = src.slice(src.indexOf('if (isHorizontal) {'), src.indexOf('const maxTabLen ='))
 
-    // Translation fix: supportOnKofi instead of supportDev
-    expect(horizontalBlock).toContain("t('footer.supportOnKofi')")
-    expect(horizontalBlock).not.toContain("t('footer.supportDev')")
+    // Quit is the only footer action left after the promo footer was removed.
+    expect(horizontalBlock).toContain("t('tray.quit')")
+    expect(horizontalBlock).not.toContain('support-promo')
 
     // Multi-column dashboard structure
     expect(horizontalBlock).toContain('tab-view')
@@ -241,6 +245,38 @@ describe('Horizontal Card Shelf Settings Layout', () => {
     expect(horizontalBlock).not.toContain('(320px)')
     expect(horizontalBlock).not.toContain('(460px)')
     expect(horizontalBlock).toContain('${settings.hotZoneWidth ?? 3}px')
+  })
+
+  it('Shelf cards share one box: a single width token, one padding rhythm, and a segmented control track', () => {
+    const css = read('src/styles/settings.css')
+
+    // Every card takes its width/height from the same two custom properties,
+    // so a row of cards is a grid rather than a set of hand-sized tiles.
+    expect(css).toContain('width: var(--shelf-card-w, 252px)')
+    expect(css).toContain('height: var(--shelf-card-h, 146px)')
+    // The few wider cards only override the token, never the width directly.
+    expect(css).toContain('--shelf-card-w: 288px')
+    expect(css).toContain('--shelf-card-w: 132px')
+    // Pills read as one segmented control instead of loose transparent boxes.
+    expect(css).toContain('.settings-shelf-card .setting-pills {')
+    expect(css).toContain('background: rgba(120, 120, 128, 0.13)')
+    // Vertical rhythm: titles clamp, controls pin to the bottom edge.
+    expect(css).toContain('-webkit-line-clamp: 2')
+    expect(css).toContain('.shelf-card-bottom > *')
+  })
+
+  it('Compact and tiny docks keep one control-height baseline and hide nothing that is still readable', () => {
+    const css = read('src/styles/settings.css')
+
+    // Compact (140px dock): one-line title/description, 22px pills in a
+    // 26px track, sliders keep their presets and drop the paragraph instead.
+    expect(css).toContain('.blade-top-compact .settings-shelf-track.tab-view .settings-shelf-card')
+    expect(css).toContain('.blade-top-compact .hover-delay-card .setting-desc')
+    // Tiny (<136px): descriptions go away, the section dividers go with them.
+    expect(css).toContain('.blade-top-tiny .settings-shelf-track.tab-view .settings-shelf-card')
+    expect(css).toContain('.blade-top-tiny .settings-shelf-track .shelf-section-divider')
+    // The window size card drops its preset row rather than clipping it.
+    expect(css).toContain('.blade-top-compact .panel-size-presets')
   })
 
   it('settings.css contains tab-view full-width obsidian rules', () => {

@@ -192,13 +192,15 @@ describe('GitHub vs Store packaging contracts (on-disk, not assumed)', () => {
     expect(src).toContain('if (isStoreBuild) return null')
   })
 
-  it('Settings renders Store review button on Store builds and GitHub star on GitHub builds', () => {
+  it('Settings ships no promotional surface in either packaging flavour', () => {
     const src = read('src/components/Settings.tsx')
-    expect(src).toContain('isStoreBuild ? (')
-    expect(src).toContain('store-review-promo-btn')
-    expect(src).toContain('ms-windows-store://review/?ProductId=9P3JMHN9M4NR')
-    expect(src).toContain('github-promo-btn')
-    expect(src).toContain('https://github.com/Deepender25/Edge-Drop')
+    // Store review prompts, GitHub stars and Ko-fi links all lived in the
+    // promo footer; Settings is now a pure configuration surface.
+    expect(src).not.toContain('store-review-promo-btn')
+    expect(src).not.toContain('ms-windows-store://review')
+    expect(src).not.toContain('github-promo-btn')
+    expect(src).not.toContain('github.com/Deepender25')
+    expect(src).not.toContain('supportedgedrop')
   })
 
   it('updater module hard-returns on Store for every public entry', () => {

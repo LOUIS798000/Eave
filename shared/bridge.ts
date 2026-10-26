@@ -74,6 +74,8 @@ export interface EdgeApi {
    * place the live acrylic layer exactly behind the blade.
    */
   reportBladeRect: (rect: import('./types').BladeRect | null) => void
+  /** The open animation has settled — the blade fills its rounded rect. */
+  reportPanelExpanded: () => void
 
   /* Main -> Renderer */
   onItems: (cb: (items: import('./types').ClipboardItemDto[], meta?: { reason?: 'usage' | 'capture' }) => void) => () => void
@@ -82,6 +84,11 @@ export interface EdgeApi {
   onOpenSettings: (cb: () => void) => () => void
   /** Frost backdrop for the blade (downscaled desktop snapshot, or null). */
   onBackdrop: (cb: (backdrop: { url: string; width: number; height: number } | null) => void) => () => void
+  /**
+   * The live acrylic layer is on (or off) screen. The blade only paints its
+   * translucent sheet while this is true.
+   */
+  onFrostLive: (cb: (on: boolean) => void) => () => void
   onDragEnd: (cb: () => void) => () => void
   onInternalDrop: (cb: (pos: { x: number; y: number }) => void) => () => void
   onCursorEdge: (cb: (data: {

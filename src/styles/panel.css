@@ -82,11 +82,22 @@
    finally be see-through and the desktop behind shows up blurred and live.
    The trade-off is deliberate: a translucent backdrop forces greyscale text
    antialiasing (see the ClearType note above), which is why this is a setting
-   and not the default. The overlay keeps just enough white to hold contrast
-   for dark text over any wallpaper. */
+   and not the default.
+
+   The base stays OPAQUE until `.blade-live-shown` arrives from main, which only
+   happens once the blur sheet is on screen *and* the open animation has grown
+   the rounded blade over all of it. Fading earlier — or on a guessed timeout —
+   is what showed a bare rectangle first and the rounded panel second: the
+   acrylic layer is a plain rect, it has no corners of its own to hide with. */
 .blade.blade-live {
-  background-color: rgba(251, 251, 253, 0.42);
+  background-color: #fbfbfd;
   background-image: none;
+}
+.blade.blade-live.blade-live-shown {
+  /* --live-sheet comes from shared/glass.ts so "毛玻璃强度" moves the system
+     veil and this sheet together instead of cancelling out. */
+  background-color: rgba(251, 251, 253, var(--live-sheet, 0.42));
+  transition: background-color 260ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 .blade.blade-live::before {
   /* The sheen would otherwise stack a second white wash on the glass. */
@@ -344,6 +355,11 @@
 .blade-container.reduce-motion .blade::after {
   transition-duration: 0.01s;
   transition-delay: 0s;
+}
+
+/* Reduced motion: the reveal still happens, just without the fade. */
+.blade-container.reduce-motion .blade.blade-live.blade-live-shown {
+  transition: none;
 }
 
 

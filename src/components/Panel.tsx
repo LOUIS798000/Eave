@@ -24,6 +24,7 @@ import { LanguageFlyout } from './LanguageFlyout'
 import { CopyIndicatorCurve } from './CopyIndicatorCurve'
 import { useFilteredItems } from '../hooks/useFilteredItems'
 import { resolvePanelHeight, resolvePanelWidth, resolveTopCardWidth, resolveTopPanelHeight } from '../../shared/panelSize'
+import { liveSheetAlpha } from '../../shared/glass'
 
 import { useTranslation } from '../i18n'
 
@@ -142,6 +143,7 @@ export function Panel() {
   const internalDragReq = useStore((s) => s.internalDragReq)
 
   const bladeRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   /* ── Frost backdrop ───────────────────────────────────────────────────
    * Main hands us a downscaled snapshot of the desktop behind the window. It
@@ -156,6 +158,53 @@ export function Panel() {
   // Live acrylic: main renders a real DWM-blurred layer behind this window, so
   // the blade shows glass instead of a snapshot (and needs no backdrop image).
   const frostLive = (settings.frostLive ?? false) && frostIntensity > 0
+  /* True only once main confirms the blur sheet is actually on screen behind
+   * us. Until then the blade paints its OPAQUE sheet: the acrylic layer is a
+   * plain rectangle, so a translucent blade over it while the rounded shape is
+   * still growing shows the rectangle first and the panel second. Fading the
+   * sheet only after the confirmation ties the two together at any frame rate. */
+  const [liveGlassOn, setLiveGlassOn] = useState(false)
+
+  useEffect(() => {
+    return window.edge.onFrostLive((on) => setLiveGlassOn(on))
+  }, [])
+
+  useEffect(() => {
+    // Leaving live mode (or setting the strength to zero) drops the sheet the
+    // moment the layer goes away rather than waiting for an event.
+    if (!frostLive) setLiveGlassOn(false)
+  }, [frostLive])
+
+  const bladeStyle: React.CSSProperties = isHorizontal
+    ? ({
+        width: topPanelWidth,
+        height: panelH,
+        '--hcard-h': `${horizontalCardH}px`,
+        '--hcard-w': `${horizontalCardW}px`
+      } as React.CSSProperties)
+    : { width: panelWidth, height: panelH }
+  if (frostLive) {
+    ;(bladeStyle as Record<string, unknown>)['--live-sheet'] = String(liveSheetAlpha(frostIntensity))
+  }
+  const bladeClass = frostLive
+    ? `blade blade-live${liveGlassOn ? ' blade-live-shown' : ''}`
+    : 'blade'
+
+  /* The frame on which the open clip-path settles is the only one where the
+   * blade exactly covers the acrylic sheet (same rect, same radius). Report it
+   * so main can raise the glass in step with the shape instead of guessing a
+   * timeout — that guess is what flashed a grey rectangle before the blade. */
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const onTransitionEnd = (e: TransitionEvent) => {
+      if (e.target !== el || e.propertyName !== 'clip-path') return
+      if (!useStore.getState().open) return
+      window.edge.reportPanelExpanded()
+    }
+    el.addEventListener('transitionend', onTransitionEnd)
+    return () => el.removeEventListener('transitionend', onTransitionEnd)
+  }, [])
 
   useEffect(() => {
     return window.edge.onBackdrop((next) => setBackdrop(next))
@@ -505,6 +554,7 @@ export function Panel() {
       <CopyIndicatorCurve />
       <div
         className={containerClass}
+        ref={containerRef}
         onDragEnter={onDragEnter}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
@@ -599,10 +649,8 @@ export function Panel() {
         ))}
         <div
           ref={bladeRef}
-          className={frostLive ? 'blade blade-live' : 'blade'}
-          style={isHorizontal
-            ? ({ width: topPanelWidth, height: panelH, '--hcard-h': `${horizontalCardH}px`, '--hcard-w': `${horizontalCardW}px` } as React.CSSProperties)
-            : { width: panelWidth, height: panelH }}
+          className={bladeClass}
+          style={bladeStyle}
         >
           {frostStyle && <div className="blade-frost" style={frostStyle} aria-hidden="true" />}
           <Header

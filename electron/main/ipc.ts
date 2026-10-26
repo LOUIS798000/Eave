@@ -12,12 +12,12 @@ import { psHost, getSystemPowerShellPath, getWritableCwd } from './powershell'
 import { filterValidPaths, isExistingFilePath } from './pathValidation'
 import { type InvokeMap, type InvokeChannel, type SendMap, type SendChannel } from '../../shared/ipc'
 import { getStore, loadSettings, saveSettings, pushState, addFiles, getWatcher } from './state'
-import { sendToMainWindow, setInteractive, setHeartbeatPaused, setHotZoneWidth, repositionWindow, getDisplayListOptions, popUpAndRetract, setWindowFocusable, captureExternalForeground, traceFg, resolvePasteTarget, applyFrostMode } from './window'
+import { sendToMainWindow, setInteractive, setHeartbeatPaused, setHotZoneWidth, repositionWindow, getDisplayListOptions, popUpAndRetract, setWindowFocusable, captureExternalForeground, traceFg, resolvePasteTarget, applyFrostMode, onPanelExpanded } from './window'
 import { registerGlobalHotkey } from './index'
 import { getOnboardingWindow } from './onboardingWindow'
 import { rebuildTrayMenu } from './tray'
 import { startDragOut, resolveDragData, prestageDrag, stageDragFile } from './drag'
-import { setAcrylicBladeRect } from './acrylic'
+import { setAcrylicBladeRect, isAcrylicLayerVisible } from './acrylic'
 import { clipboardSignature, formatTabularDataForClipboard, signatureMatchesItem } from '../clipboard/formats'
 import type { ClipboardItem, ItemData, MergeResult } from '../../shared/types'
 import { quitAndInstallUpdate, checkForUpdatesManual, startUpdateDownload, syncAutoUpdaterState, getCachedUpdateState, triggerBackgroundCheck } from './updater'
@@ -872,6 +872,16 @@ export function registerSendListeners(): void {
 
   on('window:blade-rect', (_sender, rect) => {
     setAcrylicBladeRect(rect)
+    // Self-heal: a renderer that (re)loads mid-open — dev HMR, a crash reload —
+    // starts out believing the glass is down. Re-announce the real state here,
+    // because this report is the first thing a fresh renderer sends.
+    sendToMainWindow('window:frost-live', isAcrylicLayerVisible())
+  })
+
+  on('window:panel-expanded', () => {
+    // The open clip-path has settled and the blade now covers the glass
+    // rectangle: this is the only safe moment to reveal it.
+    onPanelExpanded()
   })
 }
 

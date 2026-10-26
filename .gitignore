@@ -38,3 +38,5 @@ scratch/acrylic-probe/
 .devprofile/
 scratch/*.out
 scratch/*.err
+scratch/*.ps1
+scratch/*.txt

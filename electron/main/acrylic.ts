@@ -27,6 +27,7 @@
 import { BrowserWindow, app, screen } from 'electron'
 import { join } from 'node:path'
 import koffi from 'koffi'
+import { liveAccentAlpha } from '../../shared/glass'
 import type { BladeRect } from '../../shared/types'
 
 export type { BladeRect }
@@ -114,11 +115,12 @@ function hwndOf(win: BrowserWindow | null): bigint {
 
 /**
  * Gradient colour of the glass, as 0xAABBGGRR. The alpha is how much white the
- * sheet adds on top of the blurred backdrop; the DOM sheet adds the rest.
+ * sheet adds on top of the blurred backdrop; the DOM sheet adds the rest. Both
+ * alphas come from the same mapping (shared/glass.ts) so the "毛玻璃强度"
+ * setting moves the whole stack in one direction instead of cancelling itself.
  */
 function glassColor(frostIntensity: number): number {
-  const t = Math.max(0, Math.min(1, Number.isFinite(frostIntensity) ? frostIntensity : 1))
-  const alpha = Math.round(0x24 + 0x30 * t) // 0.14 (soft) .. 0.33 (rich)
+  const alpha = Math.round(liveAccentAlpha(frostIntensity) * 255)
   return ((alpha << 24) | 0x00faf8f6) >>> 0
 }
 
@@ -172,10 +174,34 @@ function applyAccentColor(win: BrowserWindow, frostIntensity: number): boolean {
 let layer: BrowserWindow | null = null
 let layerReady = false
 let layerOk = false
+let layerVisible = false
 let bladeRect: BladeRect | null = null
 let panelWindow: BrowserWindow | null = null
 let wantVisible = false
 let tint = 1
+
+/**
+ * Called whenever the glass actually appears or disappears on screen. main
+ * forwards this to the renderer so the blade's own sheet fades to translucent
+ * *exactly* when there is a blur behind it to reveal — the two can never drift
+ * apart the way a guessed timeout does.
+ */
+let onVisibilityChange: ((visible: boolean) => void) | null = null
+
+export function setAcrylicVisibilityListener(cb: (visible: boolean) => void): void {
+  onVisibilityChange = cb
+}
+
+function setLayerVisible(next: boolean): void {
+  if (layerVisible === next) return
+  layerVisible = next
+  onVisibilityChange?.(next)
+}
+
+/** True while the frosted sheet is actually on screen (not merely created). */
+export function isAcrylicLayerVisible(): boolean {
+  return layerVisible && !!getAcrylicLayer()
+}
 
 /** The panel window whose client area the reported blade rect is relative to. */
 export function setAcrylicPanel(win: BrowserWindow | null): void {
@@ -240,6 +266,7 @@ export async function ensureAcrylicLayer(parent: BrowserWindow | null): Promise<
   layer.on('closed', () => {
     layer = null
     layerReady = false
+    setLayerVisible(false)
   })
   layerReady = false
   layerOk = false
@@ -324,11 +351,11 @@ function positionLayer(win: BrowserWindow): void {
 }
 
 /** Re-pin the glass directly under the panel window (z-order, then size). */
-export function showAcrylicLayer(parent: BrowserWindow | null): void {
+export function showAcrylicLayer(parent: BrowserWindow | null): boolean {
   wantVisible = true
   const win = getAcrylicLayer()
-  if (!win || !layerReady || !layerOk) return
-  if (!bladeRect) return
+  if (!win || !layerReady || !layerOk) return false
+  if (!bladeRect) return false
   positionLayer(win)
   win.setAlwaysOnTop(true, 'screen-saver')
   const api = loadWin32()
@@ -346,10 +373,13 @@ export function showAcrylicLayer(parent: BrowserWindow | null): void {
     )
   }
   if (!win.isVisible()) win.showInactive()
+  setLayerVisible(true)
+  return true
 }
 
 export function hideAcrylicLayer(): void {
   wantVisible = false
+  setLayerVisible(false)
   const win = getAcrylicLayer()
   if (win && win.isVisible()) win.hide()
 }
@@ -365,6 +395,7 @@ export function refreshAcrylicPosition(): void {
 /** Tear the layer down (setting switched off, or app quitting). */
 export function destroyAcrylicLayer(): void {
   wantVisible = false
+  setLayerVisible(false)
   const win = getAcrylicLayer()
   layer = null
   layerReady = false

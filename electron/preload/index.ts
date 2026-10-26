@@ -218,6 +218,7 @@ const api = {
   setInternalDrag: (active: boolean) => { setInternalDragState(active) },
   broadcastTutorialStep: (step: number) => send('tutorial:set-step', step),
   reportBladeRect: (rect: BladeRect | null) => send('window:blade-rect', rect),
+  reportPanelExpanded: () => send('window:panel-expanded'),
 
   /* Main -> Renderer */
   onItems: (cb: (items: EventArgs<'state:items'>[0]) => void) => on('state:items', cb),
@@ -225,6 +226,7 @@ const api = {
   onToggle: (cb: (open?: boolean) => void) => on('window:toggle', cb),
   onOpenSettings: (cb: () => void) => on('window:open-settings', cb),
   onBackdrop: (cb: (backdrop: EventArgs<'window:backdrop'>[0]) => void) => on('window:backdrop', cb),
+  onFrostLive: (cb: (on: boolean) => void) => on('window:frost-live', cb),
   onDragEnd: (cb: () => void) => {
     return on('item:drag-end', () => {
       setInternalDragState(false)

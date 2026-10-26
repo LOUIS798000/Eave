@@ -11,6 +11,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { DEFAULT_SETTINGS } from '../shared/types'
+import { liveAccentAlpha, liveSheetAlpha } from '../shared/glass'
 
 function read(relPath: string): string {
   return readFileSync(resolve(__dirname, '..', relPath), 'utf8')
@@ -79,16 +80,62 @@ describe('Live acrylic frost', () => {
     expect(read('shared/bridge.ts')).toContain('reportBladeRect')
     const panel = read('src/components/Panel.tsx')
     expect(panel).toContain('window.edge.reportBladeRect')
-    expect(panel).toContain("frostLive ? 'blade blade-live' : 'blade'")
+    expect(panel).toContain('blade blade-live')
+    expect(panel).toContain('blade-live-shown')
   })
 
-  it('makes the blade see-through only in live mode', () => {
+  it('keeps the sheet opaque until main confirms the blur is on screen', () => {
+    // The whole point: the acrylic layer is a *rectangle*. If the blade turns
+    // translucent before the rounded shape has grown over that rectangle, the
+    // rectangle is what the user sees first — the exact two-step flash that was
+    // reported. So the translucency is gated on a main -> renderer event.
+    const panel = read('src/components/Panel.tsx')
+    expect(panel).toContain('onFrostLive')
+    expect(panel).toMatch(/liveGlassOn \? ' blade-live-shown'/)
+    expect(panel).toContain('if (!frostLive) setLiveGlassOn(false)')
+
     const css = read('src/styles/panel.css')
-    expect(css).toContain('.blade.blade-live')
-    const liveBlock = css.slice(css.indexOf('.blade.blade-live'))
-    expect(liveBlock).toContain('rgba(251, 251, 253, 0.42)')
-    // The opaque base must survive for the snapshot (ClearType) path.
-    expect(css).toContain('background-color: #fbfbfd;')
+    const liveIdx = css.indexOf('.blade.blade-live {')
+    expect(liveIdx).toBeGreaterThan(-1)
+    const liveBlock = css.slice(liveIdx, css.indexOf('}', liveIdx))
+    // Plain `.blade-live` must stay opaque: no rgba here.
+    expect(liveBlock).toContain('background-color: #fbfbfd;')
+    expect(liveBlock).not.toContain('rgba(')
+    const shownIdx = css.indexOf('.blade.blade-live.blade-live-shown {')
+    expect(shownIdx).toBeGreaterThan(liveIdx)
+    const shownBlock = css.slice(shownIdx, css.indexOf('}', shownIdx))
+    expect(shownBlock).toContain('rgba(251, 251, 253, var(--live-sheet, 0.42))')
+    expect(shownBlock).toContain('transition: background-color')
+
+    // And the glass is only raised once the open clip-path has settled, which
+    // the renderer reports from a real transitionend — not a guessed timeout.
+    expect(panel).toContain('reportPanelExpanded')
+    expect(panel).toContain("e.propertyName !== 'clip-path'")
+    expect(read('shared/ipc.ts')).toContain("'window:panel-expanded'")
+    expect(read('electron/main/ipc.ts')).toContain("on('window:panel-expanded'")
+    const windowSrc = read('electron/main/window.ts')
+    expect(windowSrc).toContain('setAcrylicVisibilityListener')
+    expect(windowSrc).toContain("'window:frost-live'")
+  })
+
+  it('lets the same strength setting move the whole glass stack', () => {
+    // Both whites must move the same way, otherwise the setting silently
+    // cancels itself out and "透明度" does nothing.
+    const soft = 0.5
+    expect(liveSheetAlpha(soft)).toBeCloseTo(0.42, 2)
+    expect(liveSheetAlpha(1)).toBeLessThan(liveSheetAlpha(soft))
+    expect(liveSheetAlpha(0)).toBeGreaterThan(liveSheetAlpha(soft))
+    expect(liveAccentAlpha(1)).toBeLessThan(liveAccentAlpha(soft))
+    expect(liveAccentAlpha(0)).toBeGreaterThan(liveAccentAlpha(soft))
+    for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+      expect(liveSheetAlpha(t)).toBeGreaterThan(0)
+      expect(liveSheetAlpha(t)).toBeLessThan(1)
+      expect(liveAccentAlpha(t)).toBeGreaterThan(0)
+      expect(liveAccentAlpha(t)).toBeLessThan(1)
+    }
+    // The accent colour main hands to DWM is derived from that same mapping.
+    expect(read('electron/main/acrylic.ts')).toContain('liveAccentAlpha(frostIntensity)')
+    expect(read('src/components/Panel.tsx')).toContain('liveSheetAlpha(frostIntensity)')
   })
 
   it('ships a transparent page for the glass layer', () => {

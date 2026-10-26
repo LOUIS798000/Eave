@@ -142,6 +142,13 @@ export interface EventMap {
    * geometry changed, or capture failed) and the blade falls back to flat white.
    */
   'window:backdrop': [backdrop: { url: string; width: number; height: number } | null]
+  /**
+   * Whether the live acrylic layer is actually on screen behind the blade.
+   * The blade keeps its opaque sheet until this turns true and then fades to
+   * the glass, so the frosted *rectangle* can never be seen before the rounded
+   * blade has finished growing into it.
+   */
+  'window:frost-live': [on: boolean]
   /** Fired when an OS drag initiated by the app has completed. */
   'item:drag-end': []
   /** Tutorial step sync */
@@ -203,6 +210,12 @@ export interface SendMap {
   'window:blade-rect': {
     args: [rect: { left: number; top: number; width: number; height: number } | null]
   }
+  /**
+   * The open clip-path animation has finished: the blade now fills its rounded
+   * rect. Main uses this (instead of a guessed timeout) to bring the live
+   * acrylic layer up, which is what keeps the glass in step with the shape.
+   */
+  'window:panel-expanded': { args: [] }
 }
 
 /* ------------------------------------------------------------------ */

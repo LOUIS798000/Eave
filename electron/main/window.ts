@@ -23,9 +23,9 @@ import {
   destroyAcrylicLayer,
   ensureAcrylicLayer,
   hideAcrylicLayer,
-  isAcrylicLayerLive,
   refreshAcrylicPosition,
   setAcrylicTint,
+  setAcrylicVisibilityListener,
   showAcrylicLayer
 } from './acrylic'
 import { PATHS } from '../store/paths'
@@ -458,9 +458,36 @@ function cancelFrostShow(): void {
   }
 }
 
+/**
+ * Bring the live glass up now.
+ *
+ * The caller is the renderer's `window:panel-expanded` report, i.e. the exact
+ * frame on which the open clip-path settled and the blade fills its rounded
+ * rect. At that moment the acrylic sheet is completely covered by the blade
+ * (the blade is still opaque — it only fades to translucent once main says the
+ * glass is up), so the rectangle can never be seen before the shape.
+ */
+function showLiveFrost(): void {
+  cancelFrostShow()
+  if (!interactive || !mainWindow || mainWindow.isDestroyed()) return
+  if (!(loadSettings().frostLive ?? false)) return
+  // Reports visibility back through the listener registered below, which is
+  // what actually releases the renderer's translucent sheet.
+  showAcrylicLayer(mainWindow)
+}
+
+/** Renderer says the open animation has settled (see showLiveFrost). */
+export function onPanelExpanded(): void {
+  showLiveFrost()
+}
+
 /** Turn the live layer on/off to match the current settings. */
 export function applyFrostMode(): void {
   if (!mainWindow || mainWindow.isDestroyed()) return
+  // One announcement path for "the glass is / is not on screen". The renderer
+  // keeps an opaque sheet until `true` arrives and snaps back to opaque the
+  // instant `false` does, so the two layers can never disagree.
+  setAcrylicVisibilityListener((visible) => sendToMainWindow('window:frost-live', visible))
   const settings = loadSettings()
   const live = (settings.frostLive ?? false) && (settings.frostIntensity ?? 1) > 0
   if (!live) {
@@ -498,14 +525,14 @@ export function setInteractive(value: boolean): void {
     // fully retracted. Capturing here instead would photograph our own blade.
     pushBackdrop()
 
-    // Live glass: show the acrylic layer once the open spring has finished, so
-    // the frosted rectangle never appears before the blade has grown into it.
+    // Live glass: the renderer reports the moment the open clip-path settles
+    // (`window:panel-expanded`), which is when the blade exactly covers the
+    // acrylic sheet. This timer is only a safety net for a missed report —
+    // showing the sheet while the blade is still growing is precisely what used
+    // to flash a grey rectangle, so it is deliberately late.
     cancelFrostShow()
-    if ((loadSettings().frostLive ?? false) && isAcrylicLayerLive()) {
-      frostShowTimer = setTimeout(() => {
-        frostShowTimer = null
-        if (interactive) showAcrylicLayer(mainWindow)
-      }, 300)
+    if (loadSettings().frostLive ?? false) {
+      frostShowTimer = setTimeout(showLiveFrost, 700)
       frostShowTimer.unref?.()
     }
 

@@ -191,7 +191,7 @@ describe('Horizontal Card Shelf Settings Layout', () => {
     expect(horizontalBlock).not.toContain('supportOnKofi')
     expect(horizontalBlock).not.toContain('starOnGithub')
     expect(horizontalBlock).not.toContain('github.com')
-    expect(horizontalBlock).not.toContain('edgedrop.app')
+    expect(horizontalBlock).not.toContain('eave.app')
   })
 
   it('Vertical left/right settings remain untouched with position slider, window size and vertical controls intact', () => {

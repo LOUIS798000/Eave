@@ -1,5 +1,5 @@
 /**
- * Web Audio API Haptic Sound Synthesizer for Edge-Drop.
+ * Web Audio API Haptic Sound Synthesizer for Eave.
  * Provides zero-latency, tactile mechanical audio effects for sliders, toggles, and buttons.
  */
 

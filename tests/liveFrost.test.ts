@@ -59,7 +59,7 @@ describe('Live acrylic frost', () => {
     // short struct corrupts the stack: the whole app dies with 0xC0000005 the
     // first time a rect is laid out (measured, not guessed).
     const glass = read('electron/main/composition.ts')
-    expect(glass).toContain("koffi.struct('EdgeDropV3'")
+    expect(glass).toContain("koffi.struct('EaveV3'")
     expect(glass).toContain('putV3')
     expect(glass).toMatch(/method\(visual, 15, api\(\)\.proto\.putV3, \{ x, y, z: 0 \}\)/)
     // CreateRectangleClip returns Windows.UI.Composition.RectangleClip. The

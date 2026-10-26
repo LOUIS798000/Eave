@@ -1,5 +1,5 @@
 /**
- * Opt-in diagnostic timeline (`EDGE_DROP_DIAG=<file>`).
+ * Opt-in diagnostic timeline (`EAVE_DIAG=<file>`).
  *
  * The defects this exists for are invisible to unit tests: "the shelf
  * sometimes ignores my hover after I come back from a fullscreen app" and
@@ -15,7 +15,7 @@
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 
-const target = process.env.EDGE_DROP_DIAG || ''
+const target = process.env.EAVE_DIAG || ''
 
 /** True when the trace file is enabled for this process. */
 export const diagEnabled = target.length > 0

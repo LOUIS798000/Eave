@@ -45,12 +45,12 @@ export const PATHS = {
  * Directory other Win32 processes can open.
  *
  * GitHub NSIS: same as PATHS.tempDir() (userData/temp) — unchanged.
- * Store/MSIX: USERPROFILE\AppData\Local\Temp\Edge-Drop. Packaged APPDATA is
+ * Store/MSIX: USERPROFILE\AppData\Local\Temp\Eave. Packaged APPDATA is
  * virtualized; Explorer/Word/PowerShell do not see those redirected writes.
  */
 export function getUnpackagedTempDir(): string {
   if (isStoreBuild()) {
-    return join(homedir(), 'AppData', 'Local', 'Temp', 'Edge-Drop')
+    return join(homedir(), 'AppData', 'Local', 'Temp', 'Eave')
   }
   return PATHS.tempDir()
 }

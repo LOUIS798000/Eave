@@ -593,7 +593,7 @@ export function Settings({
                 <div className="shelf-card-top">
                   <div className="setting-group-label">{t('groups.keyboardShortcut') || 'KEYBOARD SHORTCUT'}</div>
                   <div className="setting-title">{t('behaviour.toggleHotkeyTitle')}</div>
-                  <div className="setting-desc">{t('groups.toggleHotkeyPressDesc') || 'Press anywhere to toggle Edge-Drop'}</div>
+                  <div className="setting-desc">{t('groups.toggleHotkeyPressDesc') || 'Press anywhere to toggle Eave'}</div>
                 </div>
                 <div className="shelf-card-bottom">
                   <HotkeyRecorder

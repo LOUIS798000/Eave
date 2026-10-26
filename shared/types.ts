@@ -264,7 +264,7 @@ export interface Settings {
   movePastedToTop?: boolean
   /** One-time flag tracking if the v0.2.6 upgrade unpinned history cleanup has run. */
   v026UpgradeCleaned?: boolean
-  /** Configurable global hotkey accelerator to toggle Edge-Drop shelf (e.g. 'Alt+C', 'Alt+Shift+C'). Default: 'Alt+C'. */
+  /** Configurable global hotkey accelerator to toggle Eave shelf (e.g. 'Alt+C', 'Alt+Shift+C'). Default: 'Alt+C'. */
   toggleHotkey?: string
 }
 

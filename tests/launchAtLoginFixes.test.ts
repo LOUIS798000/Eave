@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   isPackaged: true,
-  exePath: 'C:\\Users\\Test User\\AppData\\Local\\Programs\\Edge-Drop\\Edge-Drop.exe',
+  exePath: 'C:\\Users\\Test User\\AppData\\Local\\Programs\\Eave\\Eave.exe',
   launchItems: [] as Array<{ name: string; path: string; enabled: boolean; args?: string[] }>,
   executableWillLaunchAtLogin: false,
   settings: { launchAtLogin: true } as Record<string, unknown>,
@@ -69,11 +69,11 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 function regQueryOutput(value: string): string {
-  return `\r\nHKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\r\n    Edge-Drop    REG_SZ    ${value}\r\n`
+  return `\r\nHKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\r\n    Eave    REG_SZ    ${value}\r\n`
 }
 
 describe('GitHub Run-key health (quoted, current path, --hidden)', () => {
-  const exe = 'C:\\Users\\Test User\\AppData\\Local\\Programs\\Edge-Drop\\Edge-Drop.exe'
+  const exe = 'C:\\Users\\Test User\\AppData\\Local\\Programs\\Eave\\Eave.exe'
   const want = `"${exe}" --hidden`
 
   it('healthy only for exact quoted command', () => {
@@ -88,7 +88,7 @@ describe('GitHub Run-key health (quoted, current path, --hidden)', () => {
   })
 
   it('unhealthy for stale path after update/reinstall', () => {
-    const stale = `"C:\\Users\\Test User\\AppData\\Local\\Programs\\Edge-Drop-old\\Edge-Drop.exe" --hidden`
+    const stale = `"C:\\Users\\Test User\\AppData\\Local\\Programs\\Eave-old\\Eave.exe" --hidden`
     expect(isRunValueHealthy(stale, exe)).toBe(false)
   })
 
@@ -116,10 +116,10 @@ describe('raw registry read (reg query)', () => {
   it('parses REG_SZ value from reg query output', () => {
     const want = formatGithubRunCommand(mocks.exePath)
     mocks.execFileSync.mockReturnValue(regQueryOutput(want))
-    expect(getRawGithubRunCommand('Edge-Drop')).toBe(want)
+    expect(getRawGithubRunCommand('Eave')).toBe(want)
     expect(mocks.execFileSync).toHaveBeenCalledWith(
       'reg',
-      expect.arrayContaining(['query', expect.stringContaining('Run'), '/v', 'Edge-Drop']),
+      expect.arrayContaining(['query', expect.stringContaining('Run'), '/v', 'Eave']),
       expect.objectContaining({ windowsHide: true })
     )
   })
@@ -128,7 +128,7 @@ describe('raw registry read (reg query)', () => {
     mocks.execFileSync.mockImplementation(() => {
       throw new Error('ERROR: The system was unable to find the specified registry key or value.')
     })
-    expect(getRawGithubRunCommand('Edge-Drop')).toBeNull()
+    expect(getRawGithubRunCommand('Eave')).toBeNull()
   })
 
   it('isGithubRunKeyHealthy reflects on-disk truth', () => {
@@ -140,10 +140,10 @@ describe('raw registry read (reg query)', () => {
 
   it('deleteRawGithubRunValue uses reg delete', () => {
     mocks.execFileSync.mockReturnValue('')
-    deleteRawGithubRunValue('Edge-Drop')
+    deleteRawGithubRunValue('Eave')
     expect(mocks.execFileSync).toHaveBeenCalledWith(
       'reg',
-      expect.arrayContaining(['delete', expect.stringContaining('Run'), '/v', 'Edge-Drop', '/f']),
+      expect.arrayContaining(['delete', expect.stringContaining('Run'), '/v', 'Eave', '/f']),
       expect.anything()
     )
   })
@@ -174,12 +174,12 @@ describe('reconcile never silently loses ON after update', () => {
     const next = await reconcileLaunchAtLoginOnStartup()
     expect(next.launchAtLogin).toBe(true)
     expect(mocks.setLoginItemSettings).toHaveBeenCalledWith(
-      expect.objectContaining({ openAtLogin: true, name: 'Edge-Drop' })
+      expect.objectContaining({ openAtLogin: true, name: 'Eave' })
     )
   })
 
   it('settings ON + explicitly blocked in Task Manager → reflects OFF (OS wins)', async () => {
-    mocks.launchItems = [{ name: 'Edge-Drop', path: mocks.exePath, enabled: false }]
+    mocks.launchItems = [{ name: 'Eave', path: mocks.exePath, enabled: false }]
     mocks.executableWillLaunchAtLogin = false
     mocks.execFileSync.mockImplementation(() => {
       throw new Error('not found')
@@ -190,7 +190,7 @@ describe('reconcile never silently loses ON after update', () => {
 
   it('settings OFF + leftover ON → disables without re-enabling', async () => {
     mocks.settings = { launchAtLogin: false }
-    mocks.launchItems = [{ name: 'Edge-Drop', path: mocks.exePath, enabled: true }]
+    mocks.launchItems = [{ name: 'Eave', path: mocks.exePath, enabled: true }]
     mocks.executableWillLaunchAtLogin = true
     mocks.execFileSync.mockImplementation((bin: string, args: string[]) => {
       if ((args as string[])[0] === 'query') throw new Error('not found')
@@ -204,7 +204,7 @@ describe('reconcile never silently loses ON after update', () => {
 
   it('unquoted 0.3.0 value gets healed to quoted form on next launch', async () => {
     mocks.settings = { launchAtLogin: true }
-    mocks.launchItems = [{ name: 'Edge-Drop', path: mocks.exePath, enabled: true, args: ['--hidden'] }]
+    mocks.launchItems = [{ name: 'Eave', path: mocks.exePath, enabled: true, args: ['--hidden'] }]
     mocks.executableWillLaunchAtLogin = true
     const unquoted = `${mocks.exePath} --hidden`
     mocks.execFileSync.mockImplementation((bin: string, args: string[]) => {
@@ -233,14 +233,14 @@ describe('Store detection is redundant (env + package + path)', () => {
   })
 
   it('still false for plain dev/GitHub', () => {
-    mocks.exePath = 'C:\\Users\\Test\\AppData\\Local\\Programs\\Edge-Drop\\Edge-Drop.exe'
+    mocks.exePath = 'C:\\Users\\Test\\AppData\\Local\\Programs\\Eave\\Eave.exe'
     expect(isStoreBuild()).toBe(false)
   })
 
   it('true for WindowsApps install path even without env stamp', () => {
     mocks.isPackaged = true
     mocks.exePath =
-      'C:\\Program Files\\WindowsApps\\Deepender.EdgeDrop_0.3.1.0_x64__abc\\app\\Edge-Drop.exe'
+      'C:\\Program Files\\WindowsApps\\Deepender.Eave_0.3.1.0_x64__abc\\app\\Eave.exe'
     expect(isStoreBuild()).toBe(true)
   })
 
@@ -291,7 +291,7 @@ describe('Store helper contract (stdout must be parsable)', () => {
   })
 
   it('C# source documents console-subsystem requirement', () => {
-    const cs = readFileSync(join(__dirname, '..', 'resources', 'startup', 'EdgeDropStartup.cs'), 'utf8')
+    const cs = readFileSync(join(__dirname, '..', 'resources', 'startup', 'EaveStartup.cs'), 'utf8')
     expect(cs).toMatch(/console-subsystem|target:exe/i)
   })
 })

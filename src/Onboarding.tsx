@@ -122,8 +122,8 @@ export function Onboarding() {
         borderBottom: '1px solid rgba(60, 60, 67, 0.12)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <img src={logoUrl} alt="Edge-Drop Logo" style={{ width: '28px', height: '28px', filter: 'invert(1)', opacity: 0.86 }} />
-          <span style={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.02em' }}>Edge-Drop</span>
+          <img src={logoUrl} alt="Eave Logo" style={{ width: '28px', height: '28px', filter: 'invert(1)', opacity: 0.86 }} />
+          <span style={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.02em' }}>Eave</span>
         </div>
         <button
           onClick={handleSkip}

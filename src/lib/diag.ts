@@ -1,5 +1,5 @@
 /**
- * Renderer half of the diagnostic trace (`EDGE_DROP_DIAG` builds only).
+ * Renderer half of the diagnostic trace (`EAVE_DIAG` builds only).
  *
  * Main loads the page with `?diag=1` when tracing is enabled, so the
  * sandboxed renderer needs neither a bridge extension nor process.env to know

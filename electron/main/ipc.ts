@@ -396,7 +396,7 @@ export function registerIpc(): void {
     watcher.setPaused(true)
 
     try {
-      // 1. Close panel immediately so Edge-Drop slides shut with 0ms UI lag
+      // 1. Close panel immediately so Eave slides shut with 0ms UI lag
       pushState.togglePanel(false)
 
       // 2. Write item to system clipboard

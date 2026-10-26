@@ -32,7 +32,7 @@ vi.mock('node:child_process', () => ({
 
 import { disable, enable, getStatus, parseStartupHelperState } from '../electron/main/storeStartup'
 
-const helperPath = join(__dirname, '..', 'resources', 'startup', 'EdgeDropStartup.exe')
+const helperPath = join(__dirname, '..', 'resources', 'startup', 'EaveStartup.exe')
 
 describe('Store StartupTask (getStatus / enable / disable)', () => {
   beforeEach(() => {

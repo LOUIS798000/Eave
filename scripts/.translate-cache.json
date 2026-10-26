@@ -37,15 +37,15 @@
       "autoUpdatesDescOff": "Se han pausado las comprobaciones de actualización de antecedentes. Compruebe las actualizaciones manualmente a continuación",
       "checkForUpdates": "Buscar actualizaciones",
       "checkingForUpdates": "Buscando actualizaciones...",
-      "isUpToDate": "Edge-Drop está actualizado",
+      "isUpToDate": "Eave está actualizado",
       "checkAgain": "Verificar de nuevo",
-      "updateAvailableTitle": "¡Edge-Drop v{version} está disponible!",
+      "updateAvailableTitle": "¡Eave v{version} está disponible!",
       "updateAvailableDesc": "Una versión más reciente está lista. ¿Desea descargar y actualizar ahora?",
       "downloadAndUpdate": "Descargar y actualizar",
       "skip": "Omitir",
       "downloadingUpdate": "Descargando actualización en segundo plano...",
       "updateReadyTitle": "Actualizar v{version} Ready",
-      "updateReadyDesc": "Haga clic para reiniciar Edge-Drop y aplicar la actualización.",
+      "updateReadyDesc": "Haga clic para reiniciar Eave y aplicar la actualización.",
       "restartToUpdate": "Reiniciar para actualizar",
       "restartToUpdateBelow": "Reiniciar para actualizar a continuación",
       "newUpdateAvailableBelow": "Nueva actualización disponible a continuación"
@@ -109,7 +109,7 @@
     },
     "footer": {
       "starOnGithub": "Acompáñenos en GitHub",
-      "githubPromo": "Si te gusta Edge-Drop, ¡protagoniza el proyecto en GitHub!",
+      "githubPromo": "Si te gusta Eave, ¡protagoniza el proyecto en GitHub!",
       "version": "Versión"
     }
   },
@@ -151,15 +151,15 @@
       "autoUpdatesDescOff": "Les vérifications de mise à jour des antécédents sont en pause. Vérifiez les mises à jour manuellement ci-dessous",
       "checkForUpdates": "Vérifier les mises à jour",
       "checkingForUpdates": "正在检查更新...",
-      "isUpToDate": "Edge-Drop est à jour",
+      "isUpToDate": "Eave est à jour",
       "checkAgain": "Revérifiez",
-      "updateAvailableTitle": "Edge-Drop v{version} est disponible !",
+      "updateAvailableTitle": "Eave v{version} est disponible !",
       "updateAvailableDesc": "Une version plus récente est prête. Souhaitez-vous télécharger et mettre à jour maintenant ?",
       "downloadAndUpdate": "Télécharger et mettre à jour",
       "skip": "Ignorer",
       "downloadingUpdate": "Téléchargement de la mise à jour en arrière-plan...",
       "updateReadyTitle": "Mise à jour v{version} prête",
-      "updateReadyDesc": "Cliquez sur pour redémarrer Edge-Drop et appliquer la mise à jour.",
+      "updateReadyDesc": "Cliquez sur pour redémarrer Eave et appliquer la mise à jour.",
       "restartToUpdate": "Redémarrer pour mettre à jour ",
       "restartToUpdateBelow": "Redémarrer pour mettre à jour ci-dessous",
       "newUpdateAvailableBelow": "Nouvelle mise à jour disponible ci-dessous"
@@ -223,7 +223,7 @@
     },
     "footer": {
       "starOnGithub": "Via Github",
-      "githubPromo": "Si vous aimez Edge-Drop, veuillez mettre le projet en vedette sur GitHub !",
+      "githubPromo": "Si vous aimez Eave, veuillez mettre le projet en vedette sur GitHub !",
       "version": "Utilisation optimale de tous les propulseurs"
     }
   },
@@ -265,15 +265,15 @@
       "autoUpdatesDescOff": "Hintergrund-Aktualisierungsprüfungen pausiert. Unten manuell nach Updates suchen",
       "checkForUpdates": "Auf Updates überprüfen",
       "checkingForUpdates": "Überprüfung auf Aktualsierungen...",
-      "isUpToDate": "Edge-Drop ist auf dem neuesten Stand",
+      "isUpToDate": "Eave ist auf dem neuesten Stand",
       "checkAgain": "Erneut überprüfen",
-      "updateAvailableTitle": "Edge-Drop v{version} ist verfügbar!",
+      "updateAvailableTitle": "Eave v{version} ist verfügbar!",
       "updateAvailableDesc": "Eine neuere Version ist fertig. Möchten Sie jetzt herunterladen und aktualisieren?",
       "downloadAndUpdate": "Herunterladen und aktualisieren",
       "skip": "Überspringen",
       "downloadingUpdate": "Update wird im Hintergrund heruntergeladen...",
       "updateReadyTitle": "V{version} bereit aktualisieren",
-      "updateReadyDesc": "Klicken Sie hier, um Edge-Drop neu zu starten und das Update anzuwenden.",
+      "updateReadyDesc": "Klicken Sie hier, um Eave neu zu starten und das Update anzuwenden.",
       "restartToUpdate": "Zum Aktualisieren neu starten",
       "restartToUpdateBelow": "Starten Sie neu, um unten zu aktualisieren",
       "newUpdateAvailableBelow": "Neues Update unten verfügbar"
@@ -337,7 +337,7 @@
     },
     "footer": {
       "starOnGithub": "Geben Sie uns auf GitHub einen Stern",
-      "githubPromo": "Wenn Sie Edge-Drop mögen, starten Sie das Projekt bitte auf GitHub!",
+      "githubPromo": "Wenn Sie Eave mögen, starten Sie das Projekt bitte auf GitHub!",
       "version": "Version"
     }
   },
@@ -379,15 +379,15 @@
       "autoUpdatesDescOff": "Controlli di aggiornamento in background in pausa. Controlla gli aggiornamenti manualmente di seguito",
       "checkForUpdates": "Verificare gli aggiornamenti",
       "checkingForUpdates": "Ricerca degli aggiornamenti...",
-      "isUpToDate": "Edge-Drop è aggiornato",
+      "isUpToDate": "Eave è aggiornato",
       "checkAgain": "Controllare di nuovo",
-      "updateAvailableTitle": "Edge-Drop v{version} è disponibile!",
+      "updateAvailableTitle": "Eave v{version} è disponibile!",
       "updateAvailableDesc": "Una versione più recente è pronta. Vuoi scaricare e aggiornare ora?",
       "downloadAndUpdate": "Scarica e aggiorna",
       "skip": "Salta",
       "downloadingUpdate": "Download dell'aggiornamento in background in corso...",
       "updateReadyTitle": "Aggiorna v{version} Ready",
-      "updateReadyDesc": "Fare clic per riavviare Edge-Drop e applicare l'aggiornamento.",
+      "updateReadyDesc": "Fare clic per riavviare Eave e applicare l'aggiornamento.",
       "restartToUpdate": "Riavvia per aggiornare",
       "restartToUpdateBelow": "Riavvia per aggiornare di seguito",
       "newUpdateAvailableBelow": "Nuovo aggiornamento disponibile di seguito"
@@ -451,7 +451,7 @@
     },
     "footer": {
       "starOnGithub": "Dacci una stella su GitHub",
-      "githubPromo": "Se ti piace Edge-Drop, inizia il progetto su GitHub!",
+      "githubPromo": "Se ti piace Eave, inizia il progetto su GitHub!",
       "version": "Versione"
     }
   },
@@ -493,15 +493,15 @@
       "autoUpdatesDescOff": "Verificações de actualização de antecedentes em pausa. Verifique se há atualizações manualmente abaixo",
       "checkForUpdates": "Procurar atualizações",
       "checkingForUpdates": "A procurar por atualizações...",
-      "isUpToDate": "O Edge-Drop está atualizado",
+      "isUpToDate": "O Eave está atualizado",
       "checkAgain": "Verifique novamente",
-      "updateAvailableTitle": "O Edge-Drop v{version} está disponível!",
+      "updateAvailableTitle": "O Eave v{version} está disponível!",
       "updateAvailableDesc": "Uma versão mais recente está pronta. Gostaria de transferir e atualizar agora?",
       "downloadAndUpdate": "\"Baixar e Atualizar\",",
       "skip": "Pular",
       "downloadingUpdate": "A transferir atualização em segundo plano...",
       "updateReadyTitle": "Atualizar v{version} Pronto",
-      "updateReadyDesc": "Clique para reiniciar o Edge-Drop e aplicar a atualização.",
+      "updateReadyDesc": "Clique para reiniciar o Eave e aplicar a atualização.",
       "restartToUpdate": "Reiniciar para Atualizar",
       "restartToUpdateBelow": "Reinicie para atualizar abaixo",
       "newUpdateAvailableBelow": "Nova atualização disponível abaixo"
@@ -565,7 +565,7 @@
     },
     "footer": {
       "starOnGithub": "Estrela no GitHub",
-      "githubPromo": "Se você gosta do Edge-Drop, por favor, inicie o projeto no GitHub!",
+      "githubPromo": "Se você gosta do Eave, por favor, inicie o projeto no GitHub!",
       "version": "Versão:"
     }
   },
@@ -607,15 +607,15 @@
       "autoUpdatesDescOff": "Проверка фоновых обновлений приостановлена. Проверьте наличие обновлений вручную ниже",
       "checkForUpdates": "Пр.обновл.",
       "checkingForUpdates": "Проверка наличия обновлений...",
-      "isUpToDate": "Edge-Drop обновлен",
+      "isUpToDate": "Eave обновлен",
       "checkAgain": "Проверить еще раз",
-      "updateAvailableTitle": "Доступен Edge-Drop v{version}!",
+      "updateAvailableTitle": "Доступен Eave v{version}!",
       "updateAvailableDesc": "Более новая версия готова. Загрузить и обновить сейчас?",
       "downloadAndUpdate": "Загрузить и обновить",
       "skip": "пропустить",
       "downloadingUpdate": "Загрузка обновления в фоновом режиме...",
       "updateReadyTitle": "Обновление v{version} Ready",
-      "updateReadyDesc": "Нажмите, чтобы перезапустить Edge-Drop и применить обновление.",
+      "updateReadyDesc": "Нажмите, чтобы перезапустить Eave и применить обновление.",
       "restartToUpdate": "Перезапуск %S для обновления.",
       "restartToUpdateBelow": "Перезапустите, чтобы обновить ниже",
       "newUpdateAvailableBelow": "Новое обновление доступно ниже"
@@ -679,7 +679,7 @@
     },
     "footer": {
       "starOnGithub": "Поставьте нам звезду на GitHub",
-      "githubPromo": "Если вам нравится Edge-Drop, пожалуйста, поставьте звезду проекту на GitHub!",
+      "githubPromo": "Если вам нравится Eave, пожалуйста, поставьте звезду проекту на GitHub!",
       "version": "Версия"
     }
   },
@@ -793,7 +793,7 @@
     },
     "footer": {
       "starOnGithub": "Star on GitHub",
-      "githubPromo": "If you like Edge-Drop, please star the project on GitHub!",
+      "githubPromo": "If you like Eave, please star the project on GitHub!",
       "version": "Version"
     }
   },
@@ -835,15 +835,15 @@
       "autoUpdatesDescOff": "Background update checks paused. Check for updates manually below",
       "checkForUpdates": "Check for updates",
       "checkingForUpdates": "Checking for updates...",
-      "isUpToDate": "Edge-Drop is up to date",
+      "isUpToDate": "Eave is up to date",
       "checkAgain": "Check again",
-      "updateAvailableTitle": "Edge-Drop v{version} is available!",
+      "updateAvailableTitle": "Eave v{version} is available!",
       "updateAvailableDesc": "A newer version is ready. Would you like to download and update now?",
       "downloadAndUpdate": "Download and Update",
       "skip": "Skip",
       "downloadingUpdate": "Downloading update in background...",
       "updateReadyTitle": "Update v{version} Ready",
-      "updateReadyDesc": "Click to restart Edge-Drop and apply the update.",
+      "updateReadyDesc": "Click to restart Eave and apply the update.",
       "restartToUpdate": "Restart to Update",
       "restartToUpdateBelow": "Restart to update below",
       "newUpdateAvailableBelow": "New update available below"
@@ -907,7 +907,7 @@
     },
     "footer": {
       "starOnGithub": "Star on GitHub",
-      "githubPromo": "If you like Edge-Drop, please star the project on GitHub!",
+      "githubPromo": "If you like Eave, please star the project on GitHub!",
       "version": "Version"
     }
   },
@@ -949,15 +949,15 @@
       "autoUpdatesDescOff": "Background update checks paused. Check for updates manually below",
       "checkForUpdates": "Check for updates",
       "checkingForUpdates": "Checking for updates...",
-      "isUpToDate": "Edge-Drop is up to date",
+      "isUpToDate": "Eave is up to date",
       "checkAgain": "Check again",
-      "updateAvailableTitle": "Edge-Drop v{version} is available!",
+      "updateAvailableTitle": "Eave v{version} is available!",
       "updateAvailableDesc": "A newer version is ready. Would you like to download and update now?",
       "downloadAndUpdate": "Download and Update",
       "skip": "Skip",
       "downloadingUpdate": "Downloading update in background...",
       "updateReadyTitle": "Update v{version} Ready",
-      "updateReadyDesc": "Click to restart Edge-Drop and apply the update.",
+      "updateReadyDesc": "Click to restart Eave and apply the update.",
       "restartToUpdate": "Restart to Update",
       "restartToUpdateBelow": "Restart to update below",
       "newUpdateAvailableBelow": "New update available below"
@@ -1021,7 +1021,7 @@
     },
     "footer": {
       "starOnGithub": "Star on GitHub",
-      "githubPromo": "If you like Edge-Drop, please star the project on GitHub!",
+      "githubPromo": "If you like Eave, please star the project on GitHub!",
       "version": "Version"
     }
   },
@@ -1063,15 +1063,15 @@
       "autoUpdatesDescOff": "Background update checks paused. Check for updates manually below",
       "checkForUpdates": "Check for updates",
       "checkingForUpdates": "Checking for updates...",
-      "isUpToDate": "Edge-Drop is up to date",
+      "isUpToDate": "Eave is up to date",
       "checkAgain": "Check again",
-      "updateAvailableTitle": "Edge-Drop v{version} is available!",
+      "updateAvailableTitle": "Eave v{version} is available!",
       "updateAvailableDesc": "A newer version is ready. Would you like to download and update now?",
       "downloadAndUpdate": "Download and Update",
       "skip": "Skip",
       "downloadingUpdate": "Downloading update in background...",
       "updateReadyTitle": "Update v{version} Ready",
-      "updateReadyDesc": "Click to restart Edge-Drop and apply the update.",
+      "updateReadyDesc": "Click to restart Eave and apply the update.",
       "restartToUpdate": "Restart to Update",
       "restartToUpdateBelow": "Restart to update below",
       "newUpdateAvailableBelow": "New update available below"
@@ -1135,7 +1135,7 @@
     },
     "footer": {
       "starOnGithub": "Star on GitHub",
-      "githubPromo": "If you like Edge-Drop, please star the project on GitHub!",
+      "githubPromo": "If you like Eave, please star the project on GitHub!",
       "version": "Version"
     }
   },
@@ -1177,15 +1177,15 @@
       "autoUpdatesDescOff": "Background update checks paused. Check for updates manually below",
       "checkForUpdates": "Check for updates",
       "checkingForUpdates": "Checking for updates...",
-      "isUpToDate": "Edge-Drop is up to date",
+      "isUpToDate": "Eave is up to date",
       "checkAgain": "Check again",
-      "updateAvailableTitle": "Edge-Drop v{version} is available!",
+      "updateAvailableTitle": "Eave v{version} is available!",
       "updateAvailableDesc": "A newer version is ready. Would you like to download and update now?",
       "downloadAndUpdate": "Download and Update",
       "skip": "Skip",
       "downloadingUpdate": "Downloading update in background...",
       "updateReadyTitle": "Update v{version} Ready",
-      "updateReadyDesc": "Click to restart Edge-Drop and apply the update.",
+      "updateReadyDesc": "Click to restart Eave and apply the update.",
       "restartToUpdate": "Restart to Update",
       "restartToUpdateBelow": "Restart to update below",
       "newUpdateAvailableBelow": "New update available below"
@@ -1249,7 +1249,7 @@
     },
     "footer": {
       "starOnGithub": "Star on GitHub",
-      "githubPromo": "If you like Edge-Drop, please star the project on GitHub!",
+      "githubPromo": "If you like Eave, please star the project on GitHub!",
       "version": "Version"
     }
   },
@@ -1291,15 +1291,15 @@
       "autoUpdatesDescOff": "Background update checks paused. Check for updates manually below",
       "checkForUpdates": "Check for updates",
       "checkingForUpdates": "Checking for updates...",
-      "isUpToDate": "Edge-Drop is up to date",
+      "isUpToDate": "Eave is up to date",
       "checkAgain": "Check again",
-      "updateAvailableTitle": "Edge-Drop v{version} is available!",
+      "updateAvailableTitle": "Eave v{version} is available!",
       "updateAvailableDesc": "A newer version is ready. Would you like to download and update now?",
       "downloadAndUpdate": "Download and Update",
       "skip": "Skip",
       "downloadingUpdate": "Downloading update in background...",
       "updateReadyTitle": "Update v{version} Ready",
-      "updateReadyDesc": "Click to restart Edge-Drop and apply the update.",
+      "updateReadyDesc": "Click to restart Eave and apply the update.",
       "restartToUpdate": "Restart to Update",
       "restartToUpdateBelow": "Restart to update below",
       "newUpdateAvailableBelow": "New update available below"
@@ -1363,7 +1363,7 @@
     },
     "footer": {
       "starOnGithub": "Star on GitHub",
-      "githubPromo": "If you like Edge-Drop, please star the project on GitHub!",
+      "githubPromo": "If you like Eave, please star the project on GitHub!",
       "version": "Version"
     }
   },
@@ -1405,15 +1405,15 @@
       "autoUpdatesDescOff": "Background update checks paused. Check for updates manually below",
       "checkForUpdates": "Check for updates",
       "checkingForUpdates": "Checking for updates...",
-      "isUpToDate": "Edge-Drop is up to date",
+      "isUpToDate": "Eave is up to date",
       "checkAgain": "Check again",
-      "updateAvailableTitle": "Edge-Drop v{version} is available!",
+      "updateAvailableTitle": "Eave v{version} is available!",
       "updateAvailableDesc": "A newer version is ready. Would you like to download and update now?",
       "downloadAndUpdate": "Download and Update",
       "skip": "Skip",
       "downloadingUpdate": "Downloading update in background...",
       "updateReadyTitle": "Update v{version} Ready",
-      "updateReadyDesc": "Click to restart Edge-Drop and apply the update.",
+      "updateReadyDesc": "Click to restart Eave and apply the update.",
       "restartToUpdate": "Restart to Update",
       "restartToUpdateBelow": "Restart to update below",
       "newUpdateAvailableBelow": "New update available below"
@@ -1477,7 +1477,7 @@
     },
     "footer": {
       "starOnGithub": "Star on GitHub",
-      "githubPromo": "If you like Edge-Drop, please star the project on GitHub!",
+      "githubPromo": "If you like Eave, please star the project on GitHub!",
       "version": "Version"
     }
   },
@@ -1519,15 +1519,15 @@
       "autoUpdatesDescOff": "Background update checks paused. Check for updates manually below",
       "checkForUpdates": "Check for updates",
       "checkingForUpdates": "Checking for updates...",
-      "isUpToDate": "Edge-Drop is up to date",
+      "isUpToDate": "Eave is up to date",
       "checkAgain": "Check again",
-      "updateAvailableTitle": "Edge-Drop v{version} is available!",
+      "updateAvailableTitle": "Eave v{version} is available!",
       "updateAvailableDesc": "A newer version is ready. Would you like to download and update now?",
       "downloadAndUpdate": "Download and Update",
       "skip": "Skip",
       "downloadingUpdate": "Downloading update in background...",
       "updateReadyTitle": "Update v{version} Ready",
-      "updateReadyDesc": "Click to restart Edge-Drop and apply the update.",
+      "updateReadyDesc": "Click to restart Eave and apply the update.",
       "restartToUpdate": "Restart to Update",
       "restartToUpdateBelow": "Restart to update below",
       "newUpdateAvailableBelow": "New update available below"
@@ -1591,7 +1591,7 @@
     },
     "footer": {
       "starOnGithub": "Star on GitHub",
-      "githubPromo": "If you like Edge-Drop, please star the project on GitHub!",
+      "githubPromo": "If you like Eave, please star the project on GitHub!",
       "version": "Version"
     }
   },
@@ -1633,15 +1633,15 @@
       "autoUpdatesDescOff": "Background update checks paused. Check for updates manually below",
       "checkForUpdates": "Check for updates",
       "checkingForUpdates": "Checking for updates...",
-      "isUpToDate": "Edge-Drop is up to date",
+      "isUpToDate": "Eave is up to date",
       "checkAgain": "Check again",
-      "updateAvailableTitle": "Edge-Drop v{version} is available!",
+      "updateAvailableTitle": "Eave v{version} is available!",
       "updateAvailableDesc": "A newer version is ready. Would you like to download and update now?",
       "downloadAndUpdate": "Download and Update",
       "skip": "Skip",
       "downloadingUpdate": "Downloading update in background...",
       "updateReadyTitle": "Update v{version} Ready",
-      "updateReadyDesc": "Click to restart Edge-Drop and apply the update.",
+      "updateReadyDesc": "Click to restart Eave and apply the update.",
       "restartToUpdate": "Restart to Update",
       "restartToUpdateBelow": "Restart to update below",
       "newUpdateAvailableBelow": "New update available below"

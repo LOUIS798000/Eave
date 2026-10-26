@@ -1,7 +1,7 @@
 /** Local, renderer-only emoji picker preferences. Not part of Settings IPC. */
 
-const RECENTS_KEY = 'edge-drop.emoji.recents'
-const TONE_KEY = 'edge-drop.emoji.skinTone'
+const RECENTS_KEY = 'eave.emoji.recents'
+const TONE_KEY = 'eave.emoji.skinTone'
 
 interface MinimalStorage {
   getItem(key: string): string | null

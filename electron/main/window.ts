@@ -201,7 +201,7 @@ export function isInteractive(): boolean {
  *
  * The shelf normally never takes OS focus, so paste (Ctrl+V to "whatever is
  * focused") just works. Typing in search REQUIRES focus, which moves the
- * foreground to Edge-Drop. To keep the user's flow (click item -> lands in
+ * foreground to Eave. To keep the user's flow (click item -> lands in
  * their app), the main process notes which window was in front at open time
  * and again at search-engage time (when WE cannot yet be foreground, so the
  * reading is guaranteed correct), and hands focus back — verified — before
@@ -364,10 +364,10 @@ let memoryTrimTimer: ReturnType<typeof setTimeout> | null = null
  * How long the panel must stay closed before asking Windows to page out the
  * Chromium working sets. Long enough that normal open/close usage never pays
  * the page-in cost; short enough that an idle tray app drops to a few MB.
- * EDGE_DROP_MEMORY_TRIM_MS=0 disables it.
+ * EAVE_MEMORY_TRIM_MS=0 disables it.
  */
 const MEMORY_TRIM_DELAY_MS = (() => {
-  const raw = Number(process.env.EDGE_DROP_MEMORY_TRIM_MS)
+  const raw = Number(process.env.EAVE_MEMORY_TRIM_MS)
   return Number.isFinite(raw) && raw >= 0 ? raw : 60_000
 })()
 
@@ -684,7 +684,7 @@ let _lastSentY = -9999
 /** Seam-policy tracker threaded between ticks (see stickProbe.ts pillars). */
 let _seamState: SeamTickState = {}
 
-/* ── Diagnostic trace (EDGE_DROP_DIAG only) ─────────────────────────────
+/* ── Diagnostic trace (EAVE_DIAG only) ─────────────────────────────
  * The poll is the single gate every hover has to pass, so when the shelf
  * "ignores" a hover the interesting question is always which gate said no.
  * Repeated identical skips are collapsed to one line per 500ms so a 60Hz
@@ -711,7 +711,7 @@ function diagSkip(reason: string): void {
  * renderer is sandboxed and has no access to process.env.
  */
 function rendererDiagQuery(): string {
-  return process.env.EDGE_DROP_DIAG ? '?diag=1' : ''
+  return process.env.EAVE_DIAG ? '?diag=1' : ''
 }
 
 /**
@@ -1239,7 +1239,7 @@ export function createWindow(): BrowserWindow {
     return { action: 'deny' }
   })
 
-  // Load the renderer. `?diag=1` (EDGE_DROP_DIAG builds only) switches the
+  // Load the renderer. `?diag=1` (EAVE_DIAG builds only) switches the
   // renderer's own diagnostic trace on — see src/lib/diag.ts.
   if (APP_CONFIG.is.dev && process.env.ELECTRON_RENDERER_URL) {
     mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL + rendererDiagQuery())

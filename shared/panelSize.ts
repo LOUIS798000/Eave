@@ -1,7 +1,7 @@
 /**
  * Panel size math shared by the main process and the renderer.
  *
- * Edge-Drop's shelf has two very different shapes:
+ * Eave's shelf has two very different shapes:
  *   - left/right: a tall blade whose width is fixed and whose height is a
  *     fraction of the work area;
  *   - top: a wide horizontal dock whose width fills the screen and whose

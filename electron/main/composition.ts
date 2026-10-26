@@ -126,46 +126,46 @@ function loadBindings() {
   const ole32 = koffi.load('ole32.dll')
   const user32 = koffi.load('user32.dll')
 
-  koffi.struct('EdgeDropV2', { x: 'float', y: 'float' })
+  koffi.struct('EaveV2', { x: 'float', y: 'float' })
   // IVisual.Offset is a Vector3. Passing a Vector2 struct here corrupts the
   // stack: the callee reads three floats, not two.
-  koffi.struct('EdgeDropV3', { x: 'float', y: 'float', z: 'float' })
-  koffi.struct('EdgeDropOut', { value: 'void *' })
-  koffi.struct('EdgeDropColor', { a: 'uint8_t', r: 'uint8_t', g: 'uint8_t', b: 'uint8_t' })
-  koffi.struct('EdgeDropDQOptions', {
+  koffi.struct('EaveV3', { x: 'float', y: 'float', z: 'float' })
+  koffi.struct('EaveOut', { value: 'void *' })
+  koffi.struct('EaveColor', { a: 'uint8_t', r: 'uint8_t', g: 'uint8_t', b: 'uint8_t' })
+  koffi.struct('EaveDQOptions', {
     dwSize: 'uint32_t',
     threadType: 'int',
     apartmentType: 'int'
   })
 
   const proto = {
-    qi: koffi.proto('long EdgeDropQi(void *self, uint8_t *iid, _Out_ EdgeDropOut *out)'),
-    addRef: koffi.proto('uint32_t EdgeDropAddRef(void *self)'),
-    className: koffi.proto('long EdgeDropClassName(void *self, _Out_ EdgeDropOut *out)'),
-    create: koffi.proto('long EdgeDropCreate(void *self, _Out_ EdgeDropOut *out)'),
-    createFrom: koffi.proto('long EdgeDropCreateFrom(void *self, void *arg, _Out_ EdgeDropOut *out)'),
+    qi: koffi.proto('long EaveQi(void *self, uint8_t *iid, _Out_ EaveOut *out)'),
+    addRef: koffi.proto('uint32_t EaveAddRef(void *self)'),
+    className: koffi.proto('long EaveClassName(void *self, _Out_ EaveOut *out)'),
+    create: koffi.proto('long EaveCreate(void *self, _Out_ EaveOut *out)'),
+    createFrom: koffi.proto('long EaveCreateFrom(void *self, void *arg, _Out_ EaveOut *out)'),
     createTarget: koffi.proto(
-      'long EdgeDropCreateTarget(void *self, uintptr_t hwnd, int topmost, _Out_ EdgeDropOut *out)'
+      'long EaveCreateTarget(void *self, uintptr_t hwnd, int topmost, _Out_ EaveOut *out)'
     ),
-    getObj: koffi.proto('long EdgeDropGetObj(void *self, _Out_ EdgeDropOut *out)'),
-    putObj: koffi.proto('long EdgeDropPutObj(void *self, void *value)'),
-    putObj2: koffi.proto('long EdgeDropPut2(void *self, void *a, void *b)'),
-    putV2: koffi.proto('long EdgeDropPutV2(void *self, EdgeDropV2 value)'),
-    putV3: koffi.proto('long EdgeDropPutV3(void *self, EdgeDropV3 value)'),
-    putFloat: koffi.proto('long EdgeDropPutFloat(void *self, float value)'),
-    putBool: koffi.proto('long EdgeDropPutBool(void *self, uint8_t value)'),
+    getObj: koffi.proto('long EaveGetObj(void *self, _Out_ EaveOut *out)'),
+    putObj: koffi.proto('long EavePutObj(void *self, void *value)'),
+    putObj2: koffi.proto('long EavePut2(void *self, void *a, void *b)'),
+    putV2: koffi.proto('long EavePutV2(void *self, EaveV2 value)'),
+    putV3: koffi.proto('long EavePutV3(void *self, EaveV3 value)'),
+    putFloat: koffi.proto('long EavePutFloat(void *self, float value)'),
+    putBool: koffi.proto('long EavePutBool(void *self, uint8_t value)'),
     createSingle: koffi.proto(
-      'long EdgeDropCreateSingle(void *self, float value, _Out_ EdgeDropOut *out)'
+      'long EaveCreateSingle(void *self, float value, _Out_ EaveOut *out)'
     ),
     createU32: koffi.proto(
-      'long EdgeDropCreateU32(void *self, uint32_t value, _Out_ EdgeDropOut *out)'
+      'long EaveCreateU32(void *self, uint32_t value, _Out_ EaveOut *out)'
     ),
-    createParam: koffi.proto('long EdgeDropCreateParam(void *self, void *name, _Out_ EdgeDropOut *out)'),
+    createParam: koffi.proto('long EaveCreateParam(void *self, void *name, _Out_ EaveOut *out)'),
     createFactory: koffi.proto(
-      'long EdgeDropCreateFactory(void *self, void *effect, _Out_ EdgeDropOut *out)'
+      'long EaveCreateFactory(void *self, void *effect, _Out_ EaveOut *out)'
     ),
     createFactoryWithProps: koffi.proto(
-      'long EdgeDropCreateFactoryProps(void *self, void *effect, void *props, _Out_ EdgeDropOut *out)'
+      'long EaveCreateFactoryProps(void *self, void *effect, void *props, _Out_ EaveOut *out)'
     ),
     // IGraphicsEffectD2D1Interop
     effectId: koffi.proto('long EdgeFxEffectId(void *self, void *out)'),
@@ -191,7 +191,7 @@ function loadBindings() {
     proto,
     fn: {
       WindowsCreateString: combase.func(
-        'long WindowsCreateString(const uint16_t *source, uint32_t length, _Out_ EdgeDropOut *out)'
+        'long WindowsCreateString(const uint16_t *source, uint32_t length, _Out_ EaveOut *out)'
       ),
       WindowsDeleteString: combase.func('long WindowsDeleteString(void *hstring)'),
       WindowsGetStringRawBuffer: combase.func(
@@ -199,13 +199,13 @@ function loadBindings() {
       ),
       RoInitialize: combase.func('long RoInitialize(int initType)'),
       RoActivateInstance: combase.func(
-        'long RoActivateInstance(void *cls, _Out_ EdgeDropOut *out)'
+        'long RoActivateInstance(void *cls, _Out_ EaveOut *out)'
       ),
       RoGetActivationFactory: combase.func(
-        'long RoGetActivationFactory(void *cls, uint8_t *iid, _Out_ EdgeDropOut *out)'
+        'long RoGetActivationFactory(void *cls, uint8_t *iid, _Out_ EaveOut *out)'
       ),
       CreateDispatcherQueueController: coremessaging.func(
-        'long CreateDispatcherQueueController(EdgeDropDQOptions options, _Out_ EdgeDropOut *out)'
+        'long CreateDispatcherQueueController(EaveDQOptions options, _Out_ EaveOut *out)'
       ),
       CoTaskMemAlloc: ole32.func('void *CoTaskMemAlloc(size_t cb)'),
       CreateWindowExW: user32.func(

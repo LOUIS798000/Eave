@@ -2,7 +2,7 @@
  * Launch-at-login.
  *
  * GitHub NSIS: Electron Run keys. Older builds used different value names, so
- * disable still clears leftover names. Enable must not disable Edge-Drop first
+ * disable still clears leftover names. Enable must not disable Eave first
  * — that stamps Windows Startup apps as Off and the toggle then fails.
  *
  * Store / AppX: Windows.ApplicationModel.StartupTask only —
@@ -18,14 +18,23 @@ import { disable, enable, getStatus, StartupTaskState } from './storeStartup'
 
 export { StartupTaskState }
 
-/** Historical + current Run-key names written by this app. */
+/** The Run-key name this build writes. */
+export const CANONICAL_LOGIN_ITEM_NAME = 'Eave'
+
+/**
+ * Every Run-key name this app has ever written. The legacy entries keep an
+ * upgraded profile from launching the app twice at sign-in with a stale path
+ * to the pre-rename executable.
+ */
 export const GITHUB_LOGIN_ITEM_NAMES = [
+  CANONICAL_LOGIN_ITEM_NAME,
+  'com.eave.app',
+  'electron.app.Eave',
+  // Written by builds before the rename.
   'Edge-Drop',
   'com.edgedrop.app',
   'electron.app.Edge-Drop'
 ] as const
-
-export const CANONICAL_LOGIN_ITEM_NAME = 'Edge-Drop'
 
 export interface LaunchAtLoginResult {
   enabled: boolean
@@ -102,7 +111,7 @@ export function getRawGithubRunCommand(name: string): string | null {
       { windowsHide: true, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
     ) as unknown as string
     const text = String(out ?? '')
-    // Typical output line: `    Edge-Drop    REG_SZ    "C:\...\Edge-Drop.exe" --hidden`
+    // Typical output line: `    Eave    REG_SZ    "C:\...\Eave.exe" --hidden`
     const m = text.match(/REG_SZ\s+(.+?)\s*$/m)
     if (!m) return null
     const val = (m[1] ?? '').trim()
@@ -284,7 +293,7 @@ export function applyGithubLaunchAtLogin(wantLaunch: boolean): LaunchAtLoginResu
   const names = collectGithubLoginNames(exePath)
 
   if (wantLaunch) {
-    // Do not disable Edge-Drop before enabling it. That writes Windows
+    // Do not disable Eave before enabling it. That writes Windows
     // StartupApproved as Off and the in-app toggle then fails after upgrades.
     for (const name of names) {
       if (name === CANONICAL_LOGIN_ITEM_NAME) continue
@@ -310,7 +319,7 @@ export function applyGithubLaunchAtLogin(wantLaunch: boolean): LaunchAtLoginResu
       }
     }
 
-    // Clear any previous disable block in Windows StartupApproved for Edge-Drop
+    // Clear any previous disable block in Windows StartupApproved for Eave
     clearStartupApprovedBlock(CANONICAL_LOGIN_ITEM_NAME)
 
     try {
@@ -443,7 +452,7 @@ export async function reconcileLaunchAtLoginOnStartup(): Promise<Settings> {
 
   if (settings.launchAtLogin === false && os.enabled) {
     // GitHub recovery check:
-    // If user has settings=false, but the Run key exists for Edge-Drop and is NOT blocked by user:
+    // If user has settings=false, but the Run key exists for Eave and is NOT blocked by user:
     // This happens when 0.3.1's false-negative poll bug erroneously saved launchAtLogin: false.
     // Self-heal: restore settings to true and ensure key is properly quoted!
     if (!isStoreBuild()) {

@@ -2,7 +2,7 @@
  * Electron main process entry point.
  *
  * Lifecycle:
- *   1. Single-instance lock (only one Edge-Drop may run).
+ *   1. Single-instance lock (only one Eave may run).
  *   2. App 'ready' -> ensure dirs, create the edge window + tray, register the
  *      image protocol + IPC handlers, start the clipboard watcher.
  *   3. On 'window-all-closed' we DON'T quit (the panel is hidden, not closed).
@@ -28,16 +28,16 @@ import { createHash } from 'node:crypto'
 import { resolveStoredImage, resolveEmojiAsset, resolveIconAsset, emojiAssetDir } from './imageProtocol'
 import { getThumbnailPayloadScheduled, thumbnailCacheControl } from './thumbnailCache'
 
-// Edge-Drop renders a small, mostly static transparent panel. Chromium's GPU
+// Eave renders a small, mostly static transparent panel. Chromium's GPU
 // process costs substantially more memory (~150–250 MB) than the iGPU compositing
 // savings are worth for such a simple UI. Software compositing keeps the process
 // count and RAM footprint minimal without meaningfully affecting visual quality.
 // Electron requires this call before the ready event.
 //
-// EDGE_DROP_GPU=1 keeps the GPU compositor instead. It is a diagnostic escape
+// EAVE_GPU=1 keeps the GPU compositor instead. It is a diagnostic escape
 // hatch for displays where software compositing makes text look soft after the
 // settings shelf is scrolled (the symptom disappears again at scroll offset 0).
-if (process.env.EDGE_DROP_GPU !== '1') app.disableHardwareAcceleration()
+if (process.env.EAVE_GPU !== '1') app.disableHardwareAcceleration()
 
 // Restrict the renderer to a single webContents and forbid remote module usage.
 app.enableSandbox()
@@ -109,7 +109,7 @@ app.whenReady().then(() => {
   // GitHub NSIS needs an explicit AUMID. Store packages already have one from
   // the AppX identity; overriding it breaks toasts and taskbar grouping.
   if (!isStoreBuild()) {
-    app.setAppUserModelId('com.edgedrop.app')
+    app.setAppUserModelId('com.eave.app')
   }
 
   ensureDirs()
@@ -125,7 +125,7 @@ app.whenReady().then(() => {
   registerImageProtocol()
 
   createWindow()
-  // Diagnostic builds (EDGE_DROP_DIAG): record main-thread stalls, which are
+  // Diagnostic builds (EAVE_DIAG): record main-thread stalls, which are
   // invisible to every other signal but delay the whole open path.
   installStallWatch()
   if (diagEnabled) {

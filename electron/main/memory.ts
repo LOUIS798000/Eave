@@ -16,7 +16,7 @@
  *
  * If the user immediately re-opens the panel, the pages fault back in; that is
  * the deliberate trade-off for a much lower idle footprint. Set
- * EDGE_DROP_MEMORY_TRIM_MS=0 to disable the idle timer (handy for profiling).
+ * EAVE_MEMORY_TRIM_MS=0 to disable the idle timer (handy for profiling).
  */
 import { app } from 'electron'
 import koffi from 'koffi'

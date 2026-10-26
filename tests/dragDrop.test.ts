@@ -236,7 +236,7 @@ describe('Drag-out usage gating on drop location', () => {
   it('does not touch item when drag drops back inside the source window', () => {
     const touchSpy = vi.fn()
     const isWholeItemDrag = true
-    const isInside = true // Dropped back onto Edge-Drop window
+    const isInside = true // Dropped back onto Eave window
     const movePastedToTop = true
 
     if (isWholeItemDrag && !isInside && movePastedToTop) {

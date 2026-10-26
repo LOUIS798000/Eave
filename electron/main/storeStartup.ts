@@ -26,33 +26,33 @@ export const StartupTaskState = {
 
 export function resolveStartupHelperPath(): string | null {
   // Allow tests / enterprise layouts to override the helper location.
-  const override = process.env.EDGE_DROP_STARTUP_HELPER
+  const override = process.env.EAVE_STARTUP_HELPER
   if (override && existsSync(override)) return override
   const candidates: string[] = []
   if (typeof process.resourcesPath === 'string' && process.resourcesPath) {
-    candidates.push(join(process.resourcesPath, 'startup', 'EdgeDropStartup.exe'))
+    candidates.push(join(process.resourcesPath, 'startup', 'EaveStartup.exe'))
   }
   try {
     const appPath = app.getAppPath()
-    candidates.push(join(appPath, '..', 'startup', 'EdgeDropStartup.exe'))
-    candidates.push(join(appPath, 'resources', 'startup', 'EdgeDropStartup.exe'))
+    candidates.push(join(appPath, '..', 'startup', 'EaveStartup.exe'))
+    candidates.push(join(appPath, 'resources', 'startup', 'EaveStartup.exe'))
   } catch {
     /* tests / app not ready */
   }
-  // Packaged exe lives next to resources/: <install>/Edge-Drop.exe +
-  // <install>/resources/startup/EdgeDropStartup.exe (extraResources).
+  // Packaged exe lives next to resources/: <install>/Eave.exe +
+  // <install>/resources/startup/EaveStartup.exe (extraResources).
   try {
     const exePath = app.getPath('exe')
     if (exePath) {
       const { dirname } = require('node:path') as typeof import('node:path')
       const exeDir = dirname(exePath)
-      candidates.push(join(exeDir, 'resources', 'startup', 'EdgeDropStartup.exe'))
-      candidates.push(join(exeDir, 'startup', 'EdgeDropStartup.exe'))
+      candidates.push(join(exeDir, 'resources', 'startup', 'EaveStartup.exe'))
+      candidates.push(join(exeDir, 'startup', 'EaveStartup.exe'))
     }
   } catch {
     /* ignore */
   }
-  candidates.push(join(process.cwd(), 'resources', 'startup', 'EdgeDropStartup.exe'))
+  candidates.push(join(process.cwd(), 'resources', 'startup', 'EaveStartup.exe'))
   return candidates.find((path) => path && existsSync(path)) ?? null
 }
 

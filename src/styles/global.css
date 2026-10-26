@@ -135,11 +135,11 @@ input {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(60, 60, 67, 0.22);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(60, 60, 67, 0.34);
 }
 
 /* Respect OS reduced-motion when the user opts in via settings. */

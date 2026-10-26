@@ -1,7 +1,7 @@
 .wake-slider {
-  --ws-fill: #f5f5f5;
-  --ws-track: #27272a;
-  --ws-crest: #f5f5f5;
+  --ws-fill: #0a84ff;
+  --ws-track: rgba(120, 120, 128, 0.22);
+  --ws-crest: #0a84ff;
   --ws-height: 56px;
   --ws-gap: 4px;
   --ws-rest: 0.214;
@@ -23,7 +23,7 @@
   display: flex;
   flex: 1 1 auto;
   align-items: center;
-  gap: var(--ws-gap);
+  gap: 0;
   height: var(--ws-height);
   min-height: 44px;
   touch-action: none;
@@ -31,6 +31,33 @@
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Native macOS-style track: one continuous groove + accent fill. */
+.wake-slider__track::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 999px;
+  background: var(--ws-track);
+  pointer-events: none;
+}
+
+.wake-slider__track::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: var(--ws-pct, 50%);
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 999px;
+  background: var(--ws-fill);
+  pointer-events: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -43,16 +70,28 @@
   }
 }
 
+/* The animated wave bars are retained for the drag physics but hidden in the
+   light theme: the visible control is a native track, accent fill and thumb. */
 .wake-slider__bar {
+  display: none;
   position: relative;
   flex: 1 1 0;
   min-width: 0;
   height: var(--ws-height);
-  border-radius: 9999px;
+  margin: 0 -0.5px;
+  border-radius: 0;
   background: var(--ws-track);
   transform: scaleY(var(--ws-rest));
   transform-origin: 50% 50%;
   transition: background-color 120ms ease;
+}
+
+.wake-slider__bar:first-child {
+  border-radius: 9999px 0 0 9999px;
+}
+
+.wake-slider__bar:last-child {
+  border-radius: 0 9999px 9999px 0;
 }
 
 .wake-slider__bar[data-on='true'] {
@@ -69,6 +108,25 @@
   border-radius: inherit;
   background: var(--ws-crest);
   opacity: 0;
+}
+
+.wake-slider__thumb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(20, 22, 40, 0.18), 0 3px 8px rgba(20, 22, 40, 0.08), 0 0 0 0.5px rgba(20, 22, 40, 0.04);
+  pointer-events: none;
+  z-index: 2;
+  transform: translateX(-50%);
+}
+
+.wake-slider[aria-disabled='true'] .wake-slider__thumb {
+  opacity: 0.6;
 }
 
 .wake-slider__handle {

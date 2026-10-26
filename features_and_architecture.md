@@ -234,7 +234,11 @@ The settings panel replaces traditional, clumsy UI sliders with clean **Minimali
 | **Auto-delete timer** | `autoDeleteHours` | `0` (Never) | Purges copied items older than 1h, 6h, 24h, or 7 days (preserves Pinned items). |
 | **History capacity** | `historyLimit` | `500` | Limits unpinned storage depth (options: 100, 250, 500, 1000 items). |
 | **Edge trigger height** | `hotZoneHeight` | `0.4` (40%) | Adjusts the vertical hover detection band along the screen edge (25%, 40%, 60%). |
-| **Panel height** | `panelHeight` | `0.65` (65%) | Adjusts the visual height of the clipboard blade relative to screen resolution. |
+| **Panel height** | `panelHeight` | `0.65` (65%) | Legacy auto height of the clipboard blade relative to screen resolution (used when `panelHeightPx` is 0). |
+| **Panel width** | `panelWidth` | `270` px | Explicit blade depth for left/right docks (240-560 px). Drives the native window width and flyout offsets. |
+| **Panel height (px)** | `panelHeightPx` | `0` (auto) | Explicit blade height for left/right docks. `0` keeps the percentage behaviour; otherwise 280 px up to the work area. |
+| **Top dock width** | `topPanelWidth` | `0` (full) | Explicit horizontal dock width (740-1080 px, or the largest that fits the display). |
+| **Top dock height** | `topPanelHeightPx` | `0` (210 px) | Explicit horizontal dock height (120-280 px). Below 180px the card row switches to a 1.75:1 compact card and Settings stays inside the chosen dock height (no blade growth). |
 | **Incognito mode** | `incognito` | `false` | Temporarily suspends clipboard polling; no new items are captured while active. |
 | **Launch at login** | `launchAtLogin` | `false` | Registers Edge-Drop silently in the Windows Registry (`CurrentVersion\Run`). |
 

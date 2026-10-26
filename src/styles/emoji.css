@@ -31,7 +31,7 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 4px var(--pad) 8px;
+  padding: 4px var(--pad) 16px;
   scrollbar-width: none;
   overscroll-behavior-y: contain;
 }
@@ -71,13 +71,13 @@
   user-select: none;
 }
 .emoji-cell:hover {
-  background: rgba(255, 255, 255, 0.14);
-  transform: scale(1.16);
+  background: rgba(120, 120, 128, 0.12);
+  transform: scale(1.12);
   z-index: 2;
 }
 .emoji-cell:active {
   transform: scale(0.92);
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(120, 120, 128, 0.18);
 }
 
 .emoji-glyph {
@@ -91,7 +91,7 @@
   transition: filter 0.14s ease;
 }
 .emoji-cell:hover .emoji-glyph {
-  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 2px 5px rgba(20, 22, 40, 0.11));
 }
 
 /* Fast Category Glass Tooltip */
@@ -101,15 +101,15 @@
   z-index: 10;
   padding: 4px 10px;
   border-radius: 999px;
-  background: #141414;
+  background: rgba(255, 255, 255, 0.96);
   border: none;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 8px 22px rgba(20, 22, 40, 0.12);
   transform: translateX(-50%);
   pointer-events: none;
   white-space: nowrap;
   font-size: 11.5px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(29, 29, 31, 0.9);
   letter-spacing: 0.01em;
   animation: emojiCatTooltipFade 0.12s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -130,7 +130,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 4px var(--pad) 8px;
+  padding: 4px var(--pad) 16px;
   flex-shrink: 0;
 }
 
@@ -140,7 +140,7 @@
   gap: 5px;
   padding: 4px 12px;
   border-radius: 999px;
-  background: #141414;
+  background: var(--bg-card);
   border: none;
   color: #ff6b6b;
   font-size: 12px;
@@ -165,9 +165,9 @@
   gap: 2px;
   padding: 4px;
   border-radius: 14px;
-  background: #141414;
+  background: var(--bg-card);
   border: none;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 10px 28px rgba(20, 22, 40, 0.15);
   transform: translate(-50%, calc(-100% - 8px));
   pointer-events: auto;
 }
@@ -188,7 +188,7 @@
     transform var(--dur-fast) var(--ease-out);
 }
 .emoji-tone-choice:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(120, 120, 128, 0.12);
   transform: scale(1.1);
 }
 .emoji-tone-choice:active {
@@ -217,7 +217,7 @@
   display: block;
   aspect-ratio: 1;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(120, 120, 128, 0.1);
 }
 
 /* ==========================================================================

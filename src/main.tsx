@@ -24,6 +24,8 @@ if (!container) throw new Error('#root element not found')
 // Expose Device Pixel Ratio (DPR) to CSS for display-aware rendering.
 // This allows effects like blur() to scale inversely with physical pixel density,
 // saving massive amounts of GPU fill-rate on 4K/Hi-DPI displays.
+document.documentElement.classList.add('light')
+
 const dpr = window.devicePixelRatio || 1
 document.documentElement.style.setProperty('--dpr', dpr.toString())
 

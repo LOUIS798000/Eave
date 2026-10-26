@@ -7,6 +7,16 @@
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { DEFAULT_SETTINGS, isUpdateMode, normalizeHoverOpenDelay, type Settings } from '../../shared/types'
+import {
+  PANEL_WIDTH_DEFAULT,
+  PANEL_WIDTH_MAX,
+  PANEL_WIDTH_MIN,
+  TOP_HEIGHT_MAX,
+  TOP_HEIGHT_MIN,
+  TOP_WIDTH_MAX,
+  TOP_WIDTH_MIN,
+  clampNumber
+} from '../../shared/panelSize'
 import { PATHS } from './paths'
 
 let cache: Settings | null = null
@@ -32,6 +42,40 @@ function merge(base: Settings, patch: Partial<Settings>): Settings {
     out.horizontalOffset = 0.5
   }
   out.horizontalOffset = Math.min(1.0, Math.max(0.0, out.horizontalOffset))
+  // Panel size: width is always an explicit pixel value; heights keep 0 as
+  // "auto" so upgraders retain the old fraction/default behaviour.
+  out.panelWidth = Math.round(
+    clampNumber(
+      typeof out.panelWidth === 'number' && Number.isFinite(out.panelWidth) ? out.panelWidth : PANEL_WIDTH_DEFAULT,
+      PANEL_WIDTH_MIN,
+      PANEL_WIDTH_MAX
+    )
+  )
+  out.panelHeightPx = Math.round(
+    clampNumber(
+      typeof out.panelHeightPx === 'number' && Number.isFinite(out.panelHeightPx) ? out.panelHeightPx : 0,
+      0,
+      10000
+    )
+  )
+  out.topPanelWidth = Math.round(
+    clampNumber(
+      typeof out.topPanelWidth === 'number' && Number.isFinite(out.topPanelWidth) ? out.topPanelWidth : 0,
+      0,
+      TOP_WIDTH_MAX
+    )
+  )
+  out.topPanelHeightPx = Math.round(
+    clampNumber(
+      typeof out.topPanelHeightPx === 'number' && Number.isFinite(out.topPanelHeightPx) ? out.topPanelHeightPx : 0,
+      0,
+      TOP_HEIGHT_MAX
+    )
+  )
+  // A tiny explicit top width would collapse the horizontal header. Only
+  // clamp values that are actually set; 0 stays "auto" (full-width dock).
+  if (out.topPanelWidth > 0 && out.topPanelWidth < TOP_WIDTH_MIN) out.topPanelWidth = TOP_WIDTH_MIN
+  if (out.topPanelHeightPx > 0 && out.topPanelHeightPx < TOP_HEIGHT_MIN) out.topPanelHeightPx = TOP_HEIGHT_MIN
   if (typeof out.language !== 'string' || !out.language.trim()) {
     out.language = 'system'
   }

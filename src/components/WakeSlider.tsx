@@ -61,8 +61,8 @@ export function WakeSlider({
   height = 56,
   restHeight = 12,
   gap = 4,
-  fillColor = '#f5f5f5',
-  trackColor = '#27272a',
+  fillColor = '#0a84ff',
+  trackColor = 'rgba(120, 120, 128, 0.22)',
   crestColor = '',
   sensitivity = 1,
   reach = 6,
@@ -87,6 +87,7 @@ export function WakeSlider({
   const handleRef = useRef<HTMLButtonElement>(null)
   const barEls = useRef<(HTMLSpanElement | null)[]>([])
   const crestEls = useRef<(HTMLSpanElement | null)[]>([])
+  const thumbRef = useRef<HTMLSpanElement | null>(null)
   const pointerId = useRef<number | null>(null)
   const lastAmp = useRef(0)
   const latest = useRef(value)
@@ -112,6 +113,11 @@ export function WakeSlider({
     const behind = r * (1 + skew)
     const ahead = r * (1 - 0.5 * skew)
     const lit = Math.round(h)
+    const frac = bars > 1 ? h / (bars - 1) : 0
+    if (trackRef.current) trackRef.current.style.setProperty('--ws-pct', `${(frac * 100).toFixed(3)}%`)
+    if (thumbRef.current) {
+      thumbRef.current.style.left = `calc(9px + (100% - 18px) * ${frac})`
+    }
     const flat = !force && amp < FLAT && lastAmp.current < FLAT
     for (let i = 0; i < bars; i++) {
       const el = barEls.current[i]
@@ -246,6 +252,7 @@ export function WakeSlider({
       <div
         ref={trackRef}
         className="wake-slider__track"
+        style={{ '--ws-pct': `${pct}%` } as React.CSSProperties}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
@@ -253,6 +260,7 @@ export function WakeSlider({
         onLostPointerCapture={endDrag}
       >
         {barNodes}
+        <span ref={thumbRef} className="wake-slider__thumb" aria-hidden="true" />
         <button
           ref={handleRef}
           type="button"

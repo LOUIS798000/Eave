@@ -71,6 +71,8 @@ export function copyTabPath(barWidth: number): { d: string; halfLength: number }
 
 export const COPY_TAB_BEHIND_EDGE = BEHIND_EDGE
 
+import { resolvePanelHeight, resolveTopPanelWidth } from '../../shared/panelSize'
+
 /**
  * Centre of the visible edge bar, in window px, along the edge.
  * Mirrors the trigger-bar placement in Panel.tsx (alignment + offsets) so
@@ -80,7 +82,12 @@ export function edgeBarCenter(
   settings: {
     stickPosition?: string
     panelHeight?: number
+    panelHeightPx?: number
+    panelWidth?: number
+    topPanelWidth?: number
+    topPanelHeightPx?: number
     verticalOffset?: number
+    horizontalOffset?: number
     hotZoneHeight?: number
     triggerAlignment?: string
   },
@@ -88,7 +95,7 @@ export function edgeBarCenter(
 ): number {
   const alignment = settings.triggerAlignment || 'center'
   if (settings.stickPosition === 'top') {
-    const bladeW = Math.min(viewport.width - 60, 1080)
+    const bladeW = resolveTopPanelWidth(settings, viewport.width - 60)
     const hz = settings.hotZoneHeight ?? 0.25
     const barW = hz >= 0.55 ? 575 : hz >= 0.35 ? 400 : 275
     const mid = viewport.width / 2
@@ -96,12 +103,14 @@ export function edgeBarCenter(
     if (alignment === 'bottom' || alignment === 'right') return mid + bladeW / 2 - barW / 2
     return mid
   }
-  const screenH = viewport.height
-  const panelH = screenH * (settings.panelHeight || 0.6)
+  const panelH = resolvePanelHeight(
+    { panelHeight: settings.panelHeight ?? 0.6, panelHeightPx: settings.panelHeightPx },
+    viewport.height
+  )
   const minY = panelH / 2
-  const maxY = screenH - panelH / 2
+  const maxY = viewport.height - panelH / 2
   const midY = Math.round(minY + (settings.verticalOffset ?? 0.5) * (maxY - minY))
-  const barH = Math.round(screenH * (settings.hotZoneHeight ?? 0.25))
+  const barH = Math.round(viewport.height * (settings.hotZoneHeight ?? 0.25))
   if (alignment === 'top') return midY - panelH / 2 + barH / 2
   if (alignment === 'bottom') return midY + panelH / 2 - barH / 2
   return midY

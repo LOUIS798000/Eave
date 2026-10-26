@@ -364,7 +364,9 @@ export function ItemList() {
                 className={`pinned-accordion ${isHorizontal ? 'horizontal' : ''} ${!pinnedCollapsed ? 'is-expanded' : ''}`}
                 style={
                   isHorizontal
-                    ? ({ '--pinned-target-width': `${pinned.length * 210 + (pinned.length - 1) * 10}px` } as React.CSSProperties)
+                    ? ({
+                        '--pinned-target-width': `calc(${Array.from({ length: pinned.length }, () => 'var(--hcard-w, 210px)').join(' + ')} + ${(pinned.length - 1) * 10}px)`
+                      } as React.CSSProperties)
                     : undefined
                 }
               >

@@ -15,6 +15,7 @@ import { tryPaste } from '../lib/tryPaste'
 import { playButtonClickSound, playToggleSound } from '../lib/soundEffects'
 
 import { useTranslation, t } from '../i18n'
+import { resolvePanelHeight, resolveTopPanelHeight } from '../../shared/panelSize'
 
 /** Fast start, soft landing — no overshoot, no spring hang. */
 const flyoutEaseOpen = [0.16, 1, 0.3, 1] as const
@@ -70,8 +71,9 @@ export function PreviewFlyout({ isRight }: { isRight: boolean }) {
 
   const screenH = typeof window !== 'undefined' ? window.innerHeight : 800
   const screenW = typeof window !== 'undefined' ? window.innerWidth : 1140
-  const pFrac = settings.panelHeight || 0.6
-  const panelH = screenH * pFrac
+  const panelH = isHorizontal
+    ? resolveTopPanelHeight(settings)
+    : resolvePanelHeight(settings, screenH)
   const minY = panelH / 2
   const maxY = screenH - panelH / 2
   const vOffset = settings.verticalOffset ?? 0.5
@@ -82,7 +84,9 @@ export function PreviewFlyout({ isRight }: { isRight: boolean }) {
 
   const dockWidth = Math.min(screenW - 60, 1080)
   const flyoutWidth = 440
-  const maxFlyoutHeight = isHorizontal ? Math.min(460, Math.max(200, screenH - 240)) : Math.max(100, panelH - 24)
+  const maxFlyoutHeight = isHorizontal
+    ? Math.min(460, Math.max(120, screenH - panelH - 24))
+    : Math.max(100, panelH - 24)
 
   const dockLeft = Math.round((screenW - dockWidth) / 2)
   const previewItemRect = useStore((s) => s.previewItemRect)
@@ -109,8 +113,8 @@ export function PreviewFlyout({ isRight }: { isRight: boolean }) {
       const h = flyoutRef.current.offsetHeight
       if (isHorizontal) {
         useStore.getState().setPreviewFlyoutRect({
-          top: 210,
-          bottom: 222 + h,
+          top: panelH,
+          bottom: panelH + 12 + h,
           left: flyoutLeft,
           right: flyoutLeft + flyoutWidth
         })
@@ -273,7 +277,7 @@ export function PreviewFlyout({ isRight }: { isRight: boolean }) {
                   position: 'absolute',
                   left: dockLeft + flyoutLeft,
                   width: flyoutWidth,
-                  top: 222,
+                  top: panelH + 12,
                   display: 'flex',
                   flexDirection: 'column',
                   pointerEvents: 'none',
@@ -312,13 +316,13 @@ export function PreviewFlyout({ isRight }: { isRight: boolean }) {
             style={{
               width: '100%',
               maxHeight: maxFlyoutHeight,
-              background: dragOver ? 'rgba(15, 30, 18, 0.95)' : '#000000',
+              background: dragOver ? 'rgba(237, 251, 241, 0.97)' : 'rgba(255, 255, 255, 0.98)',
               borderRadius: 20,
-              border: dragOver ? '2px dashed #4caf50' : 'none',
+              border: dragOver ? '2px dashed #4caf50' : '1px solid rgba(255, 255, 255, 0.85)',
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: dragOver ? '0 0 35px rgba(76, 175, 80, 0.3)' : 'none',
+              boxShadow: dragOver ? '0 0 35px rgba(76, 175, 80, 0.3)' : '0 0 0 1px rgba(20, 22, 40, 0.05), 0 18px 44px rgba(20, 22, 40, 0.14), inset 0 1px 0 rgba(255, 255, 255, 1)',
               pointerEvents: 'auto',
               transition: 'background 0.2s ease, border 0.2s ease, box-shadow 0.2s ease',
               position: 'relative'
@@ -338,7 +342,7 @@ export function PreviewFlyout({ isRight }: { isRight: boolean }) {
                 padding: '6px 14px',
                 borderRadius: 20,
                 zIndex: 10,
-                boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
+                boxShadow: '0 4px 14px rgba(20, 22, 40, 0.22)',
                 pointerEvents: 'none',
                 display: 'flex',
                 alignItems: 'center',
@@ -371,7 +375,7 @@ export function PreviewFlyout({ isRight }: { isRight: boolean }) {
                   left: 12,
                   right: 12,
                   background: 'var(--act-surface)',
-                  boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6)',
+                  boxShadow: '0 16px 40px rgba(20, 22, 40, 0.16)',
                   borderRadius: 999,
                   padding: '4px 4px 4px 6px',
                   display: 'flex',
@@ -575,8 +579,8 @@ function PreviewContent({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.14)',
+              background: 'rgba(255, 255, 255, 0.55)',
+              border: '1px solid rgba(255, 255, 255, 0.8)',
               borderRadius: 999,
               padding: '3px 10px',
               maxWidth: 'calc(100% - 75px)',
@@ -584,10 +588,10 @@ function PreviewContent({
               whiteSpace: 'nowrap',
               boxSizing: 'border-box'
             }}>
-              <GlobeIcon width={13} height={13} style={{ color: 'rgba(255, 255, 255, 0.85)', flexShrink: 0 }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#ffffff', fontFamily: SYS_FONT, flexShrink: 0, whiteSpace: 'nowrap' }}>{info.serviceName}</span>
-              <span style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.35)', flexShrink: 0 }}>·</span>
-              <span style={{ fontSize: 11.5, color: 'rgba(255, 255, 255, 0.65)', fontFamily: SYS_FONT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flexShrink: 1 }}>{info.domain}</span>
+              <GlobeIcon width={13} height={13} style={{ color: 'rgba(60, 60, 67, 0.66)', flexShrink: 0 }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#1d1d1f', fontFamily: SYS_FONT, flexShrink: 0, whiteSpace: 'nowrap' }}>{info.serviceName}</span>
+              <span style={{ fontSize: 11, color: 'rgba(60, 60, 67, 0.35)', flexShrink: 0 }}>·</span>
+              <span style={{ fontSize: 11.5, color: 'rgba(60, 60, 67, 0.6)', fontFamily: SYS_FONT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flexShrink: 1 }}>{info.domain}</span>
             </div>
 
             <div className="act-pill">
@@ -609,7 +613,7 @@ function PreviewContent({
               <div style={{
                 fontSize: 16,
                 fontWeight: 600,
-                color: '#ffffff',
+                color: '#1d1d1f',
                 lineHeight: 1.35,
                 fontFamily: SYS_FONT,
                 wordBreak: 'break-word'
@@ -623,8 +627,8 @@ function PreviewContent({
                     fontWeight: 600,
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
-                    color: 'rgba(255, 255, 255, 0.6)',
-                    background: 'rgba(255, 255, 255, 0.08)',
+                    color: 'rgba(60, 60, 67, 0.6)',
+                    background: 'rgba(120, 120, 128, 0.12)',
                     padding: '2px 7px',
                     borderRadius: 4,
                     display: 'inline-block'
@@ -672,7 +676,7 @@ function PreviewContent({
             background: colorInfo.cssColor,
             color: colorInfo.isLight ? '#111827' : '#ffffff',
             cursor: 'pointer',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+            boxShadow: '0 8px 24px rgba(20, 22, 40, 0.14)',
             boxSizing: 'border-box',
           }}
         >
@@ -753,7 +757,7 @@ function PreviewContent({
           </div>
         </div>
         <div style={{
-          color: 'rgba(255,255,255,0.88)',
+          color: 'rgba(29, 29, 31, 0.86)',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
           fontSize: 13.5,
@@ -798,7 +802,7 @@ function PreviewContent({
         {item.data.imageId && (
           <img src={`edgelocal://${item.data.imageId}`} alt="preview" style={{ width: '100%', maxHeight: '65vh', objectFit: 'contain', borderRadius: 8 }} draggable={false} />
         )}
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontFamily: SYS_FONT, letterSpacing: '0.02em' }}>
+        <div style={{ fontSize: 12, color: 'rgba(60, 60, 67, 0.42)', fontFamily: SYS_FONT, letterSpacing: '0.02em' }}>
           {item.data.width} × {item.data.height} · {formatBytes(item.data.bytes)}
         </div>
       </div>

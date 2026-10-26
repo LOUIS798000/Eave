@@ -1,42 +1,63 @@
 /**
- * Design tokens — the deep-black, macOS-inspired palette.
+ * Design tokens — "Liquid Glass" light palette.
  *
- * The blade reads as a piece of glass extending out of the screen edge:
- * layered near-black gradients, a 1px inner light edge, soft shadow, and an
- * accent glow. Colors are exposed as CSS custom properties so the theme layer
- * can swap the accent at runtime.
+ * The blade reads as a piece of frosted glass extending out of the screen
+ * edge: layered translucent whites with a fine grain, a 1px specular inner
+ * edge, a soft ambient shadow, and a restrained blue accent. The desktop
+ * behind a transparent edge window is not available to CSS blur on Windows,
+ * so the frost is simulated rather than sampled.
+ * Colors are exposed as CSS custom properties so the theme layer can swap the
+ * accent at runtime.
  */
 :root {
-  /* Base blacks — stacked for depth, never a flat #000. */
-  --bg-0: #000000; /* deepest core */
-  --bg-1: #000000; /* blade body */
-  --bg-2: #141414; /* raised surface / card */
-  --bg-3: #1c1c1c; /* hover */
-  --bg-glass: rgba(12, 12, 16, 0.72); /* frosted backdrop */
-  --bg-card: #141414;
-  --bg-card-hover: #1c1c1c;
-  --bg-chip: #141414;
+  /* Base surfaces — translucent whites stacked for depth, never flat grey. */
+  --bg-0: #f5f5f7;
+  --bg-1: rgba(255, 255, 255, 0.62);
+  --bg-2: rgba(255, 255, 255, 0.55);
+  --bg-3: rgba(255, 255, 255, 0.78);
+  --bg-glass: rgba(255, 255, 255, 0.55);
+  --bg-card: rgba(255, 255, 255, 0.5);
+  --bg-card-hover: rgba(255, 255, 255, 0.74);
+  --bg-card-hover-strong: rgba(255, 255, 255, 0.92);
+  --bg-card-pinned: rgba(255, 255, 255, 0.62);
+  --bg-chip: rgba(255, 255, 255, 0.6);
+  --bg-inset: rgba(120, 120, 128, 0.1);
+  --bg-inset-strong: rgba(120, 120, 128, 0.16);
+  --seg-track: rgba(120, 120, 128, 0.14);
+
+  /* Blade material */
+  --blade-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(250, 250, 253, 0.92) 46%,
+    rgba(244, 245, 250, 0.9) 100%
+  );
+  --blade-border: rgba(255, 255, 255, 0.62);
 
   /* Hairlines — used only where a divider is needed, not as box outlines */
-  --edge-light: rgba(255, 255, 255, 0.06);
-  --edge-strong: rgba(255, 255, 255, 0.12);
-  --divider: rgba(255, 255, 255, 0.08);
+  --edge-light: rgba(255, 255, 255, 0.7);
+  --edge-strong: rgba(255, 255, 255, 0.92);
+  --divider: rgba(60, 60, 67, 0.12);
+  --hairline: rgba(255, 255, 255, 0.65);
+  --hairline-soft: rgba(255, 255, 255, 0.45);
 
-  /* Text — High Contrast & Ultra-Legible */
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.78);
-  --text-tertiary: rgba(255, 255, 255, 0.48);
+  /* Text — Apple label hierarchy on glass. */
+  --text-primary: #1d1d1f;
+  --text-secondary: rgba(60, 60, 67, 0.62);
+  --text-tertiary: rgba(60, 60, 67, 0.5);
+  --text-quaternary: rgba(60, 60, 67, 0.26);
 
   /* Accent (overridden at runtime by theme.ts) */
-  --accent: #8b5cf6;
-  --accent-glow: rgba(139, 92, 246, 0.55);
+  --accent: #0a84ff;
+  --accent-glow: rgba(10, 132, 255, 0.28);
 
-  /* Shape & depth — large radii, no hairline boxes */
+  /* Shape & depth — large radii, specular rims, soft ambient shadow. */
   --radius-blade: 24px;
   --radius-card: 18px;
   --radius-pill: 999px;
-  --shadow-blade: none;
-  --shadow-card: none;
+  --shadow-blade: 0 18px 50px rgba(20, 22, 40, 0.14), 0 2px 6px rgba(20, 22, 40, 0.04);
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 0 0 1px rgba(255, 255, 255, 0.62), 0 1px 2px rgba(20, 22, 40, 0.04), 0 6px 16px rgba(20, 22, 40, 0.04);
+  --shadow-float: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 0 0 1px rgba(255, 255, 255, 0.7), 0 18px 44px rgba(20, 22, 40, 0.12), 0 2px 6px rgba(20, 22, 40, 0.04);
 
   /* Motion */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -61,13 +82,13 @@
   --act-size: 26px;
   --act-icon: 14px;
   --act-pad: 2px;
-  --act-surface: #262626;
-  --act-surface-hover: #333333;
-  --act-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-  --act-ink: rgba(255, 255, 255, 0.78);
-  --act-hover: rgba(255, 255, 255, 0.12);
-  --act-on: #ffffff;
-  --act-on-ink: #000000;
-  --act-danger: #ff6b6b;
-  --act-danger-bg: rgba(255, 107, 107, 0.16);
+  --act-surface: rgba(255, 255, 255, 0.82);
+  --act-surface-hover: rgba(255, 255, 255, 1);
+  --act-shadow: 0 2px 6px rgba(20, 22, 40, 0.1), 0 6px 16px rgba(20, 22, 40, 0.08);
+  --act-ink: rgba(60, 60, 67, 0.72);
+  --act-hover: rgba(120, 120, 128, 0.14);
+  --act-on: #1d1d1f;
+  --act-on-ink: #ffffff;
+  --act-danger: #ff3b30;
+  --act-danger-bg: rgba(255, 59, 48, 0.12);
 }

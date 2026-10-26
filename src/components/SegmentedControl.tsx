@@ -31,6 +31,8 @@ export interface SegmentedControlProps<T extends string> {
   /** Selected value; `null` (or a value not in `items`) shows no thumb. */
   value: T | null
   onChange: (value: T) => void
+  /** The selected slot was activated again (e.g. toggling a view off). */
+  onReselect?: (value: T) => void
   /** Pointer entered a slot (used to warm data before a click). */
   onHoverItem?: (value: T) => void
   ariaLabel: string
@@ -45,6 +47,7 @@ export function SegmentedControl<T extends string>({
   items,
   value,
   onChange,
+  onReselect,
   onHoverItem,
   ariaLabel,
   reduceMotion = false,
@@ -68,6 +71,19 @@ export function SegmentedControl<T extends string>({
   const press = useRef<{ id: number; slots: { l: number; r: number }[]; at: number } | null>(null)
 
   const commit = (i: number) => {
+    const item = items[i]
+    if (!item) return
+    if (i === selected) {
+      // Re-activating the current slot is meaningful for toggles (emoji view):
+      // report it instead of silently ignoring the click.
+      onReselect?.(item.value)
+      return
+    }
+    onChange(item.value)
+  }
+
+  /** Arrow/Home/End navigation must never re-fire the selected slot. */
+  const moveTo = (i: number) => {
     const item = items[i]
     if (item && i !== selected) onChange(item.value)
   }
@@ -127,7 +143,7 @@ export function SegmentedControl<T extends string>({
     else if (e.key === 'End') next = last
     if (next === null) return
     e.preventDefault()
-    commit(next)
+    moveTo(next)
     itemRefs.current[next]?.focus()
   }
 

@@ -1,6 +1,8 @@
 node_modules
 out
 dist
+dist-final
+dist-portable
 *.log
 drag_debug.txt
 clipboard_debug.log
@@ -25,3 +27,10 @@ scratch/verify-*.cjs
 new icons/
 Blue_gradient (1).png
 
+
+# Local visual QA screenshots (not shipped)
+/visual-out/
+
+# Local pixel/CDP debug helpers (throwaway)
+scratch/*.py
+scratch/cdp*.mjs

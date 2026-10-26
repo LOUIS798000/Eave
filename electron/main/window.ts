@@ -17,9 +17,15 @@ import { join } from 'node:path'
 import koffi from 'koffi'
 import { APP_CONFIG } from './config'
 import { runtime } from './config'
+import { trimWorkingSets } from './memory'
 import { PATHS } from '../store/paths'
 import { TRANSLATIONS, en } from '../../src/i18n/translations'
 import { computeStickBounds } from './geometry'
+import {
+  resolvePanelWidth,
+  resolveStickWindowWidth,
+  resolveTopPanelHeight
+} from '../../shared/panelSize'
 import { WorkAreaCache } from './workAreaCache'
 import { probeSeamAware, isNearProximity, type SeamTickState } from './stickProbe'
 import { loadSettings, saveSettings } from '../store/settings'
@@ -339,6 +345,47 @@ export async function resolvePasteTarget(normalDelayMs: number): Promise<number>
  *   captures all clicks.
  */
 let gcTimer: ReturnType<typeof setTimeout> | null = null
+let memoryTrimTimer: ReturnType<typeof setTimeout> | null = null
+
+/**
+ * How long the panel must stay closed before asking Windows to page out the
+ * Chromium working sets. Long enough that normal open/close usage never pays
+ * the page-in cost; short enough that an idle tray app drops to a few MB.
+ * EDGE_DROP_MEMORY_TRIM_MS=0 disables it.
+ */
+const MEMORY_TRIM_DELAY_MS = (() => {
+  const raw = Number(process.env.EDGE_DROP_MEMORY_TRIM_MS)
+  return Number.isFinite(raw) && raw >= 0 ? raw : 60_000
+})()
+
+function cancelMemoryTrim(): void {
+  if (memoryTrimTimer !== null) {
+    clearTimeout(memoryTrimTimer)
+    memoryTrimTimer = null
+  }
+}
+
+function scheduleMemoryTrim(): void {
+  if (MEMORY_TRIM_DELAY_MS <= 0) return
+  cancelMemoryTrim()
+  memoryTrimTimer = setTimeout(() => {
+    memoryTrimTimer = null
+    if (runtime.quitting || interactive || previewActive) return
+    // Never page out a visible secondary window (onboarding, etc.). Retry
+    // after the normal delay once it has been closed.
+    const secondaryVisible = BrowserWindow.getAllWindows().some(
+      (w) => w !== mainWindow && !w.isDestroyed() && w.isVisible()
+    )
+    if (secondaryVisible) {
+      scheduleMemoryTrim()
+      return
+    }
+    const trimmed = trimWorkingSets()
+    if (trimmed > 0) console.log(`[Memory] Trimmed idle working sets for ${trimmed} process(es)`)
+  }, MEMORY_TRIM_DELAY_MS)
+  // Never keep the process alive just for a cleanup timer.
+  memoryTrimTimer.unref?.()
+}
 
 export function setInteractive(value: boolean): void {
   if (!mainWindow || value === interactive) return
@@ -355,6 +402,7 @@ export function setInteractive(value: boolean): void {
       clearTimeout(gcTimer)
       gcTimer = null
     }
+    cancelMemoryTrim()
     mainWindow.setIgnoreMouseEvents(false)
     // Use 'screen-saver' level to stay above fullscreen apps (YouTube fullscreen, games, etc.)
     // 'floating' (HWND_TOPMOST) can be pushed behind by fullscreen D3D/browser windows.
@@ -377,7 +425,9 @@ export function setInteractive(value: boolean): void {
           try { global.gc() } catch { /* ignore */ }
         }
       }, 1500)
+      gcTimer.unref?.()
     }
+    scheduleMemoryTrim()
   }
 }
 
@@ -615,6 +665,7 @@ export function startCursorPoll(): void {
 }
 
 export function stopCursorPoll(): void {
+  cancelMemoryTrim()
   if (cursorPollTimer !== null) {
     clearInterval(cursorPollTimer)
     cursorPollTimer = null
@@ -631,7 +682,8 @@ function getStickGeometry(): { x: number; y: number; width: number; height: numb
     isPrimary: d.id === primaryDisplay.id
   }))
 
-  const currentWindowWidth = previewActive ? 820 : PANEL_WIDTH
+  const bladeWidth = resolvePanelWidth(settings)
+  const currentWindowWidth = resolveStickWindowWidth(bladeWidth, previewActive)
 
   const result = computeStickBounds({
     position: settings.stickPosition,
@@ -640,6 +692,8 @@ function getStickGeometry(): { x: number; y: number; width: number; height: numb
     savedWorkArea: settings.stickDisplayWorkArea,
     savedScaleFactor: settings.stickDisplayScaleFactor,
     windowWidth: currentWindowWidth,
+    topPanelWidth: settings.topPanelWidth,
+    topPanelHeight: resolveTopPanelHeight(settings),
     horizontalOffset: settings.horizontalOffset,
     currentBounds: getMainWindow()?.getBounds(),
     previewActive
@@ -884,6 +938,9 @@ export function createWindow(): BrowserWindow {
     // 'screen-saver' level stays above fullscreen browser windows and games.
     mainWindow.setAlwaysOnTop(true, 'screen-saver')
     applyNoActivateStyle(mainWindow, true)
+    // Also trim when the app is launched and left sitting on the edge without
+    // ever being opened. A later hover cancels this via setInteractive(true).
+    scheduleMemoryTrim()
   })
 
   mainWindow.webContents.on('console-message', (_event, _level, message, line, sourceId) => {
@@ -1087,6 +1144,7 @@ export function setVisible(visible: boolean): void {
     mainWindow.setSkipTaskbar(true)
   } else {
     mainWindow.hide()
+    scheduleMemoryTrim()
   }
 }
 

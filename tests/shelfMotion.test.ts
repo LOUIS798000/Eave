@@ -65,9 +65,9 @@ describe('shelf open/close motion', () => {
   })
 
   it('open clip is the blade plus the 30px flares, with no spare margin to snap across', () => {
-    expect(panel).toContain("'inset(-30px 0px -30px 0px round 0px 24px 24px 0px)'")
-    expect(panel).toContain("'inset(-30px 0px -30px 0px round 24px 0px 0px 24px)'")
-    expect(panel).toContain("'inset(0px -30px 0px -30px round 0px 0px 24px 24px)'")
+    expect(panel).toContain("'inset(-30px 0px -30px -44px round 0px 24px 24px 0px)'")
+    expect(panel).toContain("'inset(-30px -44px -30px 0px round 24px 0px 0px 24px)'")
+    expect(panel).toContain("'inset(0px -30px -44px -30px round 0px 0px 24px 24px)'")
     const insets = panel.match(/inset\([^)']*\)/g) ?? []
     expect(insets.length).toBeGreaterThanOrEqual(6)
     for (const clip of insets) expect(clip).not.toMatch(/800px|600px|999px|- 100px/)
@@ -79,10 +79,10 @@ describe('shelf open/close motion', () => {
     const veil = css.match(/\.blade::after \{([^}]*)\}/)?.[1] ?? ''
     expect(veil).toContain('z-index: 400;')
     expect(veil).toContain('pointer-events: none;')
-    expect(veil).toContain('background-color: rgba(0, 0, 0, 1);')
+    expect(veil).toContain('background-color: rgba(255, 255, 255, 0.92);')
     const hideDelay = Number(veil.match(/visibility 0s linear (\d+)ms/)?.[1])
     expect(hideDelay).toBeGreaterThanOrEqual(close.ms)
-    expect(css).toMatch(/\.blade-container\.is-open \.blade::after \{[^}]*background-color: rgba\(0, 0, 0, 0\);[^}]*visibility: visible;/)
+    expect(css).toMatch(/\.blade-container\.is-open \.blade::after \{[^}]*background-color: rgba\(255, 255, 255, 0\);[^}]*visibility: visible;/)
     expect(css).toMatch(/\.blade-container\.reduce-motion \.blade::after \{[^}]*transition-duration: 0\.01s;/)
     // Highest z-index used inside the blade (ClearMenu dropdown) stays below the veil.
     expect(read('src/components/ClearMenu.tsx')).toContain('zIndex: 350')

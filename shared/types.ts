@@ -159,6 +159,20 @@ export interface Settings {
   historyLimit: number
   /** Fraction of the screen height the panel occupies (0.4 - 1.0). */
   panelHeight: number
+  /**
+   * Explicit width (px) of the left/right shelf blade. Defaults to 270.
+   * Clamped to 240-560 by the shared sizing model.
+   */
+  panelWidth?: number
+  /**
+   * Explicit height (px) of the left/right shelf blade. 0/undefined keeps the
+   * legacy `panelHeight` fraction so existing installs don't jump.
+   */
+  panelHeightPx?: number
+  /** Explicit width (px) of the top dock. 0/undefined keeps the full-width dock. */
+  topPanelWidth?: number
+  /** Explicit height (px) of the top dock. 0/undefined keeps the 210px default. */
+  topPanelHeightPx?: number
   /** When true, newly captured items are not recorded. */
   incognito: boolean
   /** Start minimized when the OS logs in. */
@@ -244,6 +258,10 @@ export const DEFAULT_SETTINGS: Settings = {
   movePastedToTop: true,
   historyLimit: 250,
   panelHeight: 0.5,
+  panelWidth: 270,
+  panelHeightPx: 0,
+  topPanelWidth: 0,
+  topPanelHeightPx: 0,
   incognito: false,
   launchAtLogin: true,
   reduceMotion: false,

@@ -12,6 +12,7 @@ import { playButtonClickSound } from '../lib/soundEffects'
 import { createPortal } from 'react-dom'
 import { useAdaptiveSpring } from '../hooks/useAdaptiveSpring'
 import { useTranslation } from '../i18n'
+import { resolvePanelHeight, resolveTopPanelHeight } from '../../shared/panelSize'
 
 const flyoutEaseOpen = [0.16, 1, 0.3, 1] as const
 const flyoutEaseClose = [0.3, 0, 0.2, 1] as const
@@ -73,8 +74,9 @@ export function LanguageFlyout({ isRight }: { isRight: boolean }) {
 
   const screenW = typeof window !== 'undefined' ? window.innerWidth : 1200
   const screenH = typeof window !== 'undefined' ? window.innerHeight : 800
-  const pFrac = settings.panelHeight || 0.6
-  const panelH = screenH * pFrac
+  const panelH = isHorizontal
+    ? resolveTopPanelHeight(settings)
+    : resolvePanelHeight(settings, screenH)
   const minY = panelH / 2
   const maxY = screenH - panelH / 2
   const vOffset = settings.verticalOffset ?? 0.5
@@ -93,7 +95,9 @@ export function LanguageFlyout({ isRight }: { isRight: boolean }) {
   const maxLeft = Math.max(minLeft, dockWidth - flyoutWidth - 12)
   const flyoutLeft = Math.max(minLeft, Math.min(maxLeft, Math.round(anchorCenterX - flyoutWidth / 2)))
 
-  const maxFlyoutHeight = isHorizontal ? 260 : Math.max(100, panelH - 24)
+  const maxFlyoutHeight = isHorizontal
+    ? Math.min(260, Math.max(100, screenH - panelH - 24))
+    : Math.max(100, panelH - 24)
 
   const originX = isHorizontal
     ? Math.max(0.08, Math.min(0.92, (anchorCenterX - flyoutLeft) / flyoutWidth))
@@ -111,8 +115,8 @@ export function LanguageFlyout({ isRight }: { isRight: boolean }) {
       const h = flyoutRef.current.offsetHeight
       if (isHorizontal) {
         useStore.getState().setPreviewFlyoutRect({
-          top: 210,
-          bottom: 222 + h,
+          top: panelH,
+          bottom: panelH + 12 + h,
           left: flyoutLeft,
           right: flyoutLeft + flyoutWidth
         })
@@ -186,7 +190,7 @@ export function LanguageFlyout({ isRight }: { isRight: boolean }) {
             isHorizontal
               ? {
                   position: 'absolute',
-                  top: 222,
+                  top: panelH + 12,
                   left: dockLeft + flyoutLeft,
                   width: flyoutWidth,
                   pointerEvents: 'none',
@@ -222,14 +226,14 @@ export function LanguageFlyout({ isRight }: { isRight: boolean }) {
             style={{
               width: '100%',
               maxHeight: maxFlyoutHeight,
-              background: '#141414',
+              background: 'rgba(255, 255, 255, 0.97)',
               borderRadius: 18,
-              border: 'none',
+              border: '1px solid rgba(255, 255, 255, 0.85)',
               outline: 'none',
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: 'none',
+              boxShadow: '0 0 0 1px rgba(20, 22, 40, 0.05), 0 18px 44px rgba(20, 22, 40, 0.14), inset 0 1px 0 rgba(255, 255, 255, 1)',
               pointerEvents: 'auto',
               position: 'relative',
               padding: '12px 10px 10px 10px',
@@ -239,10 +243,10 @@ export function LanguageFlyout({ isRight }: { isRight: boolean }) {
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 8px 4px', borderBottom: 'none' }}>
               <div>
-                <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.42)', marginBottom: 2 }}>
+                <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(60, 60, 67, 0.45)', marginBottom: 2 }}>
                   LANGUAGE
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#ffffff', letterSpacing: '-0.01em' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1d1d1f', letterSpacing: '-0.01em' }}>
                   {t('behaviour.languageTitle')}
                 </div>
               </div>
@@ -253,9 +257,9 @@ export function LanguageFlyout({ isRight }: { isRight: boolean }) {
                   width: 24,
                   height: 24,
                   borderRadius: 6,
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'rgba(120, 120, 128, 0.12)',
                   border: 'none',
-                  color: 'rgba(255,255,255,0.7)',
+                  color: 'rgba(60, 60, 67, 0.72)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -308,9 +312,9 @@ export function LanguageFlyout({ isRight }: { isRight: boolean }) {
                       justifyContent: 'space-between',
                       padding: '7px 10px',
                       borderRadius: 8,
-                      background: active ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                      background: active ? 'rgba(120, 120, 128, 0.14)' : 'transparent',
                       border: '1px solid transparent',
-                      color: active ? '#ffffff' : 'rgba(255, 255, 255, 0.8)',
+                      color: active ? '#1d1d1f' : 'rgba(29, 29, 31, 0.72)',
                       fontSize: 12,
                       fontWeight: active ? 600 : 400,
                       cursor: 'pointer',
@@ -321,17 +325,17 @@ export function LanguageFlyout({ isRight }: { isRight: boolean }) {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
-                      <span style={{ fontWeight: active ? 600 : 500, color: active ? '#ffffff' : 'rgba(255, 255, 255, 0.9)', fontSize: 12, whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: active ? 600 : 500, color: active ? '#1d1d1f' : 'rgba(29, 29, 31, 0.84)', fontSize: 12, whiteSpace: 'nowrap' }}>
                         {lang.nativeName}
                       </span>
                       {lang.code !== 'system' && !lang.nativeName.includes('(') && lang.nativeName !== lang.name && (
-                        <span style={{ fontSize: 10.5, color: 'rgba(255, 255, 255, 0.42)', fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <span style={{ fontSize: 10.5, color: 'rgba(60, 60, 67, 0.45)', fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           ({lang.name})
                         </span>
                       )}
                     </div>
                     {active && (
-                      <span style={{ color: '#ffffff', fontSize: 12, fontWeight: 700, marginLeft: 6, flexShrink: 0 }}>
+                      <span style={{ color: '#0a84ff', fontSize: 12, fontWeight: 700, marginLeft: 6, flexShrink: 0 }}>
                         ✓
                       </span>
                     )}

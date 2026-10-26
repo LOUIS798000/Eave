@@ -105,8 +105,8 @@ export function Onboarding() {
     <div style={{
       width: '100vw',
       height: '100vh',
-      background: '#121212',
-      color: '#fff',
+      background: 'linear-gradient(180deg, #fbfbfd 0%, #f2f3f7 100%)',
+      color: '#1d1d1f',
       display: 'flex',
       flexDirection: 'column',
       userSelect: 'none',
@@ -119,10 +119,10 @@ export function Onboarding() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderBottom: '1px solid #262626'
+        borderBottom: '1px solid rgba(60, 60, 67, 0.12)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <img src={logoUrl} alt="Edge-Drop Logo" style={{ width: '28px', height: '28px' }} />
+          <img src={logoUrl} alt="Edge-Drop Logo" style={{ width: '28px', height: '28px', filter: 'invert(1)', opacity: 0.86 }} />
           <span style={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.02em' }}>Edge-Drop</span>
         </div>
         <button
@@ -130,15 +130,16 @@ export function Onboarding() {
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#888',
+            color: 'rgba(60, 60, 67, 0.58)',
             fontSize: '14px',
+            fontWeight: 500,
             cursor: 'pointer',
             padding: '6px 12px',
             borderRadius: '6px',
             transition: 'color 0.2s, background 0.2s'
           }}
-          onMouseOver={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#222' }}
-          onMouseOut={(e) => { e.currentTarget.style.color = '#888'; e.currentTarget.style.background = 'transparent' }}
+          onMouseOver={(e) => { e.currentTarget.style.color = '#1d1d1f'; e.currentTarget.style.background = 'rgba(120, 120, 128, 0.14)' }}
+          onMouseOut={(e) => { e.currentTarget.style.color = 'rgba(60, 60, 67, 0.6)'; e.currentTarget.style.background = 'transparent' }}
         >
           {t('onboarding.skip')}
         </button>
@@ -151,14 +152,14 @@ export function Onboarding() {
             <h1 style={{ fontSize: '28px', margin: '0 0 12px 0', fontWeight: 700, letterSpacing: '-0.02em' }}>
               {currentSlide.title}
             </h1>
-            <p style={{ fontSize: '15px', lineHeight: 1.6, color: 'rgba(255,255,255,0.7)', margin: '0 0 24px 0' }}>
+            <p style={{ fontSize: '15px', lineHeight: 1.6, color: 'rgba(60, 60, 67, 0.68)', margin: '0 0 24px 0' }}>
               {currentSlide.description}
             </p>
-            <div style={{ background: '#1a1a1c', padding: '16px 20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#fff', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ background: 'rgba(255, 255, 255, 0.72)', padding: '16px 20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.8)', boxShadow: '0 8px 24px rgba(20, 22, 40, 0.06)' }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#1d1d1f', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {t('onboarding.proTips')}
               </div>
-              <ul style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', margin: 0, paddingLeft: '20px', lineHeight: 1.6 }}>
+              <ul style={{ fontSize: '14px', color: 'rgba(60, 60, 67, 0.66)', margin: 0, paddingLeft: '20px', lineHeight: 1.6 }}>
                 <li>{t('onboarding.proTip1')}</li>
                 <li>{t('onboarding.proTip2')}</li>
                 <li>{t('onboarding.proTip3')}</li>
@@ -166,7 +167,7 @@ export function Onboarding() {
               </ul>
             </div>
           </div>
-          <div style={{ flex: 1, background: '#1a1a1c', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.05)', overflow: 'hidden', display: 'flex', minHeight: 0 }}>
+          <div style={{ flex: 1, background: 'rgba(255, 255, 255, 0.72)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.8)', boxShadow: '0 8px 24px rgba(20, 22, 40, 0.06)', overflow: 'hidden', display: 'flex', minHeight: 0 }}>
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
               <Settings inlineIndicatorStyle={true} />
             </div>
@@ -178,13 +179,13 @@ export function Onboarding() {
             width: '100%',
             maxWidth: '560px',
             height: '315px',
-            background: '#1a1a1c',
+            background: 'rgba(255, 255, 255, 0.72)',
             borderRadius: '16px',
             overflow: 'hidden',
             position: 'relative',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+            boxShadow: '0 24px 50px rgba(20, 22, 40, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.85)',
             marginBottom: '36px',
-            border: '1px solid rgba(255, 255, 255, 0.05)'
+            border: '1px solid rgba(255, 255, 255, 0.85)'
           }}>
             <AnimatePresence mode="wait">
               <motion.div
@@ -219,7 +220,7 @@ export function Onboarding() {
                 <h1 style={{ fontSize: '24px', margin: '0 0 12px 0', fontWeight: 700, letterSpacing: '-0.01em' }}>
                   {currentSlide.title}
                 </h1>
-                <p style={{ fontSize: '15px', lineHeight: 1.6, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+                <p style={{ fontSize: '15px', lineHeight: 1.6, color: 'rgba(60, 60, 67, 0.66)', margin: 0 }}>
                   {currentSlide.description}
                 </p>
               </motion.div>
@@ -235,16 +236,16 @@ export function Onboarding() {
         display: 'grid',
         gridTemplateColumns: '1fr auto 1fr',
         alignItems: 'center',
-        borderTop: '1px solid #262626'
+        borderTop: '1px solid rgba(60, 60, 67, 0.12)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
           <button
             onClick={handlePrev}
             disabled={currentIndex === 0}
             style={{
-              background: '#2a2a2a',
-              border: '1px solid #444',
-              color: currentIndex === 0 ? '#555' : '#fff',
+              background: 'rgba(255, 255, 255, 0.72)',
+              border: '1px solid rgba(255, 255, 255, 0.85)',
+              color: currentIndex === 0 ? 'rgba(60, 60, 67, 0.3)' : '#1d1d1f',
               fontSize: '15px',
               fontWeight: 500,
               cursor: currentIndex === 0 ? 'default' : 'pointer',
@@ -254,8 +255,8 @@ export function Onboarding() {
               opacity: currentIndex === 0 ? 0 : 1,
               pointerEvents: currentIndex === 0 ? 'none' : 'auto'
             }}
-            onMouseOver={(e) => { if (currentIndex !== 0) e.currentTarget.style.background = '#333' }}
-            onMouseOut={(e) => { if (currentIndex !== 0) e.currentTarget.style.background = '#2a2a2a' }}
+            onMouseOver={(e) => { if (currentIndex !== 0) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)' }}
+            onMouseOut={(e) => { if (currentIndex !== 0) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.72)' }}
           >
             {t('onboarding.back')}
           </button>
@@ -269,7 +270,7 @@ export function Onboarding() {
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                background: i === currentIndex ? '#fff' : '#444',
+                background: i === currentIndex ? '#1d1d1f' : 'rgba(60, 60, 67, 0.22)',
                 transition: 'background 0.3s'
               }}
             />
@@ -280,14 +281,15 @@ export function Onboarding() {
           <button
             onClick={handleNext}
             style={{
-              background: '#fff',
+              background: 'linear-gradient(180deg, #2f96ff 0%, #0a84ff 100%)',
               border: 'none',
-              color: '#000',
+              color: '#ffffff',
               fontSize: '15px',
               fontWeight: 600,
               cursor: 'pointer',
-              padding: '8px 24px',
-              borderRadius: '6px',
+              padding: '9px 26px',
+              borderRadius: '12px',
+              boxShadow: '0 6px 16px rgba(10, 132, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35)',
               transition: 'transform 0.1s, opacity 0.2s'
             }}
             onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.96)'}

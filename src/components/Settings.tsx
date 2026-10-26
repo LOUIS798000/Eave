@@ -19,6 +19,22 @@ import { ChevronRightIcon, CloseIcon, LogOutIcon, StarIcon, InfoIcon, GithubOcto
 import { HotkeyRecorder } from './HotkeyRecorder'
 import { SlideCommit } from './SlideCommit'
 import { WakeSlider } from './WakeSlider'
+import { PanelSizeControls } from './PanelSizeControls'
+import {
+  PANEL_HEIGHT_MIN,
+  PANEL_WIDTH_DEFAULT,
+  PANEL_WIDTH_MAX,
+  PANEL_WIDTH_MIN,
+  TOP_HEIGHT_DEFAULT,
+  TOP_HEIGHT_MAX,
+  TOP_HEIGHT_MIN,
+  TOP_WIDTH_MAX,
+  TOP_WIDTH_MIN,
+  resolvePanelHeight,
+  resolvePanelWidth,
+  resolveTopPanelHeight,
+  resolveTopPanelWidth
+} from '../../shared/panelSize'
 import { playDialTickSound, playToggleSound, playButtonClickSound } from '../lib/soundEffects'
 import { useTranslation } from '../i18n'
 import '../styles/settings.css'
@@ -35,6 +51,94 @@ export function Settings({
   const { t, language, languages } = useTranslation()
   const settings = useStore((s) => s.settings)
   const isHorizontal = propIsHorizontal ?? (settings.stickPosition === 'top')
+
+  // ── Window size controls ────────────────────────────────────────────────
+  // Values shown here are the effective pixels the blade currently renders,
+  // not the raw (possibly 0 = auto) setting.
+  const viewportWindowH = typeof window !== 'undefined' ? window.innerHeight : 900
+  const screenAvailW = typeof window !== 'undefined' ? (window.screen.availWidth || 1920) : 1920
+  const screenAvailH = typeof window !== 'undefined' ? (window.screen.availHeight || 1080) : 1080
+  const verticalHeightMax = Math.max(PANEL_HEIGHT_MIN, viewportWindowH - 24)
+  const topWidthMax = Math.min(TOP_WIDTH_MAX, Math.max(400, screenAvailW - 60))
+  const topWidthMin = Math.min(TOP_WIDTH_MIN, topWidthMax)
+  const topHeightMax = Math.min(TOP_HEIGHT_MAX, Math.max(TOP_HEIGHT_MIN, screenAvailH - 300))
+  const panelSizeWidth = isHorizontal
+    ? resolveTopPanelWidth(settings, topWidthMax)
+    : resolvePanelWidth(settings)
+  const panelSizeHeight = isHorizontal
+    ? resolveTopPanelHeight(settings)
+    : resolvePanelHeight(settings, viewportWindowH)
+
+  const panelSizePresets = isHorizontal
+    ? [
+        { label: t('appearance.small') || 'Small', width: TOP_WIDTH_MIN, height: TOP_HEIGHT_MIN },
+        { label: t('position.medium') || 'Medium', width: 900, height: TOP_HEIGHT_DEFAULT },
+        { label: t('appearance.large') || 'Large', width: TOP_WIDTH_MAX, height: TOP_HEIGHT_MAX }
+      ]
+    : [
+        { label: t('appearance.small') || 'Small', width: PANEL_WIDTH_MIN, height: 360 },
+        { label: t('position.medium') || 'Medium', width: PANEL_WIDTH_DEFAULT, height: 480 },
+        { label: t('appearance.large') || 'Large', width: 360, height: 640 }
+      ]
+
+  const handlePanelSizeWidth = (value: number) => {
+    void patch(isHorizontal ? { topPanelWidth: value } : { panelWidth: value })
+  }
+  const handlePanelSizeHeight = (value: number) => {
+    if (isHorizontal) {
+      void patch({ topPanelHeightPx: value })
+    } else {
+      void patch({
+        panelHeightPx: value,
+        panelHeight: Math.min(1, Math.max(0.2, value / Math.max(1, viewportWindowH)))
+      })
+    }
+  }
+  const handlePanelSizePreset = (width: number, height: number) => {
+    if (isHorizontal) {
+      void patch({ topPanelWidth: width, topPanelHeightPx: height })
+    } else {
+      void patch({
+        panelWidth: width,
+        panelHeightPx: height,
+        panelHeight: Math.min(1, Math.max(0.2, height / Math.max(1, viewportWindowH)))
+      })
+    }
+  }
+  const handlePanelSizeReset = () => {
+    if (isHorizontal) {
+      void patch({ topPanelWidth: 0, topPanelHeightPx: 0 })
+    } else {
+      void patch({ panelWidth: PANEL_WIDTH_DEFAULT, panelHeightPx: 0, panelHeight: 0.5 })
+    }
+  }
+
+  const renderPanelSizeCard = () => (
+    <div className={`${isHorizontal ? 'settings-shelf-card position-col' : 'setting-card'} panel-size-card`}>
+      <div className="shelf-card-top">
+        <div className="setting-group-label">{t('groups.windowSize') || 'WINDOW SIZE'}</div>
+        <div className="setting-title">{t('position.panelSizeTitle') || 'Shelf size'}</div>
+        <div className="setting-desc">
+          {t('position.panelSizeDesc') || 'Adjust the shelf width and height in pixels'}
+        </div>
+      </div>
+      <div className="shelf-card-bottom">
+        <PanelSizeControls
+          width={panelSizeWidth}
+          height={panelSizeHeight}
+          widthMin={isHorizontal ? topWidthMin : PANEL_WIDTH_MIN}
+          widthMax={isHorizontal ? topWidthMax : PANEL_WIDTH_MAX}
+          heightMin={isHorizontal ? TOP_HEIGHT_MIN : PANEL_HEIGHT_MIN}
+          heightMax={isHorizontal ? topHeightMax : verticalHeightMax}
+          presets={panelSizePresets}
+          onWidthChange={handlePanelSizeWidth}
+          onHeightChange={handlePanelSizeHeight}
+          onPreset={handlePanelSizePreset}
+          onReset={handlePanelSizeReset}
+        />
+      </div>
+    </div>
+  )
 
   const TABS: { id: SettingsTab; label: string }[] = [
     { id: 'behaviour',  label: t('tabs.behaviour') },
@@ -1396,7 +1500,7 @@ export function Settings({
               <div className="settings-shelf-card placement-card position-col">
                 <div className="shelf-card-top">
                   <div className="setting-group-label">{t('groups.placement') || 'PLACEMENT'}</div>
-                  <div className="setting-title" style={{ color: '#ffffff' }}>{t('position.edgePlacementTitle')}</div>
+                  <div className="setting-title">{t('position.edgePlacementTitle')}</div>
                   <div className="setting-desc">{t('position.edgePlacementDesc')}</div>
                 </div>
                 <div className="shelf-card-bottom">
@@ -1435,7 +1539,10 @@ export function Settings({
                 </div>
               </div>
 
-              {/* Card 2: Target Display */}
+              {/* Card 2: Window Size */}
+              {renderPanelSizeCard()}
+
+              {/* Card 3: Target Display */}
               <div className="settings-shelf-card display-card position-col">
                 <div className="shelf-card-top">
                   <div className="setting-group-label">{t('groups.displayMonitor') || 'DISPLAY MONITOR'}</div>
@@ -2376,34 +2483,8 @@ export function Settings({
                     </div>
                   </div>
 
-                  {/* Card 8: Panel Height */}
-                  <div className="setting-card">
-                    <div className="shelf-card-top">
-                      <div className="setting-group-label">{t('groups.panelHeight') || 'PANEL HEIGHT'}</div>
-                      <div className="setting-title">{t('position.panelHeightTitle')}</div>
-                      <div className="setting-desc">{t('position.panelHeightDesc')}</div>
-                    </div>
-                    <div className="shelf-card-bottom">
-                      <div className="setting-pills">
-                        {[
-                          { label: t('appearance.small'), val: 0.5 },
-                          { label: t('position.medium'), val: 0.65 },
-                          { label: t('appearance.large'), val: 0.8 }
-                        ].map((opt) => (
-                          <button
-                            key={opt.label}
-                            className={`pill ${Math.abs((settings.panelHeight || 0.6) - opt.val) < 0.08 ? 'active' : ''}`}
-                            onClick={() => {
-                              playButtonClickSound()
-                              patch({ panelHeight: opt.val })
-                            }}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                  {/* Card 8: Window Size */}
+                  {renderPanelSizeCard()}
 
                   {PersistentFooter}
                 </motion.div>
@@ -2483,9 +2564,9 @@ export function Settings({
                             gridTemplateColumns: 'repeat(2, 1fr)',
                             gap: 10,
                             padding: 12,
-                            background: '#09090b',
+                            background: 'rgba(120, 120, 128, 0.10)',
                             borderRadius: 12,
-                            border: '1px solid rgba(255, 255, 255, 0.08)'
+                            border: '1px solid rgba(255, 255, 255, 0.7)'
                           }}>
                             {/* Logo Card */}
                             <div
@@ -2494,7 +2575,7 @@ export function Settings({
                                 patch({ copyIndicatorStyle: 'logo' })
                               }}
                               style={{
-                                background: (settings.copyIndicatorStyle || 'logo') === 'logo' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                                background: (settings.copyIndicatorStyle || 'logo') === 'logo' ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.45)',
                                 border: '1px solid transparent',
                                 borderRadius: 10,
                                 padding: '12px 8px',
@@ -2508,9 +2589,9 @@ export function Settings({
                               }}
                             >
                               <div style={{ height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <LogoIndicatorIcon fillColor="#ffffff" size={30} />
+                                <LogoIndicatorIcon fillColor="#1d1d1f" size={30} />
                               </div>
-                              <div style={{ fontSize: 12, fontWeight: 600, color: '#ffffff' }}>{t('appearance.logoStyle')}</div>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: '#1d1d1f' }}>{t('appearance.logoStyle')}</div>
                             </div>
 
                             {/* Tick Card */}
@@ -2520,7 +2601,7 @@ export function Settings({
                                 patch({ copyIndicatorStyle: 'check' })
                               }}
                               style={{
-                                background: settings.copyIndicatorStyle === 'check' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                                background: settings.copyIndicatorStyle === 'check' ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.45)',
                                 border: '1px solid transparent',
                                 borderRadius: 10,
                                 padding: '12px 8px',
@@ -2534,9 +2615,9 @@ export function Settings({
                               }}
                             >
                               <div style={{ height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <TickIndicatorIcon fillColor="#ffffff" size={30} />
+                                <TickIndicatorIcon fillColor="#1d1d1f" size={30} />
                               </div>
-                              <div style={{ fontSize: 12, fontWeight: 600, color: '#ffffff' }}>{t('appearance.tickStyle')}</div>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: '#1d1d1f' }}>{t('appearance.tickStyle')}</div>
                             </div>
 
                             {/* Copy Card */}
@@ -2546,7 +2627,7 @@ export function Settings({
                                 patch({ copyIndicatorStyle: 'copy' })
                               }}
                               style={{
-                                background: settings.copyIndicatorStyle === 'copy' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                                background: settings.copyIndicatorStyle === 'copy' ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.45)',
                                 border: '1px solid transparent',
                                 borderRadius: 10,
                                 padding: '12px 8px',
@@ -2560,9 +2641,9 @@ export function Settings({
                               }}
                             >
                               <div style={{ height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <CopyIndicatorIcon fillColor="#ffffff" size={30} />
+                                <CopyIndicatorIcon fillColor="#1d1d1f" size={30} />
                               </div>
-                              <div style={{ fontSize: 12, fontWeight: 600, color: '#ffffff' }}>{t('appearance.copyStyle')}</div>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: '#1d1d1f' }}>{t('appearance.copyStyle')}</div>
                             </div>
 
                             {/* Sparkle Card */}
@@ -2572,7 +2653,7 @@ export function Settings({
                                 patch({ copyIndicatorStyle: 'sparkle' })
                               }}
                               style={{
-                                background: settings.copyIndicatorStyle === 'sparkle' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                                background: settings.copyIndicatorStyle === 'sparkle' ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.45)',
                                 border: '1px solid transparent',
                                 borderRadius: 10,
                                 padding: '12px 8px',
@@ -2586,9 +2667,9 @@ export function Settings({
                               }}
                             >
                               <div style={{ height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <SparkleIndicatorIcon fillColor="#ffffff" size={30} />
+                                <SparkleIndicatorIcon fillColor="#1d1d1f" size={30} />
                               </div>
-                              <div style={{ fontSize: 12, fontWeight: 600, color: '#ffffff' }}>{t('appearance.sparkleStyle')}</div>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: '#1d1d1f' }}>{t('appearance.sparkleStyle')}</div>
                             </div>
                           </div>
                         </motion.div>
@@ -2698,12 +2779,12 @@ function Toggle({
         height: 20,
         borderRadius: 999,
         background: disabled
-          ? 'rgba(255, 255, 255, 0.05)'
+          ? 'rgba(120, 120, 128, 0.12)'
           : checked
-          ? '#ffffff'
+          ? '#0a84ff'
           : isHovered
-          ? 'rgba(255, 255, 255, 0.18)'
-          : 'rgba(255, 255, 255, 0.12)',
+          ? 'rgba(120, 120, 128, 0.26)'
+          : 'rgba(120, 120, 128, 0.2)',
         border: 'none',
         position: 'relative',
         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -2719,7 +2800,7 @@ function Toggle({
         initial={false}
         animate={{
           x: checked ? 19 : 3,
-          backgroundColor: checked ? '#000000' : '#ffffff'
+          backgroundColor: '#ffffff'
         }}
         transition={{
           type: 'spring',
@@ -2734,7 +2815,7 @@ function Toggle({
           width: 14,
           height: 14,
           borderRadius: '50%',
-          boxShadow: 'none',
+          boxShadow: '0 1px 2px rgba(20, 22, 40, 0.28), 0 0 0 0.5px rgba(20, 22, 40, 0.06)',
           pointerEvents: 'none'
         }}
       />
@@ -2793,16 +2874,16 @@ function LanguageDropdown({ direction = 'down', compact = false }: { direction?:
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: isOpen ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.05)',
-          color: '#ffffff',
-          border: isOpen ? '1px solid rgba(255, 255, 255, 0.22)' : '1px solid rgba(255, 255, 255, 0.12)',
+          background: isOpen ? 'rgba(255, 255, 255, 0.72)' : 'rgba(255, 255, 255, 0.52)',
+          color: '#1d1d1f',
+          border: isOpen ? '1px solid rgba(255, 255, 255, 0.9)' : '1px solid rgba(255, 255, 255, 0.62)',
           borderRadius: compact ? 8 : 10,
           padding: compact ? '0 10px' : '8px 12px',
           fontSize: compact ? 11.5 : 12.5,
           fontWeight: 500,
           outline: 'none',
           cursor: 'pointer',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+          boxShadow: '0 1px 2px rgba(20, 22, 40, 0.05)',
           transition: 'all 0.15s ease'
         }}
       >
@@ -2810,7 +2891,7 @@ function LanguageDropdown({ direction = 'down', compact = false }: { direction?:
         <motion.span
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
-          style={{ display: 'flex', alignItems: 'center', color: 'rgba(255, 255, 255, 0.6)' }}
+          style={{ display: 'flex', alignItems: 'center', color: 'rgba(60, 60, 67, 0.6)' }}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="m6 9 6 6 6-6"/>
@@ -2834,11 +2915,11 @@ function LanguageDropdown({ direction = 'down', compact = false }: { direction?:
               right: 0,
               maxHeight: direction === 'up' ? (compact ? 88 : 140) : 180,
               overflowY: 'auto',
-              background: '#121214',
-              border: '1px solid rgba(255, 255, 255, 0.14)',
+              background: 'rgba(255, 255, 255, 0.97)',
+              border: '1px solid rgba(255, 255, 255, 0.8)',
               borderRadius: 10,
               padding: '4px',
-              boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+              boxShadow: '0 0 0 1px rgba(20, 22, 40, 0.05), 0 16px 40px rgba(20, 22, 40, 0.14), inset 0 1px 0 rgba(255, 255, 255, 1)',
               zIndex: 100,
               scrollbarWidth: 'none'
             }}
@@ -2862,8 +2943,8 @@ function LanguageDropdown({ direction = 'down', compact = false }: { direction?:
                     justifyContent: 'space-between',
                     padding: compact ? '5px 8px' : '7px 10px',
                     borderRadius: 7,
-                    background: active ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
-                    color: active ? '#ffffff' : 'rgba(255, 255, 255, 0.8)',
+                    background: active ? 'rgba(120, 120, 128, 0.14)' : 'transparent',
+                    color: active ? '#1d1d1f' : 'rgba(29, 29, 31, 0.72)',
                     fontSize: compact ? 11.5 : 12,
                     fontWeight: active ? 600 : 400,
                     border: 'none',
@@ -2872,7 +2953,7 @@ function LanguageDropdown({ direction = 'down', compact = false }: { direction?:
                     transition: 'background 0.12s ease'
                   }}
                   onMouseEnter={(e) => {
-                    if (!active) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.07)'
+                    if (!active) e.currentTarget.style.background = 'rgba(120, 120, 128, 0.1)'
                   }}
                   onMouseLeave={(e) => {
                     if (!active) e.currentTarget.style.background = 'transparent'

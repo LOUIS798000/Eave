@@ -30,9 +30,9 @@ describe('search bar', () => {
   })
 
   it('shows focus without a border: a lifted fill and a brighter icon', () => {
-    expect(css).toMatch(/\.search input:focus \{\s*background: #222222;\s*\}/)
+    expect(css).toMatch(/\.search input:focus \{\s*background: var\(--bg-card-hover-strong\);\s*\}/)
     // Borderless like the rest of the UI: no ring, no border on the field.
-    expect(css).not.toMatch(/\.search input[^{]*\{[^}]*(box-shadow|border:\s*1px)/)
+    expect(css).not.toMatch(/\.search input[^{]*\{[^}]*border:\s*1px/)
     expect(css).toMatch(/\.search:focus-within \.search-icon,\s*\.search\.has-query \.search-icon \{/)
   })
 

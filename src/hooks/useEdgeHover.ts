@@ -24,21 +24,26 @@ import { useEffect, useRef } from 'react'
 import { edge } from '../lib/edge'
 import { useStore } from '../store/appStore'
 import { normalizeHoverOpenDelay } from '../../shared/types'
+import {
+  resolvePanelHeight,
+  resolvePanelWidth,
+  resolvePreviewColumnWidth,
+  resolveTopPanelHeight,
+  resolveTopPanelWidth,
+  TOP_WIDTH_MIN
+} from '../../shared/panelSize'
 
-const TRIGGER_PX = 3    // leftmost px that count as "the edge"
 const DWELL_MS = 40      // cursor must linger this long to open (base; user delay adds on top)
 const GRACE_MS = 250     // close delay after leaving
-const PANEL_WIDE = 270   // blade is 270px (var(--panel-width))
-/** Hysteresis thresholds for closing the panel.
- * KEEP_OPEN_PX: if cursor x is <= this, the panel stays open (clearly inside blade).
- * START_CLOSE_PX: if cursor x is > this, start the close timer (clearly outside).
- * Gap between the two prevents rapid cancel/schedule oscillation at the blade edge
- * when the cursor hovers just outside the visual boundary.
+/** Hysteresis thresholds for closing the panel, measured inside the blade.
+ * KEEP_OPEN_INSET: the cursor may sit this far inside the blade edge and keep it open.
+ * START_CLOSE_BUFFER: once this far outside the blade, the close timer starts.
+ * The gap prevents rapid cancel/schedule oscillation at the visual boundary.
  */
-const KEEP_OPEN_PX = PANEL_WIDE - 15  // 255 — clearly inside blade
-const START_CLOSE_PX = PANEL_WIDE + 20 // 290 — 20px buffer outside the visual boundary
+const KEEP_OPEN_INSET = 15
+const START_CLOSE_BUFFER = 20
 const BUFFER_PX = 30                 // 30px overshoot buffer across adjacent monitors
-const PREVIEW_WIDE = 740             // Extended width when preview flyout is active
+const TRIGGER_PX = 3                 // outermost px band that counts as "the edge"
 
 /** Total dwell before a hover opens the shelf: base + the user's Open Delay setting. */
 function dwellMsFor(state: { settings: { hoverOpenDelay?: number } }): number {
@@ -76,9 +81,13 @@ export function getHorizontalDockMetrics(
   displayWidth: number,
   horizontalOffset = 0.5,
   hotZoneHeight = 0.25,
-  triggerAlignment: 'top' | 'center' | 'bottom' | 'left' | 'right' = 'center'
+  triggerAlignment: 'top' | 'center' | 'bottom' | 'left' | 'right' = 'center',
+  customDockWidth?: number
 ) {
-  const dockWidth = Math.min(displayWidth - 60, 1080)
+  const maxDockWidth = Math.max(200, displayWidth - 60)
+  const dockWidth = customDockWidth && customDockWidth > 0
+    ? Math.min(maxDockWidth, Math.max(Math.min(TOP_WIDTH_MIN, maxDockWidth), customDockWidth))
+    : Math.min(maxDockWidth, 1080)
   const pad = displayWidth >= dockWidth + 60 ? 30 : 0
   const minX = pad
   const maxX = displayWidth - dockWidth - pad
@@ -147,8 +156,9 @@ export function useEdgeHover(): void {
       const s = useStore.getState().settings
       const isHorizontal = s.stickPosition === 'top'
 
-      const pFrac = s.panelHeight || 0.6
-      const panelH = h * pFrac
+      const panelH = isHorizontal
+        ? resolveTopPanelHeight(s)
+        : resolvePanelHeight(s, h)
       const minY = panelH / 2
       const maxY = h - panelH / 2
       const vOffset = s.verticalOffset ?? 0.5
@@ -172,14 +182,15 @@ export function useEdgeHover(): void {
 
       // Horizontal dock bounds (for top/bottom) — calculated in DISPLAY coordinates
       const dispW = displaySize.current.width
-      const dockMetrics = getHorizontalDockMetrics(dispW, s.horizontalOffset ?? 0.5, s.hotZoneHeight ?? 0.25, s.triggerAlignment || 'center')
+      const customTopWidth = resolveTopPanelWidth(s, dispW - 60)
+      const dockMetrics = getHorizontalDockMetrics(dispW, s.horizontalOffset ?? 0.5, s.hotZoneHeight ?? 0.25, s.triggerAlignment || 'center', customTopWidth)
       const left = dockMetrics.triggerLeft
       const right = dockMetrics.triggerRight
       const midX = dockMetrics.dockCenterX
       const dockW = dockMetrics.dockWidth
       const panelHalfW = dockW / 2 + 24
 
-      const panelHalfH = isHorizontal ? 120 : panelH / 2 + 24
+      const panelHalfH = panelH / 2 + 24
       zone.current = { 
         top, 
         bottom,
@@ -197,11 +208,16 @@ export function useEdgeHover(): void {
     const unsubStore = useStore.subscribe((state, prevState) => {
       if (
         state.settings.panelHeight !== prevState.settings.panelHeight ||
+        state.settings.panelHeightPx !== prevState.settings.panelHeightPx ||
+        state.settings.panelWidth !== prevState.settings.panelWidth ||
+        state.settings.topPanelWidth !== prevState.settings.topPanelWidth ||
+        state.settings.topPanelHeightPx !== prevState.settings.topPanelHeightPx ||
         state.settings.hotZoneHeight !== prevState.settings.hotZoneHeight ||
         state.settings.verticalOffset !== prevState.settings.verticalOffset ||
         state.settings.horizontalOffset !== prevState.settings.horizontalOffset ||
         state.settings.stickPosition !== prevState.settings.stickPosition ||
-        state.settings.triggerAlignment !== prevState.settings.triggerAlignment
+        state.settings.triggerAlignment !== prevState.settings.triggerAlignment ||
+        state.settingsOpen !== prevState.settingsOpen
       ) {
         recompute()
       }
@@ -361,13 +377,16 @@ export function useEdgeHover(): void {
       const { x, y } = lastClient.current
       if (x < -BUFFER_PX || y < 0) return true // unknown — be conservative, don't close
       const s = state.settings
+      const panelW = resolvePanelWidth(s)
+      const panelH = resolvePanelHeight(s, window.innerHeight)
+      const topH = resolveTopPanelHeight(s)
       const hasFlyout = !!(state.previewItemId || state.styleFlyoutOpen || state.languageFlyoutOpen)
-      const currentPanelWide = hasFlyout ? PREVIEW_WIDE : PANEL_WIDE
+      const currentPanelWide = hasFlyout ? resolvePreviewColumnWidth(panelW) : panelW
+      const displayW = displaySize.current.width
 
       if (s.stickPosition === 'top') {
-        const dispW = displaySize.current.width
-        const { dockWidth, dockX } = getHorizontalDockMetrics(dispW, s.horizontalOffset ?? 0.5, s.hotZoneHeight ?? 0.25, s.triggerAlignment || 'center')
-        const bladeHeight = 218
+        const { dockWidth, dockX } = getHorizontalDockMetrics(displayW, s.horizontalOffset ?? 0.5, s.hotZoneHeight ?? 0.25, s.triggerAlignment || 'center', resolveTopPanelWidth(s, displayW - 60))
+        const bladeHeight = topH + 8
         const inBlade = y >= -BUFFER_PX && y <= bladeHeight && x >= dockX - BUFFER_PX && x <= dockX + dockWidth + BUFFER_PX
         if (inBlade) return true
         if (hasFlyout && state.previewFlyoutRect && state.previewFlyoutRect.left !== undefined && state.previewFlyoutRect.right !== undefined) {
@@ -383,24 +402,24 @@ export function useEdgeHover(): void {
       }
 
       let insideX = false
+      let inPreviewCol = false
       if (s.stickPosition === 'right') {
-        insideX = x >= window.innerWidth - currentPanelWide - BUFFER_PX && x <= window.innerWidth + BUFFER_PX
+        const bladeLeft = displayW - panelW
+        insideX = x >= displayW - currentPanelWide - BUFFER_PX && x <= displayW + BUFFER_PX
+        inPreviewCol = x < bladeLeft - 12
       } else {
         insideX = x >= -BUFFER_PX && x <= currentPanelWide + BUFFER_PX
+        inPreviewCol = x > panelW + 12
       }
       if (!insideX) return false
-
-      const inPreviewCol = s.stickPosition === 'right'
-        ? x < window.innerWidth - KEEP_OPEN_PX
-        : x > KEEP_OPEN_PX
 
       if (inPreviewCol && hasFlyout && state.previewFlyoutRect) {
         const FLYOUT_BUFFER = 24
         return y >= state.previewFlyoutRect.top - FLYOUT_BUFFER && y <= state.previewFlyoutRect.bottom + FLYOUT_BUFFER
       }
 
-      const { midY, panelHalfH } = zone.current
-      return y >= midY - panelHalfH && y <= midY + panelHalfH
+      const { midY } = zone.current
+      return y >= midY - (panelH / 2 + 24) && y <= midY + (panelH / 2 + 24)
     }
 
     const onPanelLeave = () => {
@@ -442,8 +461,14 @@ export function useEdgeHover(): void {
       const { stickPosition, displayWidth } = data
       const { top, bottom, midY, panelHalfH } = zone.current
       const hasFlyout = !!(state.previewItemId || state.styleFlyoutOpen || state.languageFlyoutOpen)
-      const currentKeepOpenPx = hasFlyout ? PREVIEW_WIDE - 15 : KEEP_OPEN_PX
-      const currentStartClosePx = hasFlyout ? PREVIEW_WIDE + 20 : START_CLOSE_PX
+      const panelW = resolvePanelWidth(state.settings)
+      const previewColumnW = resolvePreviewColumnWidth(panelW)
+      const currentKeepOpenPx = hasFlyout
+        ? previewColumnW - KEEP_OPEN_INSET
+        : panelW - KEEP_OPEN_INSET
+      const currentStartClosePx = hasFlyout
+        ? previewColumnW + START_CLOSE_BUFFER
+        : panelW + START_CLOSE_BUFFER
 
       switch (stickPosition) {
         case 'top': {
@@ -451,7 +476,7 @@ export function useEdgeHover(): void {
           const triggerDepth = Math.max(state.settings.hotZoneWidth ?? 3, 1)
           const inEdgeNear = distFromTop >= -BUFFER_PX && distFromTop <= (triggerDepth + 25)
           const dispW = displayWidth || displaySize.current.width
-          const { dockWidth, dockX, triggerLeft, triggerRight } = getHorizontalDockMetrics(dispW, state.settings.horizontalOffset ?? 0.5, state.settings.hotZoneHeight ?? 0.25, state.settings.triggerAlignment || 'center')
+          const { dockWidth, dockX, triggerLeft, triggerRight } = getHorizontalDockMetrics(dispW, state.settings.horizontalOffset ?? 0.5, state.settings.hotZoneHeight ?? 0.25, state.settings.triggerAlignment || 'center', resolveTopPanelWidth(state.settings, dispW - 60))
           const inZone = data.x >= triggerLeft && data.x <= triggerRight
 
           if (!inEdgeNear) {
@@ -490,7 +515,7 @@ export function useEdgeHover(): void {
             edge.setInteractive(true)
           }
 
-          const baseBladeH = 218
+          const baseBladeH = resolveTopPanelHeight(state.settings) + 8
           const keepOpenDepth = baseBladeH
           const startCloseDepth = baseBladeH + 40
           const insideX = data.x >= dockX - BUFFER_PX && data.x <= dockX + dockWidth + BUFFER_PX
@@ -559,7 +584,7 @@ export function useEdgeHover(): void {
             edge.setInteractive(true)
           }
 
-          const inPreviewColumn = distFromRight > KEEP_OPEN_PX
+          const inPreviewColumn = distFromRight > panelW + 12
           let insideY = false
           if (inPreviewColumn && hasFlyout && state.previewFlyoutRect) {
             const FLYOUT_BUFFER = 24
@@ -621,7 +646,7 @@ export function useEdgeHover(): void {
             edge.setInteractive(true)
           }
 
-          const inPreviewColumn = data.x > KEEP_OPEN_PX
+          const inPreviewColumn = data.x > panelW + 12
           let insideY = false
           if (inPreviewColumn && hasFlyout && state.previewFlyoutRect) {
             const FLYOUT_BUFFER = 24

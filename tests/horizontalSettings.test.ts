@@ -7,9 +7,12 @@ function read(relPath: string): string {
 }
 
 describe('Horizontal Card Shelf Settings Layout', () => {
-  it('Panel.tsx retains fixed 210px dock height in horizontal mode without expanding and with 60px gutter', () => {
+  it('Panel.tsx sizes the horizontal dock from custom width/height inside the 60px flare window', () => {
     const panelSrc = read('src/components/Panel.tsx')
-    expect(panelSrc).toContain("style={isHorizontal ? { width: 'min(calc(100vw - 60px), 1080px)', height: 210 } : { height: panelHeightStr }}")
+    expect(panelSrc).toContain('const topPanelWidth = Math.min(Math.max(0, screenW - 60), 1080)')
+    expect(panelSrc).toContain("'--hcard-h'")
+    expect(panelSrc).toContain('width: topPanelWidth')
+    expect(panelSrc).toContain('height: panelH')
     expect(panelSrc).not.toContain('height: settingsOpen ? 460 : 210')
   })
 
@@ -78,7 +81,7 @@ describe('Horizontal Card Shelf Settings Layout', () => {
     expect(flyoutSrc).toContain("stickPosition === 'top'")
     // Borderless like every other settings control; selection reads from the fill.
     expect(flyoutSrc).toContain("border: '2px solid transparent'")
-    expect(flyoutSrc).toContain("background: active ? '#262626' : '#141414'")
+    expect(flyoutSrc).toContain("background: active ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.45)'")
     expect(flyoutSrc).not.toContain("outline: active ? '2px solid #ffffff' : 'none'")
   })
 
@@ -191,12 +194,15 @@ describe('Horizontal Card Shelf Settings Layout', () => {
     expect(horizontalBlock).toContain('starOnGithub')
   })
 
-  it('Vertical left/right settings remain untouched with position slider and vertical controls intact', () => {
+  it('Vertical left/right settings remain untouched with position slider, window size and vertical controls intact', () => {
     const src = read('src/components/Settings.tsx')
     const verticalBlock = src.slice(src.indexOf('const maxTabLen ='))
     expect(verticalBlock).toContain('verticalPositionTitle')
     expect(verticalBlock).toContain('edgeTriggerPositionTitle')
-    expect(verticalBlock).toContain('panelHeightTitle')
+    expect(verticalBlock).toContain('renderPanelSizeCard()')
+    expect(src).toContain("t('position.panelSizeTitle')")
+    expect(src).toContain('resolvePanelWidth(settings)')
+    expect(src).toContain('topPanelWidth')
   })
 
   it('Vertical settings arranges edge placement buttons in 3-way layout (left, top, right)', () => {

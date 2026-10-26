@@ -23,6 +23,7 @@ import { IndicatorStyleFlyout } from './IndicatorStyleFlyout'
 import { LanguageFlyout } from './LanguageFlyout'
 import { CopyIndicatorCurve } from './CopyIndicatorCurve'
 import { useFilteredItems } from '../hooks/useFilteredItems'
+import { resolvePanelHeight, resolvePanelWidth, resolveTopCardWidth, resolveTopPanelHeight } from '../../shared/panelSize'
 
 import { useTranslation } from '../i18n'
 
@@ -88,9 +89,27 @@ export function Panel() {
     }
   }, [open, setSettingsOpen, setQuery, setEmojiOpen])
 
+  const isRight = settings.stickPosition === 'right'
+  const isTop = settings.stickPosition === 'top'
+  const isHorizontal = isTop
+
+  const screenW = typeof window !== 'undefined' ? window.innerWidth : 800
   const screenH = typeof window !== 'undefined' ? window.innerHeight : 800
-  const pFrac = settings.panelHeight || 0.6
-  const panelH = screenH * pFrac
+  const panelWidth = resolvePanelWidth(settings)
+  // The native window is exactly blade + 60px of flare gutters, so this is
+  // the width the horizontal dock should occupy.
+  const topPanelWidth = Math.min(Math.max(0, screenW - 60), 1080)
+  const topH = isHorizontal ? resolveTopPanelHeight(settings) : 0
+  // Settings stays inside the dock height the user chose. The native window
+  // still reserves a little room below for flyouts, but the visible blade no
+  // longer grows when Settings opens.
+  const panelH = isHorizontal ? topH : resolvePanelHeight(settings, screenH)
+  // Horizontal cards breathe with the dock height: 146px at the classic
+  // 210px dock, 120px at the 180px compact floor. Keep roughly the 1.75:1
+  // card proportion the compact dock was designed around (210x120), capped
+  // at the classic 210px width.
+  const horizontalCardH = isHorizontal ? Math.max(72, Math.min(146, panelH - 60)) : 146
+  const horizontalCardW = isHorizontal ? resolveTopCardWidth(horizontalCardH) : 210
   const minY = panelH / 2
   const maxY = screenH - panelH / 2
   const vOffset = settings.verticalOffset ?? 0.5
@@ -101,8 +120,22 @@ export function Panel() {
   const triggerHeightPx = Math.round(window.innerHeight * settings.hotZoneHeight)
   const halfTrigger = Math.round(triggerHeightPx / 2)
 
-  // The height of the complete pop-up panel
-  const panelHeightStr = `${(settings.panelHeight || 0.6) * 100}vh`
+  // While Settings is open, pin the blade's top edge so changing its height
+  // doesn't slide the controls under the cursor between clicks.
+  const [settingsAnchorTop, setSettingsAnchorTop] = useState<number | null>(null)
+  useEffect(() => {
+    if (!settingsOpen || isHorizontal) {
+      setSettingsAnchorTop(null)
+      return
+    }
+    setSettingsAnchorTop((prev) => prev ?? Math.max(0, Math.round(midY - panelH / 2)))
+  }, [settingsOpen, isHorizontal, midY, panelH])
+
+  // Expose the blade depth to flyouts and any CSS that positions itself
+  // relative to the blade (`right: var(--panel-width)`).
+  useEffect(() => {
+    document.documentElement.style.setProperty('--panel-width', `${panelWidth}px`)
+  }, [panelWidth])
 
   const setDragActive = useStore((s) => s.setDragActive)
   const setInternalDragReq = useStore((s) => s.setInternalDragReq)
@@ -237,10 +270,6 @@ export function Panel() {
     setDragActive(false)
   }
 
-  const isRight = settings.stickPosition === 'right'
-  const isTop = settings.stickPosition === 'top'
-  const isHorizontal = isTop
-
   const isTransitioning = !!edgeTransition?.active
   const isVisuallyOpen = isTransitioning
     ? edgeTransition.stage === 'expanding'
@@ -251,6 +280,12 @@ export function Panel() {
   else if (isTop) containerClass += ' blade-top'
   else containerClass += ' blade-left'
   if (isHorizontal) containerClass += ' horizontal-dock'
+  if (isHorizontal && panelH < 210) containerClass += ' blade-top-compact'
+  if (isHorizontal && panelH < 180) containerClass += ' blade-top-ultra'
+  if (!isHorizontal && panelWidth < 300) containerClass += ' blade-compact'
+  if (!isHorizontal && panelWidth < 260) containerClass += ' blade-narrow'
+  if (!isHorizontal && panelH < 380) containerClass += ' blade-short'
+  if (!isHorizontal && panelH < 300) containerClass += ' blade-very-short'
   if (isVisuallyOpen) containerClass += ' is-open'
   if (isTransitioning) containerClass += ' is-transitioning'
 
@@ -292,16 +327,31 @@ export function Panel() {
     containerStyle.willChange = 'clip-path, opacity'
   }
 
+  // Settings pins the top edge so height changes grow downward instead of
+  // moving the size controls out from under the cursor.
+  const anchoredTop = !isHorizontal && settingsOpen && settingsAnchorTop != null
+    ? Math.min(Math.max(0, settingsAnchorTop), Math.max(0, screenH - panelH))
+    : null
+
   // Static centering via plain CSS transform (framer x/y shorthands removed
   // with the bounce cleanup — same visual placement, no runtime needed).
   if (isRight) {
-    containerStyle.top = topOffset
-    containerStyle.transform = 'translateY(-50%)'
+    if (anchoredTop != null) {
+      containerStyle.top = `${anchoredTop}px`
+      containerStyle.transform = 'none'
+    } else {
+      containerStyle.top = topOffset
+      containerStyle.transform = 'translateY(-50%)'
+    }
     containerStyle.right = 0
   } else if (isTop) {
     containerStyle.top = 0
     containerStyle.left = '50%'
     containerStyle.transform = 'translate(-50%, 0)'
+  } else if (anchoredTop != null) {
+    containerStyle.top = `${anchoredTop}px`
+    containerStyle.transform = 'none'
+    containerStyle.left = 0
   } else {
     containerStyle.top = topOffset
     containerStyle.transform = 'translateY(-50%)'
@@ -346,15 +396,15 @@ export function Panel() {
   const hotWidth = settings.hotZoneWidth || 3
   if (isRight) {
     clipPath = isVisuallyOpen
-      ? 'inset(-30px 0px -30px 0px round 24px 0px 0px 24px)'
+      ? 'inset(-30px -44px -30px 0px round 24px 0px 0px 24px)'
       : `inset(${insetTop} 0px ${insetBottom} calc(100% - ${hotWidth}px) round 24px 0px 0px 24px)`
   } else if (isTop) {
     clipPath = isVisuallyOpen
-      ? 'inset(0px -30px 0px -30px round 0px 0px 24px 24px)'
+      ? 'inset(0px -30px -44px -30px round 0px 0px 24px 24px)'
       : `inset(0px ${insetRight} calc(100% - ${hotWidth}px) ${insetLeft} round 0px 0px 24px 24px)`
   } else {
     clipPath = isVisuallyOpen
-      ? 'inset(-30px 0px -30px 0px round 0px 24px 24px 0px)'
+      ? 'inset(-30px 0px -30px -44px round 0px 24px 24px 0px)'
       : `inset(${insetTop} calc(100% - ${hotWidth}px) ${insetBottom} 0px round 0px 24px 24px 0px)`
   }
   containerStyle.clipPath = clipPath
@@ -392,8 +442,8 @@ export function Panel() {
                       top: 0,
                       height: 2,
                       boxSizing: 'border-box',
-                      background: 'linear-gradient(to right, transparent, rgba(255, 255, 255, 0.75) 20%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 255, 255, 0.75) 80%, transparent)',
-                      boxShadow: '0 0 8px rgba(255, 255, 255, 0.4)',
+                      background: 'linear-gradient(to right, transparent, rgba(10, 132, 255, 0.55) 20%, rgba(10, 132, 255, 0.9) 50%, rgba(10, 132, 255, 0.55) 80%, transparent)',
+                      boxShadow: '0 0 10px rgba(10, 132, 255, 0.35)',
                       borderRadius: '999px',
                       pointerEvents: 'none',
                       zIndex: 99
@@ -405,8 +455,8 @@ export function Panel() {
                       [isRight ? 'right' : 'left']: 0,
                       width: 2,
                       boxSizing: 'border-box',
-                      background: 'linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.75) 20%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 255, 255, 0.75) 80%, transparent)',
-                      boxShadow: '0 0 8px rgba(255, 255, 255, 0.4)',
+                      background: 'linear-gradient(to bottom, transparent, rgba(10, 132, 255, 0.55) 20%, rgba(10, 132, 255, 0.9) 50%, rgba(10, 132, 255, 0.55) 80%, transparent)',
+                      boxShadow: '0 0 10px rgba(10, 132, 255, 0.35)',
                       borderRadius: isRight ? '999px 0 0 999px' : '0 999px 999px 0',
                       pointerEvents: 'none',
                       zIndex: 99
@@ -419,12 +469,12 @@ export function Panel() {
           <>
             <div className="flare-horizontal flare-top-left" style={{ opacity: isVisuallyOpen ? 1 : 0 }}>
               <svg width="32" height="30" viewBox="0 0 32 30" fill="none" xmlns="http://www.w3.org/2000/svg" shapeRendering="geometricPrecision">
-                <path d="M 0 0 C 13.43 0 30 16.57 30 30 L 32 30 L 32 0 Z" fill="#000000" />
+                <path d="M 0 0 C 13.43 0 30 16.57 30 30 L 32 30 L 32 0 Z" fill="rgba(255, 255, 255, 0.78)" />
               </svg>
             </div>
             <div className="flare-horizontal flare-top-right" style={{ opacity: isVisuallyOpen ? 1 : 0 }}>
               <svg width="32" height="30" viewBox="0 0 32 30" fill="none" xmlns="http://www.w3.org/2000/svg" shapeRendering="geometricPrecision">
-                <path d="M 2 30 C 2 16.57 18.57 0 32 0 L 0 0 L 0 30 Z" fill="#000000" />
+                <path d="M 2 30 C 2 16.57 18.57 0 32 0 L 0 0 L 0 30 Z" fill="rgba(255, 255, 255, 0.78)" />
               </svg>
             </div>
           </>
@@ -433,12 +483,12 @@ export function Panel() {
           <>
             <div className="flare-top flare-right" style={{ opacity: isVisuallyOpen ? 1 : 0 }}>
               <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M 30 0 L 30 30 L 0 30 A 30 30 0 0 0 30 0 Z" fill="#000000" />
+                <path d="M 30 0 L 30 30 L 0 30 A 30 30 0 0 0 30 0 Z" fill="rgba(255, 255, 255, 0.78)" />
               </svg>
             </div>
             <div className="flare-bottom flare-right" style={{ opacity: isVisuallyOpen ? 1 : 0 }}>
               <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M 30 30 L 30 0 L 0 0 A 30 30 0 0 1 30 30 Z" fill="#000000" />
+                <path d="M 30 30 L 30 0 L 0 0 A 30 30 0 0 1 30 30 Z" fill="rgba(255, 255, 255, 0.78)" />
               </svg>
             </div>
           </>
@@ -446,12 +496,12 @@ export function Panel() {
           <>
             <div className="flare-top" style={{ opacity: isVisuallyOpen ? 1 : 0 }}>
               <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M 0 0 L 0 30 L 30 30 A 30 30 0 0 1 0 0 Z" fill="#000000" />
+                <path d="M 0 0 L 0 30 L 30 30 A 30 30 0 0 1 0 0 Z" fill="rgba(255, 255, 255, 0.78)" />
               </svg>
             </div>
             <div className="flare-bottom" style={{ opacity: isVisuallyOpen ? 1 : 0 }}>
               <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M 0 30 L 0 0 L 30 0 A 30 30 0 0 0 0 30 Z" fill="#000000" />
+                <path d="M 0 30 L 0 0 L 30 0 A 30 30 0 0 0 0 30 Z" fill="rgba(255, 255, 255, 0.78)" />
               </svg>
             </div>
           </>
@@ -459,7 +509,9 @@ export function Panel() {
         <div
           ref={bladeRef}
           className="blade"
-          style={isHorizontal ? { width: 'min(calc(100vw - 60px), 1080px)', height: 210 } : { height: panelHeightStr }}
+          style={isHorizontal
+            ? ({ width: topPanelWidth, height: panelH, '--hcard-h': `${horizontalCardH}px`, '--hcard-w': `${horizontalCardW}px` } as React.CSSProperties)
+            : { width: panelWidth, height: panelH }}
         >
           <Header
             isHorizontal={isHorizontal}
@@ -619,7 +671,7 @@ function DropOverlay() {
             justifyContent: 'center',
             gap: '14px',
             pointerEvents: 'none',
-            background: 'rgba(6, 6, 8, 0.95)',
+            background: 'rgba(250, 250, 253, 0.94)',
             textAlign: 'center',
             padding: '24px'
           }}
@@ -629,12 +681,12 @@ function DropOverlay() {
               width: '52px',
               height: '52px',
               borderRadius: '16px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: 'rgba(255, 255, 255, 0.72)',
+              border: '1px solid rgba(255, 255, 255, 0.85)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'rgba(255, 255, 255, 0.9)'
+              color: 'rgba(29, 29, 31, 0.8)'
             }}
           >
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -644,10 +696,10 @@ function DropOverlay() {
             </svg>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ fontSize: '15px', fontWeight: 600, color: 'rgba(255, 255, 255, 0.95)', letterSpacing: '0.01em' }}>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: '#1d1d1f', letterSpacing: '0.01em' }}>
               {t('item.dropToSave')}
             </div>
-            <div style={{ fontSize: '12px', fontWeight: 400, color: 'rgba(255, 255, 255, 0.5)', lineHeight: 1.4 }}>
+            <div style={{ fontSize: '12px', fontWeight: 400, color: 'rgba(60, 60, 67, 0.6)', lineHeight: 1.4 }}>
               {t('item.dropToSaveDesc')}
             </div>
           </div>

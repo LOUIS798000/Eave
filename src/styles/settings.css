@@ -24,13 +24,13 @@
   display: flex;
   position: relative;
   width: 100%;
-  background: transparent;
+  background: rgba(120, 120, 128, 0.14);
   border: none;
-  border-radius: 12px;
-  padding: 0;
-  gap: 4px;
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
   flex-shrink: 0;
-  box-shadow: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
 }
 
 .settings-tab-btn {
@@ -46,8 +46,8 @@
   font-size: calc(11.5px * var(--font-scale, 1));
   font-weight: 500;
   line-height: 1.25;
-  color: rgba(255, 255, 255, 0.72);
-  background: #141414;
+  color: rgba(29, 29, 31, 0.72);
+  background: var(--bg-card);
   border: none;
   cursor: pointer;
   outline: none;
@@ -58,15 +58,15 @@
 }
 
 .settings-tab-btn:hover:not(.active) {
-  color: #ffffff;
-  background: #141414;
+  color: rgba(29, 29, 31, 0.9);
+  background: var(--bg-card);
 }
 
 .settings-tab-btn.active {
-  color: #000000;
+  color: #1d1d1f;
   font-weight: 600;
   background: #ffffff;
-  box-shadow: none;
+  box-shadow: 0 1px 3px rgba(20, 22, 40, 0.16), 0 0 0 0.5px rgba(20, 22, 40, 0.04), inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 
 .settings-tab-indicator {
@@ -114,7 +114,7 @@
 .setting-title {
   font-size: calc(14px * var(--font-scale, 1));
   font-weight: 600;
-  color: #ffffff;
+  color: rgba(29, 29, 31, 0.9);
   letter-spacing: 0.01em;
   line-height: 1.35;
   white-space: normal;
@@ -125,7 +125,7 @@
 .setting-desc {
   font-size: calc(12.5px * var(--font-scale, 1));
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(29, 29, 31, 0.72);
   line-height: 1.48;
   white-space: normal;
   word-break: break-word;
@@ -134,7 +134,7 @@
 
 .setting-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.55);
   margin: 4px 4px;
   flex-shrink: 0;
 }
@@ -159,7 +159,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.38);
+  color: rgba(29, 29, 31, 0.36);
   white-space: nowrap;
 }
 
@@ -167,7 +167,7 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .setting-group-label {
@@ -175,7 +175,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.42);
+  color: rgba(29, 29, 31, 0.46);
   margin: 18px 4px 8px;
   user-select: none;
   white-space: normal;
@@ -190,7 +190,7 @@
 /* ── Vertical Setting Card (Matches Horizontal Shelf Card Aesthetic) ── */
 .setting-card {
   width: 100%;
-  background: var(--bg-card, #141414);
+  background: var(--bg-card, var(--bg-card));
   border: none;
   border-radius: var(--radius-card, 16px);
   padding: 12px 14px;
@@ -214,24 +214,23 @@
   pointer-events: none;
   z-index: 2;
   transition: opacity 0.14s ease;
-  background: 
-    radial-gradient(
+  background: radial-gradient(
       ellipse 70% 1px at 50% 0%,
-      rgba(255, 255, 255, 0.22) 0%,
-      rgba(255, 255, 255, 0.08) 45%,
+      rgba(255, 255, 255, 0.7) 0%,
+      rgba(255, 255, 255, 0.55) 45%,
       transparent 80%
     ) top / 100% 1px no-repeat,
     linear-gradient(
       90deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.035) 20%,
-      rgba(255, 255, 255, 0.035) 80%,
+      rgba(255, 255, 255, 0.55) 20%,
+      rgba(255, 255, 255, 0.55) 80%,
       transparent 100%
     ) bottom / 100% 1px no-repeat;
 }
 
 .setting-card:hover {
-  background: var(--bg-card-hover, #1c1c1c);
+  background: var(--bg-card-hover, var(--bg-card-hover));
 }
 
 .setting-card:hover::before {
@@ -243,7 +242,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.42);
+  color: rgba(29, 29, 31, 0.46);
   margin: 0 0 2px 0;
   flex-shrink: 0;
 }
@@ -251,13 +250,13 @@
 .setting-card .setting-title {
   font-size: calc(13px * var(--font-scale, 1));
   font-weight: 600;
-  color: #ffffff;
+  color: rgba(29, 29, 31, 0.9);
   line-height: 1.3;
 }
 
 .setting-card .setting-desc {
   font-size: calc(11.5px * var(--font-scale, 1));
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(29, 29, 31, 0.58);
   line-height: 1.4;
   margin-top: 2px;
 }
@@ -288,17 +287,17 @@
 .setting-card .setting-pills .pill {
   height: 32px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.55);
   border: 1px solid transparent;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(29, 29, 31, 0.72);
   font-size: 11.5px;
   font-weight: 500;
   transition: all 0.14s ease;
 }
 
 .setting-card .setting-pills .pill:hover {
-  background: rgba(255, 255, 255, 0.09);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(29, 29, 31, 0.9);
 }
 
 .setting-card .setting-pills .pill.active {
@@ -315,9 +314,9 @@
   padding: 2px 7px;
   font-size: calc(10px * var(--font-scale, 1));
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(29, 29, 31, 0.58);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 4px;
   width: fit-content;
   user-select: none;
@@ -374,9 +373,9 @@
   font-size: calc(11px * var(--font-scale, 1));
   padding: 0 4px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.55);
   border: 1px solid transparent;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(29, 29, 31, 0.72);
   font-weight: 500;
   transition: all 0.14s ease;
   display: flex;
@@ -387,8 +386,8 @@
 }
 
 .placement-3way-wrap.shelf-placement-3way .pill:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.09);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(29, 29, 31, 0.9);
 }
 
 .placement-3way-wrap.shelf-placement-3way .pill.active {
@@ -437,9 +436,9 @@
   font-size: calc(11px * var(--font-scale, 1));
   font-weight: 600;
   font-family: var(--font-mono);
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(29, 29, 31, 0.9);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   padding: 3px 9px;
   border-radius: 999px;
   letter-spacing: 0.02em;
@@ -470,20 +469,20 @@
   border-radius: 50%;
   background: #ffffff;
   border: 1.5px solid #000000;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 1px 4px rgba(20, 22, 40, 0.14);
   cursor: grab;
   transition: transform 0.15s ease;
 }
 
 .setting-range-input::-webkit-slider-thumb:hover {
   transform: scale(1.18);
-  box-shadow: 0 1.5px 6px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 1.5px 6px rgba(20, 22, 40, 0.17);
 }
 
 .setting-range-input::-webkit-slider-thumb:active {
   cursor: grabbing;
   transform: scale(1.24);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 2px 8px rgba(20, 22, 40, 0.2);
 }
 
 /* Slider 5% Tick Marks Bar */
@@ -502,7 +501,7 @@
 .slider-tick {
   width: 1px;
   height: 4px;
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 1px;
   transition: background 0.15s ease, height 0.15s ease;
 }
@@ -531,7 +530,7 @@
   font-size: 10.5px;
   font-weight: 500;
   font-family: var(--font-mono);
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(29, 29, 31, 0.46);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -541,12 +540,12 @@
 }
 
 .slider-label-btn:hover {
-  color: #ffffff;
+  color: rgba(29, 29, 31, 0.9);
 }
 
 .slider-label-btn.active {
-  color: #ffffff;
-  font-weight: 700;
+  color: rgba(29, 29, 31, 0.76);
+  font-weight: 600;
 }
 
 .pill {
@@ -556,8 +555,8 @@
   border-radius: 999px;
   font-size: calc(12px * var(--font-scale, 1));
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.72);
-  background: #141414;
+  color: rgba(29, 29, 31, 0.72);
+  background: var(--bg-card);
   border: none;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -568,15 +567,21 @@
 }
 
 .pill:hover:not(.active) {
-  color: #ffffff;
-  background: #1c1c1c;
+  color: rgba(29, 29, 31, 0.9);
+  background: var(--bg-card-hover);
 }
 
 .pill.active {
   background: #ffffff;
-  color: #000000;
+  color: #1d1d1f;
   font-weight: 600;
-  box-shadow: none;
+  box-shadow: 0 1px 3px rgba(20, 22, 40, 0.12), 0 0 0 0.5px rgba(20, 22, 40, 0.04), inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.setting-card .setting-pills .pill:not(.active),
+.placement-3way-wrap .pill:not(.active) {
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 0 0 1px rgba(60, 60, 67, 0.09);
 }
 
 .display-pill {
@@ -602,7 +607,7 @@
   width: 36px;
   height: 20px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.55);
   border: none;
   position: relative;
   cursor: pointer;
@@ -613,7 +618,7 @@
 }
 
 .setting-toggle:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.62);
 }
 
 .toggle-thumb {
@@ -638,7 +643,7 @@
 }
 
 .setting-toggle.checked .toggle-thumb {
-  background: #000000;
+  background: rgba(255, 255, 255, 0.55);
 }
 
 /* Update Prompt Banner (Monochrome Glassmorphic Glow) */
@@ -647,8 +652,8 @@
   flex-direction: column;
   gap: 10px;
   padding: 14px 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 10px;
   margin: 6px 4px 10px 4px;
 }
@@ -656,7 +661,7 @@
 .update-text {
   font-size: 12.5px;
   font-weight: 500;
-  color: #ffffff;
+  color: rgba(29, 29, 31, 0.9);
   line-height: 1.45;
   letter-spacing: 0.01em;
 }
@@ -671,7 +676,7 @@
   background: #ffffff;
   border: none;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(20, 22, 40, 0.11);
   transition: opacity 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
   text-align: center;
 }
@@ -726,7 +731,7 @@
   align-items: center;
   gap: 12px;
   padding: 16px 14px 14px;
-  background: #141414;
+  background: var(--bg-card);
   border: none;
   border-radius: 16px;
   margin: 16px 4px 8px 4px;
@@ -736,7 +741,7 @@
 
 .support-promo-title {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.68);
+  color: rgba(29, 29, 31, 0.58);
   line-height: 1.48;
   font-weight: 450;
   max-width: 100%;
@@ -797,8 +802,8 @@
   border-radius: 999px;
   font-size: 12.5px;
   font-weight: 550;
-  color: rgba(255, 255, 255, 0.9);
-  background: #1c1c1c;
+  color: rgba(29, 29, 31, 0.9);
+  background: var(--bg-card-hover);
   border: none;
   box-shadow: none;
   cursor: pointer;
@@ -808,8 +813,8 @@
 
 .github-promo-btn:hover,
 .store-review-promo-btn:hover {
-  background: #252525;
-  color: #ffffff;
+  background: var(--bg-card-hover-strong);
+  color: rgba(29, 29, 31, 0.9);
   transform: translateY(-1px);
 }
 
@@ -821,7 +826,7 @@
 .github-promo-btn .github-octocat-icon,
 .store-review-promo-btn .store-logo-icon {
   flex-shrink: 0;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(29, 29, 31, 0.9);
 }
 
 .github-promo-btn .star-icon {
@@ -834,7 +839,7 @@
   justify-content: center;
   gap: 6px;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.38);
+  color: rgba(29, 29, 31, 0.36);
   font-weight: 500;
   letter-spacing: 0.02em;
   margin-top: 4px;
@@ -848,7 +853,7 @@
 .version-changelog-link {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(29, 29, 31, 0.46);
   font: inherit;
   font-size: 11px;
   cursor: pointer;
@@ -860,7 +865,7 @@
 }
 
 .version-changelog-link:hover {
-  color: #ffffff;
+  color: rgba(29, 29, 31, 0.9);
 }
 
 /* Subtle Bottom Quit Button */
@@ -874,7 +879,7 @@
   border-radius: 999px;
   font-size: 11.5px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(29, 29, 31, 0.46);
   background: transparent;
   border: none;
   box-shadow: none;
@@ -909,9 +914,9 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.55);
   border: 1px solid transparent;
-  color: #ffffff;
+  color: rgba(29, 29, 31, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -922,13 +927,13 @@
 }
 
 .style-preview-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.62);
+  color: rgba(29, 29, 31, 0.9);
 }
 
 .style-preview-toggle-btn.active {
-  background: rgba(255, 255, 255, 0.18);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.62);
+  color: rgba(29, 29, 31, 0.9);
   box-shadow: 0 0 14px rgba(255, 255, 255, 0.15);
 }
 
@@ -954,15 +959,15 @@
 }
 
 .indicator-card.active {
-  background: #262626;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 14px rgba(255, 255, 255, 0.12);
+  background: var(--bg-card-hover-strong);
+  box-shadow: 0 4px 16px rgba(20, 22, 40, 0.14), 0 0 14px rgba(255, 255, 255, 0.12);
   outline: none;
 }
 
 .indicator-card-stage {
   width: 100%;
   height: 64px;
-  background: #000000;
+  background: rgba(255, 255, 255, 0.55);
   border-radius: 6px;
   position: relative;
   display: flex;
@@ -975,13 +980,13 @@
 .indicator-card-title {
   font-size: 12px;
   font-weight: 600;
-  color: #ffffff;
+  color: rgba(29, 29, 31, 0.9);
   margin-top: 2px;
 }
 
 .indicator-card-desc {
   font-size: 10.5px;
-  color: #a1a1aa;
+  color: var(--text-tertiary);
   text-align: center;
   line-height: 1.2;
 }
@@ -1000,7 +1005,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 6px rgba(20, 22, 40, 0.14);
   z-index: 5;
 }
 
@@ -1015,8 +1020,8 @@
   width: 100%;
   height: 38px;
   padding: 0 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 8px;
   cursor: pointer;
   outline: none;
@@ -1025,8 +1030,8 @@
 }
 
 .hotkey-field:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .hotkey-field.is-recording {
@@ -1056,7 +1061,7 @@
 }
 
 .hotkey-plus-symbol {
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(29, 29, 31, 0.36);
   font-size: 11px;
   font-weight: 600;
   user-select: none;
@@ -1069,16 +1074,16 @@
   min-width: 22px;
   padding: 2px 7px;
   height: 22px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-bottom: 2px solid rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.512);
   border-radius: 5px;
-  color: #ffffff;
+  color: rgba(29, 29, 31, 0.9);
   font-family: var(--font-mono, monospace);
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 2px rgba(20, 22, 40, 0.08);
 }
 
 .hotkey-keycap.is-active {
@@ -1096,13 +1101,13 @@
 
 .hotkey-field-edit-badge {
   font-size: 10.5px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(29, 29, 31, 0.36);
   font-weight: 500;
   transition: color 0.15s ease;
 }
 
 .hotkey-field:hover .hotkey-field-edit-badge {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(29, 29, 31, 0.72);
 }
 
 .hotkey-inline-reset-btn {
@@ -1112,16 +1117,16 @@
   width: 22px;
   height: 22px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.55);
   border: 1px solid transparent;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(29, 29, 31, 0.58);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .hotkey-inline-reset-btn:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.62);
+  color: rgba(29, 29, 31, 0.9);
 }
 
 /* Recording Mode Elements */
@@ -1160,23 +1165,23 @@
   padding: 3px 6px;
   height: 22px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.55);
   border: 1px solid transparent;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(29, 29, 31, 0.72);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .hotkey-cancel-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.16);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.62);
+  color: rgba(29, 29, 31, 0.9);
 }
 
 .hotkey-esc-text {
   font-size: 9.5px;
   font-family: var(--font-mono, monospace);
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(29, 29, 31, 0.46);
   line-height: 1;
 }
 
@@ -1186,7 +1191,7 @@
   flex-direction: column;
   gap: 8px;
   padding: 14px 16px;
-  background: #141414;
+  background: var(--bg-card);
   border-radius: 14px;
   margin: 4px 4px 14px 4px;
   box-shadow: none;
@@ -1218,13 +1223,13 @@
   gap: 8px;
   font-size: 12px;
   font-weight: 550;
-  color: #ffffff;
+  color: rgba(29, 29, 31, 0.9);
   letter-spacing: -0.01em;
 }
 
 .settings-update-desc {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(29, 29, 31, 0.58);
   line-height: 1.35;
 }
 
@@ -1297,17 +1302,17 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px 14px;
-  background: var(--bg-card, #141414);
+  background: var(--bg-card, var(--bg-card));
   border-radius: var(--radius-card, 16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   box-sizing: border-box;
   animation: updateCardFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   transition: background 0.14s ease, border-color 0.14s ease;
 }
 
 .manual-update-card:hover {
-  background: var(--bg-card-hover, #1c1c1c);
-  border-color: rgba(255, 255, 255, 0.14);
+  background: var(--bg-card-hover, var(--bg-card-hover));
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .manual-update-info {
@@ -1322,7 +1327,7 @@
   gap: 6px;
   font-size: calc(13px * var(--font-scale, 1));
   font-weight: 600;
-  color: #ffffff;
+  color: rgba(29, 29, 31, 0.9);
   line-height: 1.3;
 }
 
@@ -1332,7 +1337,7 @@
 
 .manual-update-desc {
   font-size: calc(11.5px * var(--font-scale, 1));
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(29, 29, 31, 0.58);
   line-height: 1.35;
 }
 
@@ -1384,15 +1389,15 @@
 }
 
 .manual-update-pill.outline {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.55);
   border: 1px solid transparent;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(29, 29, 31, 0.9);
   font-weight: 500;
 }
 
 .manual-update-pill.outline:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.09);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(29, 29, 31, 0.9);
   transform: translateY(-1px);
 }
 
@@ -1450,7 +1455,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(29, 29, 31, 0.46);
   margin: 0;
   user-select: none;
 }
@@ -1466,7 +1471,7 @@
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(29, 29, 31, 0.46);
   cursor: pointer;
   outline: none;
   transition: color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
@@ -1474,8 +1479,8 @@
 }
 
 .update-info-btn:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
+  color: rgba(29, 29, 31, 0.9);
+  background: rgba(255, 255, 255, 0.55);
   transform: scale(1.08);
 }
 
@@ -1524,35 +1529,35 @@
 .update-action-btn.primary {
   background: #ffffff;
   color: #000000;
-  box-shadow: 0 0 14px rgba(255, 255, 255, 0.16), 0 2px 8px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.16), 0 2px 8px rgba(20, 22, 40, 0.1);
   animation: updateBtnGlow 3s ease-in-out infinite;
 }
 
 .update-action-btn.primary:hover:not(:disabled) {
   background: #ffffff;
-  box-shadow: 0 0 22px rgba(255, 255, 255, 0.35), 0 4px 12px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.35), 0 4px 12px rgba(20, 22, 40, 0.13);
   transform: translateY(-1px);
 }
 
 @keyframes updateBtnGlow {
   0%, 100% {
-    box-shadow: 0 0 12px rgba(255, 255, 255, 0.12), 0 2px 6px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.12), 0 2px 6px rgba(20, 22, 40, 0.1);
   }
   50% {
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.28), 0 2px 8px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.28), 0 2px 8px rgba(20, 22, 40, 0.11);
   }
 }
 
 .update-action-btn.secondary {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.55);
   border: 1px solid transparent;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(29, 29, 31, 0.9);
   font-weight: 500;
 }
 
 .update-action-btn.secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.11);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(29, 29, 31, 0.9);
   transform: translateY(-1px);
 }
 
@@ -1563,14 +1568,14 @@
 
 /* ── Promoted Active Update Card at Top/Front (Border-free) ── */
 .update-promoted-card {
-  background: var(--bg-card, #141414) !important;
+  background: var(--bg-card, var(--bg-card)) !important;
   border: none !important;
   box-shadow: none !important;
   transition: background 0.14s ease;
 }
 
 .update-promoted-card:hover {
-  background: var(--bg-card-hover, #1c1c1c) !important;
+  background: var(--bg-card-hover, var(--bg-card-hover)) !important;
 }
 
 .settings-shelf-card.update-promoted-card {
@@ -1594,8 +1599,8 @@
   padding: 0 10px;
   border-radius: 999px;
   border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(29, 29, 31, 0.58);
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
@@ -1609,15 +1614,15 @@
 }
 
 .settings-header-pill:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(29, 29, 31, 0.9);
 }
 
 .settings-header-pill.active {
   background: #ffffff;
   color: #000000;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(20, 22, 40, 0.11);
 }
 
 /* Horizontal Shelf Container */
@@ -1652,7 +1657,13 @@
   display: none;
 }
 
-/* Dedicated Tab View: Smooth horizontal scrolling track */
+/* Dedicated Tab View: Smooth horizontal scrolling track.
+   Deliberately NO `will-change: scroll-position` here: that promotes the
+   scroller to its own composited layer from the very first frame, and a
+   composited layer forces every glyph inside it onto grayscale antialiasing
+   (ClearType is only kept when the layer can prove an opaque backdrop). That
+   is the "whole Settings turns soft" regression — let Chromium decide when to
+   promote instead. */
 .settings-shelf-track.tab-view {
   overflow-x: auto;
   overflow-y: hidden;
@@ -1672,7 +1683,7 @@
   margin: 0 2px 0 0;
   padding: 0;
   background: transparent;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 1px solid rgba(255, 255, 255, 0.5);
   box-sizing: border-box;
   flex-shrink: 0;
   user-select: none;
@@ -1689,7 +1700,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.38);
+  color: rgba(29, 29, 31, 0.36);
   max-height: 130px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1700,7 +1711,7 @@
 .settings-shelf-card {
   flex: 0 0 auto;
   height: 146px;
-  background: var(--bg-card, #141414);
+  background: var(--bg-card, var(--bg-card));
   border: none;
   border-radius: var(--radius-card, 18px);
   padding: 12px 14px;
@@ -1725,18 +1736,17 @@
   pointer-events: none;
   z-index: 2;
   transition: opacity 0.14s ease;
-  background: 
-    radial-gradient(
+  background: radial-gradient(
       ellipse 70% 1px at 50% 0%,
-      rgba(255, 255, 255, 0.22) 0%,
-      rgba(255, 255, 255, 0.08) 45%,
+      rgba(255, 255, 255, 0.7) 0%,
+      rgba(255, 255, 255, 0.55) 45%,
       transparent 80%
     ) top / 100% 1px no-repeat,
     linear-gradient(
       90deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.035) 20%,
-      rgba(255, 255, 255, 0.035) 80%,
+      rgba(255, 255, 255, 0.55) 20%,
+      rgba(255, 255, 255, 0.55) 80%,
       transparent 100%
     ) bottom / 100% 1px no-repeat;
 }
@@ -1756,7 +1766,7 @@
 
 .settings-shelf-track.tab-view .settings-shelf-card:hover,
 .settings-shelf-card:hover {
-  background: var(--bg-card-hover, #1c1c1c);
+  background: var(--bg-card-hover, var(--bg-card-hover));
 }
 
 .settings-shelf-track.tab-view .hotkey-field {
@@ -1770,7 +1780,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.42);
+  color: rgba(29, 29, 31, 0.46);
   margin: 0 0 3px 0;
   flex-shrink: 0;
 }
@@ -1778,13 +1788,13 @@
 .settings-shelf-card .setting-title {
   font-size: 13px;
   font-weight: 600;
-  color: #ffffff;
+  color: rgba(29, 29, 31, 0.9);
   line-height: 1.28;
 }
 
 .settings-shelf-card .setting-desc {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(29, 29, 31, 0.58);
   line-height: 1.36;
   margin-top: 2px;
 }
@@ -1828,17 +1838,17 @@
 .settings-shelf-card .setting-pills .pill {
   height: 32px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.55);
   border: 1px solid transparent;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(29, 29, 31, 0.72);
   font-size: 11.5px;
   font-weight: 500;
   transition: all 0.14s ease;
 }
 
 .settings-shelf-card .setting-pills .pill:hover {
-  background: rgba(255, 255, 255, 0.09);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(29, 29, 31, 0.9);
 }
 
 .settings-shelf-card .setting-pills .pill.active {
@@ -1861,11 +1871,11 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.55);
   border: 1px solid transparent;
   border-radius: 10px;
   padding: 0 12px;
-  color: #ffffff;
+  color: rgba(29, 29, 31, 0.9);
   font-size: 11.5px;
   font-weight: 500;
   cursor: pointer;
@@ -1875,13 +1885,13 @@
 }
 
 .language-shelf-btn:hover {
-  background: rgba(255, 255, 255, 0.09);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(29, 29, 31, 0.9);
 }
 
 .language-shelf-btn.flyout-open {
-  background: rgba(255, 255, 255, 0.10);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(29, 29, 31, 0.9);
   box-shadow: 0 0 12px rgba(255, 255, 255, 0.06);
 }
 
@@ -1935,11 +1945,11 @@
 }
 
 .settings-shelf-card.placement-card {
-  width: 320px;
+  width: 300px;
 }
 
 .settings-shelf-card.display-card {
-  width: 280px;
+  width: 260px;
 }
 
 .settings-shelf-card.display-card .shelf-card-bottom {
@@ -1959,7 +1969,7 @@
 }
 
 .settings-shelf-card.display-card .shelf-card-bottom::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 999px;
 }
 
@@ -2027,14 +2037,14 @@
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(29, 29, 31, 0.46);
   text-transform: uppercase;
 }
 
 .shelf-card-title {
   font-size: calc(12.5px * var(--font-scale, 1));
   font-weight: 600;
-  color: #ffffff;
+  color: rgba(29, 29, 31, 0.9);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2064,7 +2074,7 @@
 .shelf-row-label {
   font-size: calc(11.5px * var(--font-scale, 1));
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(29, 29, 31, 0.9);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2074,7 +2084,7 @@
 /* Card Footer */
 .shelf-card-footer {
   font-size: calc(10.5px * var(--font-scale, 1));
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(29, 29, 31, 0.46);
   line-height: 1.3;
   flex-shrink: 0;
   white-space: nowrap;
@@ -2098,7 +2108,7 @@
   gap: 3px;
   padding: 5px 3px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.55);
   border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -2106,11 +2116,11 @@
 }
 
 .shelf-indicator-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .shelf-indicator-item.active {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.55);
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.1);
 }
 
@@ -2124,7 +2134,7 @@
 .shelf-indicator-name {
   font-size: 9.5px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(29, 29, 31, 0.9);
   white-space: nowrap;
 }
 
@@ -2143,7 +2153,7 @@
   color: #000000;
   background: #ffffff;
   border: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 1px 3px rgba(20, 22, 40, 0.07);
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
@@ -2170,8 +2180,8 @@
   border-radius: 999px;
   font-size: 11.5px;
   font-weight: 550;
-  color: rgba(255, 255, 255, 0.92);
-  background: #1c1c1c;
+  color: rgba(29, 29, 31, 0.9);
+  background: var(--bg-card-hover);
   border: 1px solid transparent;
   box-shadow: none;
   cursor: pointer;
@@ -2181,8 +2191,8 @@
 }
 
 .shelf-github-btn:hover {
-  background: #262626;
-  color: #ffffff;
+  background: var(--bg-card-hover-strong);
+  color: rgba(29, 29, 31, 0.9);
   transform: translateY(-1px);
 }
 
@@ -2193,7 +2203,7 @@
 .shelf-github-btn .github-octocat-icon,
 .shelf-github-btn .store-logo-icon {
   flex-shrink: 0;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(29, 29, 31, 0.9);
 }
 
 .shelf-github-btn .star-icon {
@@ -2211,8 +2221,8 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  color: rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.05);
+  color: rgba(29, 29, 31, 0.58);
+  background: rgba(255, 255, 255, 0.55);
   border: 1px solid transparent;
   cursor: pointer;
   outline: none;
@@ -2234,8 +2244,8 @@
 .shelf-update-progress-wrap {
   width: 100%;
   height: 32px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 10px;
   position: relative;
   overflow: hidden;
@@ -2250,7 +2260,7 @@
   left: 0;
   top: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.62);
   transition: width 0.2s ease;
 }
 
@@ -2259,7 +2269,7 @@
   z-index: 1;
   font-size: 11.5px;
   font-weight: 600;
-  color: #ffffff;
+  color: rgba(29, 29, 31, 0.9);
   letter-spacing: 0.01em;
 }
 
@@ -2296,7 +2306,7 @@
   height: 100%;
   border-radius: var(--sc-radius);
   background: var(--sc-track);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   box-sizing: border-box;
   cursor: grab;
   touch-action: none;
@@ -2310,7 +2320,7 @@
 }
 
 .slide-commit:hover .slide-commit__track {
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.5);
   box-shadow: 0 0 16px rgba(255, 255, 255, 0.12);
 }
 
@@ -2338,7 +2348,7 @@
 
 .slide-commit__text {
   grid-area: 1 / 1;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(29, 29, 31, 0.58);
   transition:
     opacity 200ms ease,
     filter 200ms ease;
@@ -2372,7 +2382,7 @@
   transition:
     background-color 200ms ease,
     color 200ms ease;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.24), 0 1px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.24), 0 1px 4px rgba(20, 22, 40, 0.08);
 }
 
 .slide-commit[data-phase='done'] .slide-commit__capsule {
@@ -2479,41 +2489,16 @@
   }
 }
 
-/* ── WakeSlider Segmented Wave Slider ── */
+/* ── WakeSlider in settings: compact metrics ──
+   The material, colours and geometry live in WakeSlider.css; settings only
+   tightens the control so it sits comfortably inside a setting card. */
 .wake-slider {
-  --ws-fill: #ffffff;
-  --ws-track: rgba(255, 255, 255, 0.12);
-  --ws-crest: #ffffff;
-  --ws-height: 28px;
-  --ws-gap: 3px;
-  --ws-rest: 0.28;
-
-  display: inline-flex;
-  align-items: center;
   gap: 10px;
-  width: 100%;
-  color: inherit;
   box-sizing: border-box;
 }
 
-.wake-slider[aria-disabled='true'] {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
 .wake-slider__track {
-  position: relative;
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  gap: var(--ws-gap);
-  height: var(--ws-height);
   min-height: 26px;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
   cursor: grab;
 }
 
@@ -2521,49 +2506,10 @@
   cursor: grabbing;
 }
 
-.wake-slider__bar {
-  position: relative;
-  flex: 1 1 0;
-  min-width: 0;
-  height: var(--ws-height);
-  border-radius: 9999px;
-  background: var(--ws-track);
-  transform: scaleY(var(--ws-rest));
-  transform-origin: 50% 50%;
-  transition: background-color 100ms ease;
-  will-change: transform;
-}
-
-.wake-slider__bar[data-on='true'] {
-  background: var(--ws-fill);
-}
-
-.wake-slider[data-instant='true'] .wake-slider__bar {
-  transition-duration: 0ms;
-}
-
-.wake-slider__crest {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--ws-crest);
-  opacity: 0;
-  pointer-events: none;
-}
-
 .wake-slider__handle {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
   border-radius: 8px;
-  background: transparent;
-  outline: none;
-  cursor: inherit;
-  touch-action: none;
-  -webkit-tap-highlight-color: transparent;
 }
+
 
 .wake-slider__value {
   min-width: 3ch;
@@ -2571,7 +2517,7 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(29, 29, 31, 0.9);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2580,4 +2526,451 @@
   }
 }
 
+/* ── Window size card ─────────────────────────────────────────────────── */
+.panel-size-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+}
 
+.panel-size-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 2px;
+  box-sizing: border-box;
+}
+
+.panel-size-label {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+}
+
+.panel-size-label-text {
+  font-size: calc(11.5px * var(--font-scale, 1));
+  font-weight: 600;
+  color: rgba(29, 29, 31, 0.72);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.panel-size-value {
+  font-size: calc(12px * var(--font-scale, 1));
+  font-weight: 600;
+  color: rgba(29, 29, 31, 0.9);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.panel-size-unit {
+  margin-left: 2px;
+  font-size: calc(10px * var(--font-scale, 1));
+  font-weight: 500;
+  color: rgba(60, 60, 67, 0.5);
+}
+
+.panel-size-stepper {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  max-width: 120px;
+  min-width: 0;
+}
+
+.panel-size-step {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(29, 29, 31, 0.78);
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7), 0 1px 2px rgba(20, 22, 40, 0.05);
+  transition: background 0.14s ease, color 0.14s ease, transform 0.12s ease;
+}
+.panel-size-step:hover:not(:disabled) {
+  background: #ffffff;
+  color: #1d1d1f;
+}
+.panel-size-step:active:not(:disabled) {
+  transform: scale(0.94);
+}
+.panel-size-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.panel-size-step:focus-visible {
+  outline: 2px solid rgba(10, 132, 255, 0.55);
+  outline-offset: 1px;
+}
+
+.panel-size-gauge {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  min-width: 26px;
+  border-radius: 999px;
+  background: rgba(120, 120, 128, 0.16);
+}
+
+.panel-size-gauge-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: #0a84ff;
+  transition: width 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.panel-size-gauge-knob {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  translate: 50% -50%;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(20, 22, 40, 0.22), 0 0 0 0.5px rgba(20, 22, 40, 0.08);
+  pointer-events: none;
+}
+
+.panel-size-presets {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding-top: 1px;
+}
+
+/* Presets read as one native segmented control, with Reset as a separate
+   circular affordance (the macOS "revert" idiom). */
+.panel-size-preset-track {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  padding: 2px;
+  border-radius: 9px;
+  background: rgba(120, 120, 128, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+  box-sizing: border-box;
+}
+
+.panel-size-preset {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 3px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(29, 29, 31, 0.62);
+  font-size: calc(10.5px * var(--font-scale, 1));
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+}
+.panel-size-preset:hover {
+  color: rgba(29, 29, 31, 0.9);
+}
+.panel-size-preset.active {
+  background: #ffffff;
+  color: #000000;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(20, 22, 40, 0.14), 0 0 0 0.5px rgba(20, 22, 40, 0.04);
+}
+
+.panel-size-reset {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: rgba(60, 60, 67, 0.52);
+  cursor: pointer;
+  transition: color 0.14s ease, background 0.14s ease;
+}
+.panel-size-reset:hover {
+  background: rgba(255, 255, 255, 0.62);
+  color: rgba(29, 29, 31, 0.9);
+}
+
+.panel-size-preset:focus-visible,
+.panel-size-reset:focus-visible {
+  outline: 2px solid rgba(10, 132, 255, 0.55);
+  outline-offset: 1px;
+}
+
+/* Horizontal shelf: the card lives in a fixed 146px row, so the size card
+   drops its description and uses a tighter control stack. */
+.settings-shelf-card.panel-size-card {
+  width: 260px;
+  min-width: 260px;
+  height: 146px;
+  padding: 10px 12px;
+  justify-content: flex-start;
+  gap: 3px;
+}
+.settings-shelf-card.panel-size-card .setting-desc {
+  display: none;
+}
+.settings-shelf-card.panel-size-card .setting-group-label {
+  margin-bottom: 2px;
+}
+.settings-shelf-card.panel-size-card .setting-title {
+  font-size: calc(12px * var(--font-scale, 1));
+  margin-bottom: 3px;
+}
+.settings-shelf-card.panel-size-card .shelf-card-bottom {
+  flex: 1;
+  min-height: 0;
+}
+.settings-shelf-card.panel-size-card .panel-size-controls {
+  gap: 4px;
+}
+.settings-shelf-card.panel-size-card .panel-size-row {
+  min-height: 27px;
+}
+.settings-shelf-card.panel-size-card .panel-size-presets {
+  padding-top: 0;
+}
+.settings-shelf-card.panel-size-card .panel-size-preset {
+  height: 22px;
+  font-size: 9.5px;
+}
+.settings-shelf-card.panel-size-card .panel-size-reset {
+  width: 22px;
+  height: 22px;
+  flex-basis: 22px;
+}
+.settings-shelf-card.panel-size-card .panel-size-stepper {
+  max-width: 128px;
+}
+
+/* Narrow blade: tighten the stepper so the row stays on one line. */
+.blade-compact .panel-size-stepper {
+  max-width: 118px;
+  gap: 6px;
+}
+.blade-narrow .panel-size-row {
+  gap: 6px;
+}
+.blade-narrow .panel-size-stepper {
+  max-width: 112px;
+  gap: 5px;
+}
+.blade-narrow .panel-size-step {
+  width: 24px;
+  height: 24px;
+  flex-basis: 24px;
+}
+.blade-narrow .panel-size-preset {
+  font-size: 9.5px;
+  padding: 0 2px;
+}
+.blade-narrow .panel-size-reset {
+  flex-basis: 22px;
+  width: 22px;
+  height: 22px;
+}
+
+
+
+/* Compact top settings: the cards live inside the dock height instead of a
+   fixed 146px row. */
+.blade-top-compact .settings-shelf-track.tab-view .settings-shelf-card {
+  height: 100%;
+  min-height: 0;
+}
+.blade-top-compact .settings-shelf-card .setting-group-label {
+  display: none;
+}
+.blade-top-compact .settings-shelf-track {
+  padding-top: 4px;
+  padding-bottom: 8px;
+}
+.blade-top-compact .panel-size-card {
+  padding: 8px 10px;
+}
+.blade-top-compact .panel-size-card .setting-group-label {
+  margin-bottom: 1px;
+}
+.blade-top-compact .panel-size-card .setting-title {
+  font-size: calc(11.5px * var(--font-scale, 1));
+  margin-bottom: 1px;
+}
+.blade-top-compact .panel-size-controls {
+  gap: 2px;
+}
+.blade-top-compact .panel-size-row {
+  min-height: 24px;
+}
+.blade-top-compact .panel-size-step {
+  width: 22px;
+  height: 22px;
+  flex-basis: 22px;
+}
+.blade-top-compact .panel-size-preset-track {
+  padding: 1px;
+}
+.blade-top-compact .panel-size-preset {
+  height: 20px;
+  font-size: 9.5px;
+}
+.blade-top-compact .panel-size-reset {
+  width: 20px;
+  height: 20px;
+  flex-basis: 20px;
+}
+/* Ultra-compact top (below 180px): the dock is a slim strip. */
+.blade-top-ultra .list.horizontal {
+  padding: 3px 14px;
+}
+.blade-top-ultra .settings-shelf-card .setting-desc {
+  display: none;
+}
+.blade-top-ultra .panel-size-presets {
+  display: none;
+}
+.blade-top-ultra .panel-size-card {
+  padding: 6px 10px;
+}
+.blade-top-ultra .panel-size-card .setting-title {
+  font-size: calc(11px * var(--font-scale, 1));
+}
+.blade-top-ultra .panel-size-controls {
+  gap: 1px;
+}
+.blade-top-ultra .panel-size-row {
+  min-height: 22px;
+}
+.blade-top-ultra .panel-size-step {
+  width: 20px;
+  height: 20px;
+  flex-basis: 20px;
+}
+
+/* Ultra-compact top (below 180px) settings: a 120px dock leaves ~76px for the
+   card after the 40px header. Keep titles and controls readable, drop the
+   explanatory copy, and shrink the controls rather than clipping the card. */
+.blade-top-ultra .settings-shelf-track.tab-view {
+  padding: 2px 14px;
+  gap: 10px;
+}
+/* The vertical section dividers become unreadable in a 76px row; the tab
+   header already tells the user which section they are in. */
+.blade-top-ultra .settings-shelf-track .shelf-section-divider {
+  display: none;
+}
+.blade-top-ultra .settings-shelf-track.tab-view .settings-shelf-card {
+  padding: 2px 10px;
+  gap: 2px;
+  justify-content: center;
+}
+.blade-top-ultra .settings-shelf-track.tab-view .settings-shelf-card .shelf-card-bottom {
+  margin-top: 0;
+}
+.blade-top-ultra .settings-shelf-card .setting-title {
+  font-size: calc(11px * var(--font-scale, 1));
+  line-height: 1.15;
+}
+.blade-top-ultra .settings-shelf-card .shelf-card-top {
+  gap: 0;
+}
+.blade-top-ultra .settings-shelf-card .shelf-card-bottom {
+  gap: 2px;
+}
+.blade-top-ultra .settings-shelf-card .setting-pills .pill,
+.blade-top-ultra .settings-shelf-card .language-shelf-btn,
+.blade-top-ultra .settings-shelf-card .shelf-kofi-btn,
+.blade-top-ultra .settings-shelf-card .shelf-github-btn {
+  height: 20px;
+  font-size: calc(10.5px * var(--font-scale, 1));
+}
+.blade-top-ultra .settings-shelf-card .language-shelf-btn {
+  padding: 0 8px;
+}
+.blade-top-ultra .settings-shelf-card .hotkey-field {
+  height: 24px;
+  padding: 0 7px;
+}
+.blade-top-ultra .settings-shelf-card .hotkey-keycap {
+  height: 18px;
+  min-width: 18px;
+  padding: 1px 5px;
+  font-size: 10px;
+}
+.blade-top-ultra .settings-shelf-card .setting-toggle {
+  width: 32px;
+  height: 18px;
+}
+.blade-top-ultra .settings-shelf-card .toggle-thumb {
+  width: 12px;
+  height: 12px;
+  top: 3px;
+}
+.blade-top-ultra .settings-shelf-card .setting-slider-ticks,
+.blade-top-ultra .settings-shelf-card .setting-slider-labels {
+  display: none;
+}
+.blade-top-ultra .settings-shelf-card .setting-range-input {
+  height: 4px;
+  margin: 2px 0 0;
+}
+/* Display pickers carry their own inline 32px height, so override it
+   explicitly for the 76px card. */
+.blade-top-ultra .settings-shelf-card .display-pill {
+  height: 22px !important;
+  padding: 2px 8px !important;
+  font-size: calc(10px * var(--font-scale, 1));
+}
+.blade-top-ultra .settings-shelf-card .display-pill .pill-name {
+  font-size: calc(10px * var(--font-scale, 1));
+}
+.blade-top-ultra .settings-shelf-card.about-card .shelf-card-bottom {
+  gap: 1px;
+}
+.blade-top-ultra .settings-shelf-card.about-card .shelf-card-bottom > .pill {
+  height: 22px !important;
+  font-size: calc(10px * var(--font-scale, 1));
+}
+.blade-top-ultra .settings-shelf-card.about-card .version-changelog-link,
+.blade-top-ultra .settings-shelf-card.about-card .shelf-quit-btn {
+  height: 18px;
+  padding: 0 6px;
+  font-size: calc(9.5px * var(--font-scale, 1));
+}
+/* The wake slider's 28px bars are unnecessarily tall in a 76px card. */
+.blade-top-ultra .settings-shelf-card .wake-slider {
+  --ws-height: 22px !important;
+  gap: 4px;
+}
+.blade-top-ultra .settings-shelf-card .display-card .shelf-card-bottom {
+  max-height: none;
+}
+.blade-top-ultra .settings-shelf-card .panel-size-step {
+  width: 20px;
+  height: 20px;
+  flex-basis: 20px;
+}
+.blade-top-ultra .settings-shelf-card .panel-size-row {
+  min-height: 21px;
+}

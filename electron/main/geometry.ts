@@ -1,5 +1,15 @@
 export type StickPosition = 'left' | 'right' | 'top'
 
+import {
+  TOP_HEIGHT_DEFAULT,
+  TOP_HEIGHT_MAX,
+  TOP_HEIGHT_MIN,
+  TOP_SETTINGS_MIN,
+  TOP_WIDTH_MAX,
+  TOP_WIDTH_MIN,
+  clampNumber
+} from '../../shared/panelSize'
+
 export interface DisplayInfo {
   id: number
   workArea: { x: number; y: number; width: number; height: number }
@@ -20,7 +30,10 @@ export interface StickBoundsParams {
   /** Persisted scale factor — secondary discriminator for identical-geometry monitors. */
   savedScaleFactor?: number
   windowWidth: number
-  windowHeight?: number
+  /** Explicit top-dock blade width (px). 0/undefined = full-width dock. */
+  topPanelWidth?: number
+  /** Explicit top-dock blade height (px). 0/undefined = the 210px default. */
+  topPanelHeight?: number
   horizontalOffset?: number
   currentBounds?: { x: number; y: number }
   previewActive?: boolean
@@ -60,7 +73,7 @@ function boundsMatch(
 }
 
 export function computeStickBounds(params: StickBoundsParams): StickBoundsResult {
-  const { position, displays, displayId, savedWorkArea, savedScaleFactor, windowWidth, currentBounds } = params
+  const { position, displays, displayId, savedWorkArea, savedScaleFactor, windowWidth, currentBounds, previewActive } = params
 
   let display: DisplayInfo | undefined
 
@@ -126,9 +139,27 @@ export function computeStickBounds(params: StickBoundsParams): StickBoundsResult
       height = wa.height
       break
     case 'top': {
-      const dockWidth = Math.min(wa.width - 60, 1080)
-      const previewHeight = Math.min(wa.height - 20, 720)
-      const dockHeight = params.previewActive ? previewHeight : (params.windowHeight ?? 480)
+      // The blade is the horizontal dock; the native window adds a 30px flare
+      // gutter on each side. `topPanelWidth`/`topPanelHeight` are explicit
+      // user sizes, while 0 keeps the original full-width 210px dock.
+      const availableDockWidth = Math.max(200, wa.width - 60)
+      const minDockWidth = Math.min(TOP_WIDTH_MIN, availableDockWidth)
+      const maxDockWidth = Math.min(TOP_WIDTH_MAX, availableDockWidth)
+      const requestedWidth = params.topPanelWidth && params.topPanelWidth > 0
+        ? params.topPanelWidth
+        : maxDockWidth
+      const dockWidth = Math.round(clampNumber(requestedWidth, minDockWidth, maxDockWidth))
+      const bladeHeight = Math.round(clampNumber(
+        params.topPanelHeight && params.topPanelHeight > 0 ? params.topPanelHeight : TOP_HEIGHT_DEFAULT,
+        TOP_HEIGHT_MIN,
+        TOP_HEIGHT_MAX
+      ))
+      // The blade is the requested dock height; the native window keeps a
+      // little extra room below for flyouts/onboarding. Normal mode keeps the
+      // historical 480px window for a 210px dock; preview mode keeps the
+      // historical 720px window.
+      const windowBladeHeight = Math.max(bladeHeight, TOP_SETTINGS_MIN)
+      const dockHeight = Math.min(wa.height, windowBladeHeight + (previewActive ? 510 : 270))
       const hOffset = Math.min(1, Math.max(0, params.horizontalOffset ?? 0.5))
       const pad = wa.width >= dockWidth + 60 ? 30 : 0
       const minX = wa.x + pad

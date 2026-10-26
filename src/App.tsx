@@ -23,20 +23,26 @@ export default function App() {
   const settings = useStore((s) => s.settings)
   const hydrated = useStore((s) => s.hydrated)
   const panelOpen = useStore((s) => s.open)
+  // Cold-start prefetch used to load the emoji catalog, an AudioContext,
+  // framer-motion's solver and a dozen decoded thumbnails while the panel was
+  // closed. That made first use smoother, but it kept roughly 10–20 MB of
+  // renderer/compositor memory resident for a feature most sessions never
+  // touch. Keep the code for easy re-enabling, but default it off: the same
+  // work now happens lazily on first use.
+  const ENABLE_IDLE_WARMUP = false
   const warmupDone = useRef(false)
   const audioWarmed = useRef(false)
 
   // Drive the edge open/close behavior.
   useEdgeHover()
 
-  // Cold-start warmup (no visual / feature change).
-  // The first shelf open and first emoji open jank because one-time init
-  // (font raster, emoji JSON parse, AudioContext creation, thumbnail decode,
-  // framer-motion JIT) lands inside the open animation. Warm each once, idle,
-  // after hydration so later opens reuse warm caches. Steady-state RAM/CPU
-  // are unchanged: every artifact warmed here is created on first use anyway.
+  // Cold-start warmup (currently disabled by ENABLE_IDLE_WARMUP for the
+  // low-memory default). The first shelf/emoji open otherwise pays one-time
+  // init (font raster, emoji JSON parse, AudioContext creation, thumbnail
+  // decode, framer-motion JIT) inside the open animation. When enabled, warm
+  // each once, idle, after hydration so later opens reuse warm caches.
   useEffect(() => {
-    if (!hydrated || warmupDone.current) return
+    if (!ENABLE_IDLE_WARMUP || !hydrated || warmupDone.current) return
     warmupDone.current = true
     let cancelled = false
     let idleHandle: any = null
@@ -165,7 +171,7 @@ export default function App() {
   // idle callback so it never lands inside the blade spring. First-click
   // sounds otherwise pay full AudioContext construction on the click frame.
   useEffect(() => {
-    if (!panelOpen || audioWarmed.current) return
+    if (!ENABLE_IDLE_WARMUP || !panelOpen || audioWarmed.current) return
     audioWarmed.current = true
     let idleHandle: any = null
     let timeoutHandle: any = null

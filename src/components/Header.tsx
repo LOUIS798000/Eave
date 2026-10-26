@@ -1,5 +1,5 @@
 import { useStore } from '../store/appStore'
-import { SegmentedControl } from './SegmentedControl'
+import { SegmentedControl, type SegmentedItem } from './SegmentedControl'
 import { GearIcon, CloseIcon, InfoIcon, ClockIcon, TypeIcon, LinkIcon, ImageIcon, FilesIcon, PaletteIcon, EmojiSmileIcon } from './icons'
 import { playButtonClickSound } from '../lib/soundEffects'
 import { loadEmojiCatalog } from '../lib/emoji/load'
@@ -67,6 +67,22 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
   const reduceMotion = !!settings.reduceMotion
   const headerFade = `opacity ${reduceMotion ? '0.01s' : '0.16s'} ease`
 
+  // The emoji picker is a view, not a type filter, but it lives in the same
+  // segmented control so the two read as one rounded selection box.
+  type HeaderSegment = TypeFilter | 'emoji'
+  const segments: SegmentedItem<HeaderSegment>[] = [
+    ...FILTERS.map((f) => ({
+      value: f.id as HeaderSegment,
+      label: f.label,
+      icon: <f.Icon width={14} height={14} />
+    })),
+    {
+      value: 'emoji',
+      label: t('emoji.open'),
+      icon: <EmojiSmileIcon width={14} height={14} />
+    }
+  ]
+
   return (
     <div
       className={`header${isHorizontal ? ' header-horizontal' : ''}`}
@@ -76,7 +92,7 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
         width: '100%',
         alignItems: 'center',
         height: isHorizontal ? 40 : 48,
-        padding: isHorizontal ? '0 16px' : '12px 14px 4px 14px',
+        padding: isHorizontal ? '0 16px' : '12px var(--pad, 14px) 4px var(--pad, 14px)',
         boxSizing: 'border-box',
         position: 'relative',
         zIndex: isHorizontal ? 250 : 100
@@ -109,39 +125,34 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
             transition: headerFade
           }}
         >
-          {/* Type filters. With the emoji picker open no filter is shown as
-              selected; picking one closes the picker (setTypeFilter). */}
+          {/* Type filters + the emoji view toggle, all in one rounded box.
+              With the emoji picker open no filter is highlighted; picking a
+              filter closes the picker (setTypeFilter), and re-clicking the
+              emoji slot toggles it off. */}
           <SegmentedControl
-            items={FILTERS.map((f) => ({
-              value: f.id,
-              label: f.label,
-              icon: <f.Icon width={14} height={14} />
-            }))}
-            value={emojiOpen ? null : typeFilter}
+            items={segments}
+            value={emojiOpen ? 'emoji' : typeFilter}
             onChange={(val) => {
               playButtonClickSound()
+              if (val === 'emoji') {
+                setEmojiOpen(true)
+                return
+              }
               setTypeFilter(val)
+            }}
+            onReselect={(val) => {
+              if (val === 'emoji') {
+                playButtonClickSound()
+                setEmojiOpen(false)
+              }
+            }}
+            onHoverItem={(val) => {
+              if (val === 'emoji') void loadEmojiCatalog()
             }}
             ariaLabel={t('filters.title') || 'Filters'}
             reduceMotion={reduceMotion}
             tabIndex={settingsOpen ? -1 : undefined}
           />
-          {/* Emoji is a separate view, not a filter, so it gets its own toggle. */}
-          <button
-            type="button"
-            className={`emoji-mode-btn${emojiOpen ? ' active' : ''}`}
-            aria-pressed={emojiOpen}
-            aria-label={t('emoji.open')}
-            title={t('emoji.open')}
-            tabIndex={settingsOpen ? -1 : undefined}
-            onPointerEnter={() => void loadEmojiCatalog()}
-            onClick={() => {
-              playButtonClickSound()
-              setEmojiOpen(!emojiOpen)
-            }}
-          >
-            <EmojiSmileIcon width={14} height={14} />
-          </button>
         </div>
         {isHorizontal ? (
           <div
@@ -160,7 +171,7 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#ffffff',
+                color: '#1d1d1f',
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase',
                 marginRight: 2
@@ -198,7 +209,7 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
               gridArea: '1 / 1 / 2 / 2',
               fontSize: 13,
               fontWeight: 600,
-              color: '#8e8e93',
+              color: 'rgba(60, 60, 67, 0.6)',
               letterSpacing: '0.01em',
               paddingLeft: 0,
               whiteSpace: 'nowrap',
@@ -247,7 +258,7 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
               handleOpenChangelog()
             }}
             style={{
-              color: 'rgba(255, 255, 255, 0.75)',
+              color: 'rgba(60, 60, 67, 0.72)',
               background: 'transparent',
               border: 'none',
               boxShadow: 'none',
@@ -272,9 +283,9 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
                   width: 6,
                   height: 6,
                   borderRadius: '50%',
-                  backgroundColor: '#ffffff',
-                  boxShadow: '0 0 6px rgba(255, 255, 255, 0.6)',
-                  border: '1.5px solid #000000',
+                  backgroundColor: '#0a84ff',
+                  boxShadow: '0 0 6px rgba(10, 132, 255, 0.5)',
+                  border: '1.5px solid rgba(255, 255, 255, 0.9)',
                   pointerEvents: 'none'
                 }}
               />
@@ -305,7 +316,7 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
             }
           }}
           style={{
-            color: '#ffffff',
+            color: '#1d1d1f',
             background: 'transparent',
             border: 'none',
             boxShadow: 'none',
@@ -356,8 +367,8 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
                 height: 6,
                 borderRadius: '50%',
                 backgroundColor: '#30d158',
-                border: '1.5px solid #000000',
-                boxShadow: '0 0 8px rgba(48, 209, 88, 0.7)',
+                border: '1.5px solid rgba(255, 255, 255, 0.9)',
+                boxShadow: '0 0 8px rgba(48, 209, 88, 0.45)',
                 pointerEvents: 'none'
               }}
             />

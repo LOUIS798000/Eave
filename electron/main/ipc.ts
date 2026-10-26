@@ -707,7 +707,16 @@ export function registerIpc(): void {
     if (patch.incognito !== undefined) {
       getWatcher().setPaused(patch.incognito)
     }
-    if (patch.stickPosition !== undefined || patch.stickDisplayId !== undefined || patch.verticalOffset !== undefined || patch.horizontalOffset !== undefined) {
+    if (
+      patch.stickPosition !== undefined ||
+      patch.stickDisplayId !== undefined ||
+      patch.verticalOffset !== undefined ||
+      patch.horizontalOffset !== undefined ||
+      patch.panelWidth !== undefined ||
+      patch.panelHeightPx !== undefined ||
+      patch.topPanelWidth !== undefined ||
+      patch.topPanelHeightPx !== undefined
+    ) {
       repositionWindow()
       if (patch.stickPosition !== undefined || patch.stickDisplayId !== undefined) {
         popUpAndRetract(1500)

@@ -24,6 +24,7 @@
   "build": {
     "appId": "com.edgedrop.app",
     "productName": "Edge-Drop",
+    "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "dist",
       "buildResources": "resources"

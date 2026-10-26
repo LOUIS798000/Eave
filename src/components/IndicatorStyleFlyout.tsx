@@ -20,6 +20,7 @@ import { playButtonClickSound } from '../lib/soundEffects'
 import { createPortal } from 'react-dom'
 import { useAdaptiveSpring } from '../hooks/useAdaptiveSpring'
 import { useTranslation } from '../i18n'
+import { resolvePanelHeight, resolveTopPanelHeight } from '../../shared/panelSize'
 
 /** Fast start, soft landing — matching PreviewFlyout */
 const flyoutEaseOpen = [0.16, 1, 0.3, 1] as const
@@ -81,8 +82,9 @@ export function IndicatorStyleFlyout({ isRight }: { isRight: boolean }) {
 
   const screenW = typeof window !== 'undefined' ? window.innerWidth : 1200
   const screenH = typeof window !== 'undefined' ? window.innerHeight : 800
-  const pFrac = settings.panelHeight || 0.6
-  const panelH = screenH * pFrac
+  const panelH = isHorizontal
+    ? resolveTopPanelHeight(settings)
+    : resolvePanelHeight(settings, screenH)
   const minY = panelH / 2
   const maxY = screenH - panelH / 2
   const vOffset = settings.verticalOffset ?? 0.5
@@ -101,7 +103,9 @@ export function IndicatorStyleFlyout({ isRight }: { isRight: boolean }) {
   const maxLeft = Math.max(minLeft, dockWidth - flyoutWidth - 12)
   const flyoutLeft = Math.max(minLeft, Math.min(maxLeft, Math.round(anchorCenterX - flyoutWidth / 2)))
 
-  const maxFlyoutHeight = isHorizontal ? 260 : Math.max(100, panelH - 24)
+  const maxFlyoutHeight = isHorizontal
+    ? Math.min(260, Math.max(100, screenH - panelH - 24))
+    : Math.max(100, panelH - 24)
 
   const originX = isHorizontal
     ? Math.max(0.08, Math.min(0.92, (anchorCenterX - flyoutLeft) / flyoutWidth))
@@ -119,8 +123,8 @@ export function IndicatorStyleFlyout({ isRight }: { isRight: boolean }) {
       const h = flyoutRef.current.offsetHeight
       if (isHorizontal) {
         useStore.getState().setPreviewFlyoutRect({
-          top: 210,
-          bottom: 222 + h,
+          top: panelH,
+          bottom: panelH + 12 + h,
           left: flyoutLeft,
           right: flyoutLeft + flyoutWidth
         })
@@ -189,7 +193,7 @@ export function IndicatorStyleFlyout({ isRight }: { isRight: boolean }) {
                   position: 'absolute',
                   left: dockLeft + flyoutLeft,
                   width: flyoutWidth,
-                  top: 222,
+                  top: panelH + 12,
                   display: 'flex',
                   flexDirection: 'column',
                   pointerEvents: 'none',
@@ -225,13 +229,13 @@ export function IndicatorStyleFlyout({ isRight }: { isRight: boolean }) {
             style={{
               width: '100%',
               maxHeight: maxFlyoutHeight,
-              background: '#141414',
+              background: 'rgba(255, 255, 255, 0.97)',
               borderRadius: 20,
-              border: 'none',
+              border: '1px solid rgba(255, 255, 255, 0.85)',
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: 'none',
+              boxShadow: '0 0 0 1px rgba(20, 22, 40, 0.05), 0 18px 44px rgba(20, 22, 40, 0.14), inset 0 1px 0 rgba(255, 255, 255, 1)',
               pointerEvents: 'auto',
               position: 'relative',
               padding: 12
@@ -239,7 +243,7 @@ export function IndicatorStyleFlyout({ isRight }: { isRight: boolean }) {
           >
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#ffffff', letterSpacing: '-0.01em' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#1d1d1f', letterSpacing: '-0.01em' }}>
                 {t('flyout.copyBeaconStyleTitle')}
               </div>
               <button
@@ -249,9 +253,9 @@ export function IndicatorStyleFlyout({ isRight }: { isRight: boolean }) {
                   width: 24,
                   height: 24,
                   borderRadius: 6,
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'rgba(120, 120, 128, 0.12)',
                   border: 'none',
-                  color: 'rgba(255,255,255,0.7)',
+                  color: 'rgba(60, 60, 67, 0.72)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -351,7 +355,7 @@ function StyleCard({
         justifyContent: 'center',
         gap: 6,
         padding: '10px 8px 8px',
-        background: active ? '#262626' : '#141414',
+        background: active ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.45)',
         border: '2px solid transparent',
         borderRadius: 14,
         position: 'relative',
@@ -360,7 +364,7 @@ function StyleCard({
         userSelect: 'none',
         overflow: 'hidden',
         outline: 'none',
-        boxShadow: active ? '0 4px 16px rgba(0, 0, 0, 0.5), 0 0 14px rgba(255, 255, 255, 0.12)' : 'none',
+        boxShadow: active ? '0 8px 22px rgba(20, 22, 40, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.9)' : 'none',
         boxSizing: 'border-box',
         ...style
       }}
@@ -391,7 +395,7 @@ function StyleCard({
         style={{
           fontSize: 11.5,
           fontWeight: active ? 600 : 500,
-          color: active ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
+          color: active ? '#1d1d1f' : 'rgba(60, 60, 67, 0.7)',
           textAlign: 'center',
           letterSpacing: '-0.01em'
         }}

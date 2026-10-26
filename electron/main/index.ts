@@ -33,17 +33,32 @@ import { getThumbnailPayloadScheduled, thumbnailCacheControl } from './thumbnail
 // savings are worth for such a simple UI. Software compositing keeps the process
 // count and RAM footprint minimal without meaningfully affecting visual quality.
 // Electron requires this call before the ready event.
-app.disableHardwareAcceleration()
+//
+// EDGE_DROP_GPU=1 keeps the GPU compositor instead. It is a diagnostic escape
+// hatch for displays where software compositing makes text look soft after the
+// settings shelf is scrolled (the symptom disappears again at scroll offset 0).
+if (process.env.EDGE_DROP_GPU !== '1') app.disableHardwareAcceleration()
 
 // Restrict the renderer to a single webContents and forbid remote module usage.
 app.enableSandbox()
 
-// Keep V8's old-space heap bounded without starving a renderer that is loading
-// an existing clipboard history. This deliberately does not restore
-// --optimize-for-size: that flag made collections more aggressive and caused
-// visible animation hitches. Chromium image/compositor memory is handled by
-// the thumbnail path below rather than by this JavaScript heap limit.
-app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512 --expose-gc')
+// Keep V8's heap bounded without starving a renderer that is loading an
+// existing clipboard history. The semi-space cap matters more than the
+// old-space cap at idle: Chromium otherwise reserves a large young
+// generation per isolate even though this UI allocates very little.
+// This deliberately does not restore --optimize-for-size: that flag made
+// collections more aggressive and caused visible animation hitches.
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=256 --max-semi-space-size=4 --expose-gc')
+
+// Audio is used for the short copy/paste cues. Running the audio service
+// inside the browser process removes a whole Chromium utility process
+// (~10 MB private working set) without changing playback. Keep Electron's
+// own default feature disables in the same list so appending this switch
+// does not accidentally re-enable them.
+app.commandLine.appendSwitch(
+  'disable-features',
+  'AudioServiceOutOfProcess,SpareRendererForSitePerProcess,WinDelaySpellcheckServiceInit,WinRetrieveSuggestionsOnlyOnDemand'
+)
 
 // ---- single instance -------------------------------------------------------
 const gotLock = app.requestSingleInstanceLock()

@@ -15,7 +15,7 @@ import { useStore } from '../store/appStore'
 import { OCTO_PATH } from './LiquidOctopusLoader'
 import { COPY_TAB_BEHIND_EDGE, COPY_TAB_DEPTH, copyTabPath, edgeBarCenter } from '../lib/copyIndicatorShape'
 
-const ICON_FILTER = 'drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35))'
+const ICON_FILTER = 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28))'
 
 export function LogoIndicatorIcon({
   fillColor = '#ffffff',
@@ -243,7 +243,7 @@ export function CopyIndicatorCurve() {
             transformOrigin: `${COPY_TAB_BEHIND_EDGE}px ${shape.halfLength}px`
           }}
         >
-          <path d={shape.d} fill="#000000" />
+          <path d={shape.d} fill="#0A84FF" />
         </svg>
       </div>
       <div className="copy-ind__icon">

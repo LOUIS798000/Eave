@@ -122,6 +122,11 @@ export interface TranslationKeys {
     edgeTriggerThicknessDesc: string
     panelHeightTitle: string
     panelHeightDesc: string
+    panelSizeTitle?: string
+    panelSizeDesc?: string
+    widthLabel?: string
+    heightLabel?: string
+    sizeReset?: string
   }
   appearance: {
     copyIndicatorTitle: string
@@ -351,6 +356,7 @@ export interface TranslationKeys {
     alignment?: string
     triggerPosition?: string
     panelHeight?: string
+    windowSize?: string
     textSize?: string
     languageSelectDesc?: string
     toggleHotkeyPressDesc?: string
@@ -670,7 +676,12 @@ export const en: TranslationKeys = {
     "edgeTriggerThicknessTitle": "Edge trigger thickness",
     "edgeTriggerThicknessDesc": "Physical thickness of the invisible trigger strip",
     "panelHeightTitle": "Panel height",
-    "panelHeightDesc": "Vertical size of the clipboard shelf"
+    "panelHeightDesc": "Vertical size of the clipboard shelf",
+    "panelSizeTitle": "Shelf size",
+    "panelSizeDesc": "Width and height for this dock, in pixels",
+    "widthLabel": "Width",
+    "heightLabel": "Height",
+    "sizeReset": "Reset"
   },
   "appearance": {
     "copyIndicatorTitle": "Copy Indicator",
@@ -915,6 +926,7 @@ export const en: TranslationKeys = {
     "alignment": "ALIGNMENT",
     "triggerPosition": "TRIGGER POSITION",
     "panelHeight": "PANEL HEIGHT",
+    "windowSize": "WINDOW SIZE",
     "textSize": "TEXT SIZE",
     "languageSelectDesc": "Select application display language",
     "toggleHotkeyPressDesc": "Press anywhere to toggle Edge-Drop",
@@ -4037,7 +4049,12 @@ export const zhCN: TranslationKeys = {
     "edgeTriggerThicknessTitle": "边缘触发厚度",
     "edgeTriggerThicknessDesc": "不可见触发条的物理厚度",
     "panelHeightTitle": "面板高度",
-    "panelHeightDesc": "剪贴板搁架的垂直尺寸"
+    "panelHeightDesc": "剪贴板搁架的垂直尺寸",
+    "panelSizeTitle": "搁架尺寸",
+    "panelSizeDesc": "以像素自定义当前停靠位置的宽度和高度",
+    "widthLabel": "宽度",
+    "heightLabel": "高度",
+    "sizeReset": "重置"
   },
   "appearance": {
     "closeStyleSelector": "关闭指示器样式选择器",
@@ -4281,6 +4298,7 @@ export const zhCN: TranslationKeys = {
     "alignment": "对齐",
     "triggerPosition": "触发条位置",
     "panelHeight": "面板高度",
+    "windowSize": "窗口尺寸",
     "textSize": "文字大小",
     "languageSelectDesc": "选择应用显示语言",
     "toggleHotkeyPressDesc": "在任意位置按下以切换 Edge-Drop",
@@ -4655,6 +4673,7 @@ export const zhTW: TranslationKeys = {
     "alignment": "對齊",
     "triggerPosition": "觸發條位置",
     "panelHeight": "面板高度",
+    "windowSize": "窗口尺寸",
     "textSize": "文字大小",
     "languageSelectDesc": "選擇應用程式顯示語言",
     "toggleHotkeyPressDesc": "在任何位置按下以切換 Edge-Drop",

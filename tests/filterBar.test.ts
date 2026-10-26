@@ -36,7 +36,7 @@ describe('filter bar (SegmentedControl)', () => {
 
   it('is borderless and uses the search field surface', () => {
     const track = css.match(/\.seg \{([^}]*)\}/)?.[1] ?? ''
-    expect(track).toContain('background: var(--bg-card, #141414);')
+    expect(track).toContain('background: var(--seg-track);')
     expect(track).not.toMatch(/\bborder:/)
   })
 
@@ -52,12 +52,26 @@ describe('filter bar (SegmentedControl)', () => {
     expect(read('src/components/Header.tsx')).toContain('reduceMotion={reduceMotion}')
   })
 
-  it('header: filters exclude emoji, which is its own toggle; no thumb while the picker is open', () => {
+  it('header: emoji sits inside the same segmented control as the filters', () => {
     const header = read('src/components/Header.tsx')
+    // It must not be a filter (no type-filter id), but it is a segment.
     expect(header).not.toContain("id: 'emoji'")
-    expect(header).toContain('value={emojiOpen ? null : typeFilter}')
-    expect(header).toContain('className={`emoji-mode-btn${emojiOpen ? \' active\' : \'\'}`}')
-    expect(header).toContain('setEmojiOpen(!emojiOpen)')
+    expect(header).toContain("value: 'emoji'")
+    expect(header).toContain("value={emojiOpen ? 'emoji' : typeFilter}")
+    // Re-clicking the selected emoji slot closes the picker.
+    expect(header).toContain('onReselect')
+    expect(header).toContain("if (val === 'emoji')")
+    expect(header).toContain('setEmojiOpen(false)')
+    // The old standalone pill beside the box is gone.
+    expect(header).not.toContain('emoji-mode-btn')
+    expect(css).not.toContain('.emoji-mode-btn')
+  })
+
+  it('a selected slot can be re-activated without firing arrow navigation', () => {
+    expect(tsx).toContain('onReselect?: (value: T) => void')
+    expect(tsx).toContain('onReselect?.(item.value)')
+    expect(tsx).toContain('const moveTo = (i: number) => {')
+    expect(tsx).toContain('moveTo(next)')
   })
 
   it('Header renders EmojiCategoryBar centered in place of search in horizontal dock when emojiOpen', () => {

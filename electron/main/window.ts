@@ -19,6 +19,15 @@ import { APP_CONFIG } from './config'
 import { runtime } from './config'
 import { trimWorkingSets } from './memory'
 import { captureBackdrop } from './backdrop'
+import {
+  destroyAcrylicLayer,
+  ensureAcrylicLayer,
+  hideAcrylicLayer,
+  isAcrylicLayerLive,
+  refreshAcrylicPosition,
+  setAcrylicTint,
+  showAcrylicLayer
+} from './acrylic'
 import { PATHS } from '../store/paths'
 import { TRANSLATIONS, en } from '../../src/i18n/translations'
 import { computeStickBounds } from './geometry'
@@ -404,7 +413,8 @@ function refreshBackdrop(): void {
   // The blade is on screen while interactive; capturing now would grab it.
   if (interactive) return
   const settings = loadSettings()
-  if ((settings.frostIntensity ?? 1) <= 0) {
+  if ((settings.frostIntensity ?? 1) <= 0 || (settings.frostLive ?? false)) {
+    // Flat white, or the live acrylic layer is doing the work: no snapshot.
     backdropCache = null
     return
   }
@@ -433,6 +443,38 @@ export function refreshBackdropNow(): void {
   refreshBackdrop()
 }
 
+/* ── Live acrylic frost ─────────────────────────────────────────────────
+ * An opt-in layer of real system acrylic sitting directly behind the blade
+ * (see acrylic.ts). Unlike the snapshot above it follows the desktop while the
+ * panel is open; the cost is a second (empty) window and grayscale text, so it
+ * only runs when `frostLive` is on.
+ */
+let frostShowTimer: ReturnType<typeof setTimeout> | null = null
+
+function cancelFrostShow(): void {
+  if (frostShowTimer !== null) {
+    clearTimeout(frostShowTimer)
+    frostShowTimer = null
+  }
+}
+
+/** Turn the live layer on/off to match the current settings. */
+export function applyFrostMode(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  const settings = loadSettings()
+  const live = (settings.frostLive ?? false) && (settings.frostIntensity ?? 1) > 0
+  if (!live) {
+    cancelFrostShow()
+    destroyAcrylicLayer()
+    return
+  }
+  setAcrylicTint(settings.frostIntensity ?? 1)
+  void ensureAcrylicLayer(mainWindow).then((win) => {
+    if (!win) return
+    if (interactive) showAcrylicLayer(mainWindow)
+  })
+}
+
 function pushBackdrop(): void {
   if (!mainWindow || mainWindow.isDestroyed()) return
   const b = mainWindow.getBounds()
@@ -456,6 +498,17 @@ export function setInteractive(value: boolean): void {
     // fully retracted. Capturing here instead would photograph our own blade.
     pushBackdrop()
 
+    // Live glass: show the acrylic layer once the open spring has finished, so
+    // the frosted rectangle never appears before the blade has grown into it.
+    cancelFrostShow()
+    if ((loadSettings().frostLive ?? false) && isAcrylicLayerLive()) {
+      frostShowTimer = setTimeout(() => {
+        frostShowTimer = null
+        if (interactive) showAcrylicLayer(mainWindow)
+      }, 300)
+      frostShowTimer.unref?.()
+    }
+
     // Panel is open: disable click-through so user can interact.
     // Remember who is in front BEFORE any search typing can steal focus.
     captureExternalForeground()
@@ -474,6 +527,8 @@ export function setInteractive(value: boolean): void {
     applyNoActivateStyle(mainWindow, true)
   } else {
     // Panel is closed: full click-through, no forwarding needed.
+    cancelFrostShow()
+    hideAcrylicLayer()
     mainWindow.setIgnoreMouseEvents(true, { forward: false })
     mainWindow.setAlwaysOnTop(true, 'screen-saver')
     mainWindow.setSkipTaskbar(true)
@@ -1205,6 +1260,7 @@ export function repositionWindow(): void {
   mainWindow.setSkipTaskbar(true)
   const g = getStickGeometry()
   mainWindow.setBounds({ ...g })
+  refreshAcrylicPosition()
   onWindowRepositioned?.()
 }
 
@@ -1218,6 +1274,7 @@ export function setVisible(visible: boolean): void {
     // Prime the frost snapshot so the very first hover already has one.
     scheduleBackdropRefresh(1200)
   } else {
+    hideAcrylicLayer()
     mainWindow.hide()
     scheduleMemoryTrim()
   }

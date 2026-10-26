@@ -77,6 +77,25 @@
   background-repeat: no-repeat, no-repeat;
 }
 
+/* Live acrylic (.blade-live, opt-in "实时磨砂").
+   Main puts a real DWM-blurred window directly behind this one, so the base can
+   finally be see-through and the desktop behind shows up blurred and live.
+   The trade-off is deliberate: a translucent backdrop forces greyscale text
+   antialiasing (see the ClearType note above), which is why this is a setting
+   and not the default. The overlay keeps just enough white to hold contrast
+   for dark text over any wallpaper. */
+.blade.blade-live {
+  background-color: rgba(251, 251, 253, 0.42);
+  background-image: none;
+}
+.blade.blade-live::before {
+  /* The sheen would otherwise stack a second white wash on the glass. */
+  opacity: 0.18;
+}
+.blade.blade-live .blade-frost {
+  display: none;
+}
+
 /* Top sheen: a barely-there white wash that sells the glass without a gradient seam. */
 .blade::before {
   content: '';

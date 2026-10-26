@@ -69,6 +69,11 @@ export interface EdgeApi {
   getDisplays: () => Promise<import('./types').DisplayInfo[]>
   setInternalDrag: (active: boolean) => void
   broadcastTutorialStep: (step: number) => void
+  /**
+   * Report the blade's rect inside the window (CSS px, null = unknown). Used to
+   * place the live acrylic layer exactly behind the blade.
+   */
+  reportBladeRect: (rect: import('./types').BladeRect | null) => void
 
   /* Main -> Renderer */
   onItems: (cb: (items: import('./types').ClipboardItemDto[], meta?: { reason?: 'usage' | 'capture' }) => void) => () => void

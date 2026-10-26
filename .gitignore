@@ -34,3 +34,7 @@ Blue_gradient (1).png
 # Local pixel/CDP debug helpers (throwaway)
 scratch/*.py
 scratch/cdp*.mjs
+scratch/acrylic-probe/
+.devprofile/
+scratch/*.out
+scratch/*.err

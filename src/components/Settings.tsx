@@ -50,6 +50,7 @@ export function Settings({
 }) {
   const { t, language, languages } = useTranslation()
   const settings = useStore((s) => s.settings)
+  const frostIntensity = settings.frostIntensity ?? 1
   const isHorizontal = propIsHorizontal ?? (settings.stickPosition === 'top')
 
   // ── Window size controls ────────────────────────────────────────────────
@@ -1797,6 +1798,33 @@ export function Settings({
                       </button>
                     ))}
                   </div>
+                  <div className="setting-pills" style={{ marginTop: 8 }}>
+                    {[
+                      { label: t('appearance.frostStill'), live: false },
+                      { label: t('appearance.frostLive'), live: true }
+                    ].map((opt) => (
+                      <button
+                        key={opt.label}
+                        className={`pill ${
+                          (!!settings.frostLive && frostIntensity > 0) === opt.live ? 'active' : ''
+                        }`}
+                        disabled={opt.live && frostIntensity <= 0}
+                        title={opt.live ? t('appearance.frostLiveDesc') : undefined}
+                        onClick={() => {
+                          playButtonClickSound()
+                          // Turning live frost on from the "off" strength would
+                          // leave nothing transparent, so restore a tint too.
+                          patch(
+                            opt.live && frostIntensity <= 0
+                              ? { frostLive: true, frostIntensity: 0.5 }
+                              : { frostLive: opt.live }
+                          )
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -2766,6 +2794,31 @@ export function Settings({
                           </button>
                         ))}
                       </div>
+                      <div className="setting-pills" style={{ marginTop: 8 }}>
+                        {[
+                          { label: t('appearance.frostStill'), live: false },
+                          { label: t('appearance.frostLive'), live: true }
+                        ].map((opt) => (
+                          <button
+                            key={opt.label}
+                            className={`pill ${
+                              (!!settings.frostLive && frostIntensity > 0) === opt.live ? 'active' : ''
+                            }`}
+                            disabled={opt.live && frostIntensity <= 0}
+                            title={opt.live ? t('appearance.frostLiveDesc') : undefined}
+                            onClick={() => {
+                              playButtonClickSound()
+                              patch(
+                                opt.live && frostIntensity <= 0
+                                  ? { frostLive: true, frostIntensity: 0.5 }
+                                  : { frostLive: opt.live }
+                              )
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -3028,3 +3081,4 @@ function LanguageDropdown({ direction = 'down', compact = false }: { direction?:
     </div>
   )
 }
+

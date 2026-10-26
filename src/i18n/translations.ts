@@ -141,6 +141,9 @@ export interface TranslationKeys {
     frostOff?: string
     frostSoft?: string
     frostStrong?: string
+    frostStill?: string
+    frostLive?: string
+    frostLiveDesc?: string
     audioAndFeedback?: string
     small?: string
     normal?: string
@@ -702,6 +705,9 @@ export const en: TranslationKeys = {
     "frostOff": "Off",
     "frostSoft": "Soft",
     "frostStrong": "Strong",
+    "frostStill": "Snapshot",
+    "frostLive": "Live",
+    "frostLiveDesc": "Real-time system blur. Follows the desktop live, but text switches to grayscale antialiasing (slightly thinner).",
     "audioAndFeedback": "Audio & Feedback",
     "small": "Small",
     "normal": "Normal",
@@ -4083,6 +4089,9 @@ export const zhCN: TranslationKeys = {
     "frostOff": "关闭",
     "frostSoft": "柔和",
     "frostStrong": "浓郁",
+    "frostStill": "快照",
+    "frostLive": "实时",
+    "frostLiveDesc": "系统实时模糊，背景会跟着桌面变化；代价是文字改用灰阶抗锯齿（笔画会略细）。",
     "audioAndFeedback": "音频和反馈",
     "small": "小",
     "normal": "正常",
@@ -12212,3 +12221,4 @@ export const TRANSLATIONS: Record<string, TranslationKeys> = {
   'he': he,
   'no': no,
 };
+

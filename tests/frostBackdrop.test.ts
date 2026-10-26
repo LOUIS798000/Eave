@@ -45,7 +45,7 @@ describe('Desktop frost backdrop', () => {
   it('gates the frost layer on the setting and the snapshot', () => {
     const src = read('src/components/Panel.tsx')
     expect(src).toContain('const frostIntensity = settings.frostIntensity ?? 1')
-    expect(src).toContain('if (!backdrop || frostIntensity <= 0)')
+    expect(src).toContain('if (!backdrop || frostIntensity <= 0 || frostLive)')
     expect(src).toContain('<div className="blade-frost" style={frostStyle} aria-hidden="true" />')
     expect(src).toContain("'--frost-size'")
     expect(src).toContain("'--frost-pos'")
@@ -53,8 +53,19 @@ describe('Desktop frost backdrop', () => {
 
   it('exposes a frost control in both settings layouts', () => {
     const src = read('src/components/Settings.tsx')
-    expect(src).toContain("patch({ frostIntensity: opt.val })")
+    expect(src).toContain('patch({ frostIntensity: opt.val })')
     expect(src).toContain("t('appearance.frostTitle')")
     expect(src).toContain("{ label: t('appearance.frostOff'), val: 0 }")
   })
+
+  it('offers the live (acrylic) frost mode next to the snapshot mode', () => {
+    const settingsSrc = read('src/components/Settings.tsx')
+    expect(settingsSrc).toContain("{ label: t('appearance.frostStill'), live: false }")
+    expect(settingsSrc).toContain("{ label: t('appearance.frostLive'), live: true }")
+    expect(settingsSrc).toContain('{ frostLive: opt.live }')
+    const types = read('shared/types.ts')
+    expect(types).toContain('frostLive?: boolean')
+    expect(DEFAULT_SETTINGS.frostLive).toBe(false)
+  })
 })
+

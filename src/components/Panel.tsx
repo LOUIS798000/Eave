@@ -153,13 +153,46 @@ export function Panel() {
   const [backdrop, setBackdrop] = useState<{ url: string; width: number; height: number } | null>(null)
   const [frostStyle, setFrostStyle] = useState<React.CSSProperties | null>(null)
   const frostIntensity = settings.frostIntensity ?? 1
+  // Live acrylic: main renders a real DWM-blurred layer behind this window, so
+  // the blade shows glass instead of a snapshot (and needs no backdrop image).
+  const frostLive = (settings.frostLive ?? false) && frostIntensity > 0
 
   useEffect(() => {
     return window.edge.onBackdrop((next) => setBackdrop(next))
   }, [])
 
+  /* Tell main where the blade is, so it can place the live acrylic layer
+   * exactly behind it. Always reported (not only in live mode): the setting can
+   * be flipped while the panel is open, and the layer must already know where
+   * it goes. */
   useEffect(() => {
-    if (!backdrop || frostIntensity <= 0) {
+    let raf = 0
+    const report = () => {
+      const el = bladeRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      if (r.width < 8 || r.height < 8) return
+      window.edge.reportBladeRect({
+        left: Math.round(r.left),
+        top: Math.round(r.top),
+        width: Math.round(r.width),
+        height: Math.round(r.height)
+      })
+    }
+    const schedule = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(report)
+    }
+    schedule()
+    window.addEventListener('resize', schedule)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', schedule)
+    }
+  }, [isHorizontal, panelH, panelWidth, topPanelWidth, settingsOpen, screenW, screenH, midY, open])
+
+  useEffect(() => {
+    if (!backdrop || frostIntensity <= 0 || frostLive) {
       setFrostStyle(null)
       return
     }
@@ -199,7 +232,7 @@ export function Panel() {
       if (settleTimer !== null) clearTimeout(settleTimer)
       window.removeEventListener('resize', schedule)
     }
-  }, [backdrop, frostIntensity, isHorizontal, panelH, panelWidth, topPanelWidth, settingsOpen, open])
+  }, [backdrop, frostIntensity, frostLive, isHorizontal, panelH, panelWidth, topPanelWidth, settingsOpen, open])
 
   useEffect(() => {
     const blade = bladeRef.current
@@ -566,7 +599,7 @@ export function Panel() {
         ))}
         <div
           ref={bladeRef}
-          className="blade"
+          className={frostLive ? 'blade blade-live' : 'blade'}
           style={isHorizontal
             ? ({ width: topPanelWidth, height: panelH, '--hcard-h': `${horizontalCardH}px`, '--hcard-w': `${horizontalCardW}px` } as React.CSSProperties)
             : { width: panelWidth, height: panelH }}

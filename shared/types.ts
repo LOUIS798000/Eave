@@ -116,6 +116,21 @@ export type ItemSection = 'pinned' | 'shelf'
 
 export type StickPosition = 'left' | 'right' | 'top'
 
+/**
+ * The blade's box *inside its own window*, in CSS pixels.
+ *
+ * The renderer measures it (the blade is centred / offset by transforms and by
+ * the user's size settings, so main cannot derive it) and reports it over
+ * `window:blade-rect`; main turns it into screen coordinates by adding the
+ * window position. The live acrylic layer is placed exactly on it.
+ */
+export interface BladeRect {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
 export interface DisplayInfo {
   id: number
   bounds: { x: number; y: number; width: number; height: number }
@@ -226,6 +241,17 @@ export interface Settings {
    * the desktop, so it costs no continuous rendering. Default: 1.
    */
   frostIntensity?: number
+  /**
+   * Live frosted glass ("实时磨砂"). When true the blade is backed by a real
+   * system-acrylic window that DWM blurs continuously, so the glass follows
+   * whatever is behind the panel instead of replaying a snapshot.
+   *
+   * Costs: the acrylic layer is a second (empty) window, so it only exists
+   * while this is on, and a translucent blade cannot use ClearType — glyphs
+   * fall back to grayscale antialiasing (slightly lighter/thinner). Default:
+   * false, which keeps the snapshot frost and fully crisp text.
+   */
+  frostLive?: boolean
   /** Last version for which the user opened/viewed the What's New changelog panel. */
   lastSeenChangelogVersion?: string
   /** When true, hovering cursor near edge activates the panel. When false, panel opens exclusively via Alt + C. Default: true. */
@@ -288,6 +314,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showEdgeLocationHint: false,
   soundEffects: true,
   frostIntensity: 1,
+  frostLive: false,
   lastSeenChangelogVersion: undefined,
   hoverActivation: true,
   hoverOpenDelay: 0,

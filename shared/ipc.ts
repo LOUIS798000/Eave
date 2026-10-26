@@ -194,6 +194,15 @@ export interface SendMap {
   'item:prestage-drag': { args: [req: DragRequest] }
   /** Synchronize tutorial step */
   'tutorial:set-step': { args: [step: number] }
+  /**
+   * Report the blade's rect inside the panel window (CSS px), so the live
+   * acrylic layer (see electron/main/acrylic.ts) can be placed exactly behind
+   * it. Main adds the window's own position; the renderer never guesses screen
+   * coordinates.
+   */
+  'window:blade-rect': {
+    args: [rect: { left: number; top: number; width: number; height: number } | null]
+  }
 }
 
 /* ------------------------------------------------------------------ */

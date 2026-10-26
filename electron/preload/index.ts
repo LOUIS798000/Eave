@@ -19,6 +19,7 @@ import type {
 } from '../../shared/ipc'
 import type { EdgeApi } from '../../shared/bridge'
 import type { DragRequest } from '../../shared/types'
+import type { BladeRect } from '../../shared/types'
 
 /** Typed invoke wrapper derived from the shared contracts. */
 function invoke<C extends InvokeChannel>(
@@ -216,6 +217,7 @@ const api = {
   focusWindow: (focusable?: boolean) => invoke('window:focus', focusable),
   setInternalDrag: (active: boolean) => { setInternalDragState(active) },
   broadcastTutorialStep: (step: number) => send('tutorial:set-step', step),
+  reportBladeRect: (rect: BladeRect | null) => send('window:blade-rect', rect),
 
   /* Main -> Renderer */
   onItems: (cb: (items: EventArgs<'state:items'>[0]) => void) => on('state:items', cb),

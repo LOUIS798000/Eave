@@ -40,8 +40,9 @@ import {
 import { WorkAreaCache } from './workAreaCache'
 import { probeSeamAware, isNearProximity, type SeamTickState } from './stickProbe'
 import { loadSettings, saveSettings } from '../store/settings'
-import { isFullscreenAppActive, registerFullscreenActiveListener } from './fullscreen'
+import { isFullscreenAppActive, registerFullscreenActiveListener, fullscreenDiagnostics, recheckFullscreenNow } from './fullscreen'
 import { noteUiMotion } from './thumbnailCache'
+import { diag } from './diag'
 
 type RegisterWindowMessageFn = (lpString: string) => number
 type SetWindowLongPtrFn = (hWnd: number | bigint, nIndex: number, dwNewLong: number | bigint) => number | bigint
@@ -408,8 +409,12 @@ type BackdropPayload = { url: string; width: number; height: number }
 
 let backdropCache: BackdropPayload | null = null
 let backdropTimer: ReturnType<typeof setTimeout> | null = null
+/** Guard against re-capturing the same rectangle in a burst of edge entries. */
+let lastCaptureKey = ''
+let lastCaptureAt = 0
+const CAPTURE_MIN_INTERVAL_MS = 400
 
-function refreshBackdrop(): void {
+function refreshBackdrop(force = false): void {
   if (!mainWindow || mainWindow.isDestroyed()) return
   // The blade is on screen while interactive; capturing now would grab it.
   if (interactive) return
@@ -421,8 +426,19 @@ function refreshBackdrop(): void {
   }
   const b = mainWindow.getBounds()
   if (b.width < 8 || b.height < 8) return
+  const key = `${b.x},${b.y},${b.width},${b.height}`
+  if (!force && key === lastCaptureKey && Date.now() - lastCaptureAt < CAPTURE_MIN_INTERVAL_MS) {
+    return
+  }
+  lastCaptureKey = key
+  lastCaptureAt = Date.now()
   try {
+    const captureStart = Date.now()
     const url = captureBackdrop({ x: b.x, y: b.y, width: b.width, height: b.height })
+    const captureMs = Date.now() - captureStart
+    // Synchronous GDI grab + PNG encode on the main thread. Measured 15–50ms,
+    // so it must never run inside the cursor poll tick (see the arm handler).
+    if (captureMs >= 15) diag('slow', `captureBackdrop ${captureMs}ms ${b.width}x${b.height}`)
     backdropCache = url ? { url, width: b.width, height: b.height } : null
     if (!backdropCache) console.warn('[Main] Frost backdrop unavailable')
   } catch (err) {
@@ -441,7 +457,7 @@ function scheduleBackdropRefresh(delayMs: number): void {
 
 /** Re-take the frost snapshot now (only meaningful while the panel is closed). */
 export function refreshBackdropNow(): void {
-  refreshBackdrop()
+  refreshBackdrop(true)
 }
 
 /* ── Live acrylic frost ─────────────────────────────────────────────────
@@ -479,11 +495,13 @@ function showLiveFrost(): void {
 
 /** Renderer says the open animation has settled (see showLiveFrost). */
 export function onPanelCollapsed(): void {
+  diag('main', 'panel-collapsed')
   cancelFrostShow()
   hideAcrylicLayer()
 }
 
 export function onPanelExpanded(): void {
+  diag('main', 'panel-expanded')
   showLiveFrost()
 }
 
@@ -524,6 +542,7 @@ function pushBackdrop(): void {
 export function setInteractive(value: boolean): void {
   if (!mainWindow || value === interactive) return
   interactive = value
+  diag('main', `setInteractive ${value}`)
   // Open starts here; hold main-thread thumbnail decodes off its frames.
   noteUiMotion()
   if (value) {
@@ -664,6 +683,55 @@ let _lastSentY = -9999
 /** Seam-policy tracker threaded between ticks (see stickProbe.ts pillars). */
 let _seamState: SeamTickState = {}
 
+/* ── Diagnostic trace (EDGE_DROP_DIAG only) ─────────────────────────────
+ * The poll is the single gate every hover has to pass, so when the shelf
+ * "ignores" a hover the interesting question is always which gate said no.
+ * Repeated identical skips are collapsed to one line per 500ms so a 60Hz
+ * poll cannot drown the trace.
+ */
+let _diagSkipKey = ''
+let _diagSkipAt = 0
+let _diagLastEventAt = 0
+let _diagMoveAt = 0
+
+function diagSkip(reason: string): void {
+  const now = Date.now()
+  if (reason === _diagSkipKey && now - _diagSkipAt < 500) return
+  _diagSkipKey = reason
+  _diagSkipAt = now
+  diag('poll', `skip ${reason}`)
+}
+
+/**
+ * Bounded command line for either renderer load target.
+ *
+ * `?diag=1` switches the renderer's own trace on (see src/lib/diag.ts). It is
+ * appended to the loaded URL rather than read from the environment because the
+ * renderer is sandboxed and has no access to process.env.
+ */
+function rendererDiagQuery(): string {
+  return process.env.EDGE_DROP_DIAG ? '?diag=1' : ''
+}
+
+/**
+ * Run `fn` and record how long it held the main thread (diagnostic runs only).
+ *
+ * The main process is single-threaded: anything that blocks it for more than a
+ * few dozen ms delays the cursor poll itself, and a delayed poll looks exactly
+ * like "the shelf ignored my hover" from the user's side. Logging the slow
+ * phases is how that code path gets identified instead of guessed at.
+ */
+function timeMain<T>(label: string, fn: () => T, thresholdMs = 15): T {
+  const t0 = Date.now()
+  const result = fn()
+  const dt = Date.now() - t0
+  if (dt >= thresholdMs) diag('slow', `${label} ${dt}ms`)
+  return result
+}
+
+/** Wall-clock gap between consecutive poll ticks; a big gap means a stall. */
+let _lastTickAt = 0
+
 /**
  * Temporarily suspend the always-on-top heartbeat.
  *
@@ -703,17 +771,44 @@ function _restartPollTimer(intervalMs: number): void {
 
 /** Single cursor poll tick — shared by both fast and slow modes. */
 function _pollTick(): void {
-  if (runtime.quitting || !mainWindow || mainWindow.isDestroyed() || !mainWindow.isVisible()) return
+  if (runtime.quitting || !mainWindow || mainWindow.isDestroyed() || !mainWindow.isVisible()) {
+    diagSkip(mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible() ? 'quit' : 'window-not-visible')
+    return
+  }
 
-  const settings = loadSettings()
-  if (settings.suppressInFullscreen && isFullscreenAppActive()) return
+  // Stall detector: if the previous tick is more than 300ms old the loop was
+  // blocked (a slow tick, a synchronous native call, a GC pause) — that is the
+  // difference between "no hover" and "the hover was served 2s too late".
+  const tickStartedAt = Date.now()
+  if (_lastTickAt > 0 && tickStartedAt - _lastTickAt > 300) {
+    diag('stall', `poll gap ${tickStartedAt - _lastTickAt}ms`)
+  }
+  _lastTickAt = tickStartedAt
+
+  const settings = timeMain('loadSettings', () => loadSettings())
+  if (settings.suppressInFullscreen && isFullscreenAppActive()) {
+    // The whole edge detector stops here while a fullscreen app owns the
+    // screen — including the IPC that would open the panel. A stale `true`
+    // would therefore look exactly like "the shelf ignores my hover", so
+    // re-verify before going deaf: a wrong flag may cost one tick, never the
+    // rest of the session.
+    if (recheckFullscreenNow()) {
+      const d = fullscreenDiagnostics()
+      diagSkip(`fullscreen state=${d.state} fg=${d.fg || '?'} fullscreenWindow=${d.fullscreenWindow ? 1 : 0}`)
+      return
+    }
+    diag('main', 'fullscreen flag was stale — detector resumed')
+  }
 
   const pt = screen.getCursorScreenPoint()
 
   // Versioned read: rebuilds automatically whenever the stick display id
   // changed (Settings/tray switch, re-resolution after topology events).
-  const wa = workAreaCache.get(currentStickDisplayId)
-  if (!wa) return // no successful enumeration yet; retry next tick
+  const wa = timeMain('workAreaCache.get', () => workAreaCache.get(currentStickDisplayId))
+  if (!wa) {
+    diagSkip('no-work-area')
+    return // no successful enumeration yet; retry next tick
+  }
 
   // Seam-aware probe (unit-tested against simulated multi-display
   // topologies in tests/stickProbeScenarios.test.ts). The returned
@@ -730,7 +825,10 @@ function _pollTick(): void {
     _seamState
   )
   _seamState = seam.nextState
-  if (seam.probe.garbage) return
+  if (seam.probe.garbage) {
+    diagSkip('garbage-cursor')
+    return
+  }
 
   const clientX = seam.probe.clientX
   const clientY = seam.probe.clientY
@@ -782,6 +880,12 @@ function _pollTick(): void {
   //      can track cursor position for the close-panel logic.
   //   c) Cursor moved >= IPC_MIN_DELTA_PX since last send — avoids spamming
   //      the renderer when the cursor is stationary near the edge.
+  //   d) The cursor is ARMED in the trigger band — keep the events flowing so
+  //      the renderer's dwell can be (re)started. The open itself is a 40ms
+  //      renderer timer plus one rAF commit; if that single callback is lost
+  //      (busy renderer, throttled timer) the hover used to be dead until the
+  //      cursor moved again. Re-arming every tick costs nothing: the band is
+  //      3px wide, so this only happens while the user is actually hovering.
   const IPC_MIN_DELTA_PX = 3
   const nearEdge = isNearProximity(distFromEdge)
 
@@ -789,16 +893,36 @@ function _pollTick(): void {
     Math.abs(clientX - _lastSentX) >= IPC_MIN_DELTA_PX ||
     Math.abs(clientY - _lastSentY) >= IPC_MIN_DELTA_PX
 
-  const shouldSend = newState !== lastEdgeState || interactive || (nearEdge && positionChangedEnough)
+  const shouldSend =
+    newState !== lastEdgeState || interactive || inEdge || (nearEdge && positionChangedEnough)
 
   if (shouldSend) {
+    const armed = newState !== lastEdgeState
     // Fresh frost snapshot: the cursor just entered the edge strip, so the
     // panel is still retracted and the desktop behind it is unobstructed. This
     // is what keeps the frost in sync with whatever window the user switched
     // to — a close-time snapshot alone showed the *previous* window's content.
+    //
+    // Deferred, never inline: captureBackdrop is a synchronous GDI grab plus a
+    // PNG encode (tens of ms) and this tick is what decides whether the panel
+    // opens. Running it here delayed the very event it exists to prepare for.
     if (newState && !lastEdgeState && !interactive) {
-      refreshBackdrop()
+      scheduleBackdropRefresh(0)
     }
+    const now = Date.now()
+    if (armed) {
+      diag(
+        'poll',
+        `arm->${newState ? 'IN' : 'out'} dist=${distFromEdge.toFixed(1)} x=${clientX.toFixed(0)} y=${clientY.toFixed(0)} fast=${_pollFast ? 1 : 0}`
+      )
+    } else if (!interactive && now - _diagMoveAt >= 250) {
+      // Panel closed: this is the renderer's only chance to open, so record
+      // that IPC is still flowing while the hover is being ignored.
+      _diagMoveAt = now
+      diag('poll', `move dist=${distFromEdge.toFixed(1)} x=${clientX.toFixed(0)} y=${clientY.toFixed(0)}`)
+    }
+    _diagLastEventAt = now
+    _diagSkipKey = ''
     lastEdgeState = newState
     _lastSentX = clientX
     _lastSentY = clientY
@@ -811,7 +935,22 @@ function _pollTick(): void {
       displayWidth: wa.width,
       displayHeight: wa.height
     })
+  } else if (Date.now() - _diagLastEventAt > 2000) {
+    // Nothing has been sent for 2s: record why, so "no events" can be told
+    // apart from "poll stopped" and from "events sent but ignored".
+    _diagLastEventAt = Date.now()
+    diag(
+      'poll',
+      `idle dist=${distFromEdge.toFixed(1)} armed=${inEdge ? 1 : 0} slow=${seam.slowEnough ? 1 : 0} ` +
+        `locked=${seam.lockedOut ? 1 : 0} speed=${seam.speedPxPerMs === null ? '?' : seam.speedPxPerMs.toFixed(2)} ` +
+        `fast=${_pollFast ? 1 : 0} interactive=${interactive ? 1 : 0}`
+    )
+    _diagSkipKey = ''
   }
+
+  // Total time this tick held the main thread (capture + IPC + settings read).
+  const tickMs = Date.now() - tickStartedAt
+  if (tickMs >= 30) diag('slow', `tick ${tickMs}ms (armed=${inEdge ? 1 : 0} interactive=${interactive ? 1 : 0})`)
 }
 
 export function startCursorPoll(): void {
@@ -977,7 +1116,13 @@ export function createWindow(): BrowserWindow {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      spellcheck: false
+      spellcheck: false,
+      // This window is a 3px sliver at the screen edge and is regularly covered
+      // by other always-on-top / fullscreen windows. Chromium throttles timers
+      // and stops requestAnimationFrame for windows it thinks are hidden — and
+      // the whole open gesture is one 40ms timer plus one rAF commit, so a
+      // throttled renderer silently ignores hovers the main process reports.
+      backgroundThrottling: false
     }
   })
 
@@ -1087,11 +1232,14 @@ export function createWindow(): BrowserWindow {
     return { action: 'deny' }
   })
 
-  // Load the renderer.
+  // Load the renderer. `?diag=1` (EDGE_DROP_DIAG builds only) switches the
+  // renderer's own diagnostic trace on — see src/lib/diag.ts.
   if (APP_CONFIG.is.dev && process.env.ELECTRON_RENDERER_URL) {
-    mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
+    mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL + rendererDiagQuery())
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    mainWindow.loadFile(join(__dirname, '../renderer/index.html'), {
+      search: rendererDiagQuery().replace(/^\?/, '')
+    })
   }
 
   mainWindow.once('ready-to-show', () => {
@@ -1107,6 +1255,7 @@ export function createWindow(): BrowserWindow {
 
   mainWindow.webContents.on('console-message', (_event, _level, message, line, sourceId) => {
     console.log(`[Renderer] ${message} (${sourceId}:${line})`)
+    diag('renderer', message)
   })
 
   mainWindow.on('close', (e) => {

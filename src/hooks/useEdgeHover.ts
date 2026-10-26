@@ -23,6 +23,7 @@
 import { useEffect, useRef } from 'react'
 import { edge } from '../lib/edge'
 import { useStore } from '../store/appStore'
+import { dlog } from '../lib/diag'
 import { normalizeHoverOpenDelay } from '../../shared/types'
 import {
   resolvePanelHeight,
@@ -236,6 +237,7 @@ export function useEdgeHover(): void {
 
     const closePanelNow = () => {
       const s = useStore.getState()
+      dlog('closePanelNow')
       if (s.styleFlyoutOpen) s.setStyleFlyoutOpen(false)
       if (s.languageFlyoutOpen) s.setLanguageFlyoutOpen(false)
       s.setOpen(false)
@@ -249,8 +251,14 @@ export function useEdgeHover(): void {
     const closePanel = () => {
       const state = useStore.getState()
       if (!state.open) return
-      if (state.sliderActive || state.edgeTransition?.active) return
-      if (state.dragActive && !state.internalDragReq) return
+      if (state.sliderActive || state.edgeTransition?.active) {
+        dlog(`close blocked slider=${state.sliderActive ? 1 : 0} transition=${state.edgeTransition?.active ? 1 : 0}`)
+        return
+      }
+      if (state.dragActive && !state.internalDragReq) {
+        dlog('close blocked drag')
+        return
+      }
 
       // If any flyout is open, let it play its exit spring first.
       // The Electron window resize (inside setOpen) would cut the flyout animation
@@ -283,11 +291,12 @@ export function useEdgeHover(): void {
       closePanelNow()
     }
 
-    const scheduleClose = (delay = GRACE_MS) => {
+    const scheduleClose = (delay = GRACE_MS, reason = 'leave') => {
       const state = useStore.getState()
       if (state.sliderActive || state.edgeTransition?.active) return
       if (state.dragActive && !state.internalDragReq) return
       if (graceTimer !== undefined) return // already closing
+      dlog(`scheduleClose ${delay}ms (${reason}) open=${state.open ? 1 : 0}`)
 
       // If position/display/slider was recently changed (< 1.75s ago), wait out remaining preview stay window
       const timeSincePositionChange = state.sliderReleasedTime > 0 ? Date.now() - state.sliderReleasedTime : Infinity
@@ -338,6 +347,7 @@ export function useEdgeHover(): void {
         window.clearTimeout(interactiveTimer)
         interactiveTimer = undefined
       }
+      dlog(`openPanel open=${useStore.getState().open ? 1 : 0}`)
       // Sequence the open across two steps so the OS/DWM surface work
       // (click-through off + always-on-top re-assert over IPC) starts before
       // the React clip-path/spring commit. Previously both fired in the same
@@ -350,6 +360,7 @@ export function useEdgeHover(): void {
       if (useStore.getState().open) return
       const commitOpen = () => {
         if (useStore.getState().open) return
+        dlog('commitOpen')
         useStore.getState().setOpen(true)
       }
       try {
@@ -423,19 +434,24 @@ export function useEdgeHover(): void {
     }
 
     const onPanelLeave = () => {
-      if (isInsideBlade()) {
+      const inside = isInsideBlade()
+      dlog(`panel:leave inside=${inside ? 1 : 0}`)
+      if (inside) {
         cancelClose()
         return
       }
-      scheduleClose()
+      scheduleClose(GRACE_MS, 'panel:leave')
     }
 
     const onPanelEnter = () => {
+      dlog('panel:enter')
       cancelClose()
     }
 
     let edgeHintTimer: number | undefined
     let edgeHintFired = false
+    /** Rate limiter for the per-tick receipt trace. */
+    let lastReceiptLog = 0
 
     const triggerEdgeHint = () => {
       if (edgeHintFired) return
@@ -455,6 +471,18 @@ export function useEdgeHover(): void {
     // here with the renderer's own settings so everything stays in sync.
     const unsubCursorEdge = window.edge.onCursorEdge((data) => {
       lastClient.current = { x: data.x, y: data.y }
+      // Receipt trace: proves the renderer is still getting poll events while
+      // a hover is being ignored (=> the bug is downstream of IPC).
+      const nowRx = Date.now()
+      if (nowRx - lastReceiptLog >= 500) {
+        lastReceiptLog = nowRx
+        const st = useStore.getState()
+        dlog(
+          `cursor-edge x=${data.x.toFixed(0)} y=${data.y.toFixed(0)} inEdge=${data.inEdge ? 1 : 0} ` +
+            `open=${st.open ? 1 : 0} hover=${(st.settings.hoverActivation ?? true) ? 1 : 0} ` +
+            `zone=${zone.current.left?.toFixed?.(0) ?? '?'}..${zone.current.right?.toFixed?.(0) ?? '?'}/${zone.current.top?.toFixed?.(0) ?? '?'}..${zone.current.bottom?.toFixed?.(0) ?? '?'}`
+        )
+      }
       if (data.displayWidth) displaySize.current.width = data.displayWidth
       if (data.displayHeight) displaySize.current.height = data.displayHeight
       const state = useStore.getState()
@@ -493,6 +521,7 @@ export function useEdgeHover(): void {
             if (state.edgeHintActive) state.setEdgeHintActive(false)
             cancelClose()
             if (dwellTimer === undefined) {
+              dlog(`dwell start top y=${distFromTop.toFixed(1)} x=${data.x.toFixed(0)} inZone=1`)
               dwellTimer = window.setTimeout(() => {
                 dwellTimer = undefined
                 openPanel()
@@ -561,6 +590,7 @@ export function useEdgeHover(): void {
             if (state.edgeHintActive) state.setEdgeHintActive(false)
             cancelClose()
             if (dwellTimer === undefined) {
+              dlog(`dwell start right dist=${distFromRight.toFixed(1)}`)
               dwellTimer = window.setTimeout(() => {
                 dwellTimer = undefined
                 openPanel()
@@ -623,6 +653,7 @@ export function useEdgeHover(): void {
             if (state.edgeHintActive) state.setEdgeHintActive(false)
             cancelClose()
             if (dwellTimer === undefined) {
+              dlog(`dwell start left x=${data.x.toFixed(1)}`)
               dwellTimer = window.setTimeout(() => {
                 dwellTimer = undefined
                 openPanel()
@@ -673,7 +704,7 @@ export function useEdgeHover(): void {
       // (search owns Escape: clear, then blur).
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return
-      if (e.key === 'Escape' && useStore.getState().open) scheduleClose(0)
+      if (e.key === 'Escape' && useStore.getState().open) scheduleClose(0, 'escape')
     }
 
     // ── window blur (Alt+Tab / OS focus stolen) ────────────────────────────
@@ -690,17 +721,19 @@ export function useEdgeHover(): void {
     // quickly read something and comes back — 400 ms gives them a moment).
     const onWindowBlur = () => {
       const state = useStore.getState()
+      dlog(`window:blur open=${state.open ? 1 : 0} drag=${state.dragActive ? 1 : 0}`)
       if (!state.open) return
       // Don't close during an external OS file drag — the drag surface may
       // temporarily shift focus to the OS drag-ghost or file manager.
       if (state.dragActive && !state.internalDragReq) return
-      scheduleClose(400)
+      scheduleClose(400, 'window:blur')
     }
 
     // ── OS file drag awareness ─────────────────────────────────────────────
     const onDocDragEnter = (e: DragEvent) => {
       if (e.dataTransfer?.types.includes('Files')) {
         e.preventDefault()
+        dlog('doc dragenter (files)')
         useStore.getState().setDragActive(true)
         openPanel()
       }
@@ -713,16 +746,19 @@ export function useEdgeHover(): void {
     }
     const onDocDragLeave = (e: DragEvent) => {
       if (!e.relatedTarget) {
+        dlog('doc dragleave')
         useStore.getState().setDragActive(false)
-        if (useStore.getState().internalDragReq) scheduleClose(0)
+        if (useStore.getState().internalDragReq) scheduleClose(0, 'internal-drag-leave')
       }
     }
     const onDocDrop = (e: DragEvent) => {
       e.preventDefault()
+      dlog('doc drop')
       useStore.getState().setDragActive(false)
     }
     const onDocDragEnd = (e: DragEvent) => {
       e.preventDefault()
+      dlog('doc dragend')
       useStore.getState().setDragActive(false)
     }
 

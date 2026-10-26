@@ -14,6 +14,7 @@ import { useStore } from './store/appStore'
 import { edge } from './lib/edge'
 import { applyReduceMotion } from './lib/theme'
 import { useEdgeHover } from './hooks/useEdgeHover'
+import { useRendererWatchdog } from './hooks/useRendererWatchdog'
 
 export default function App() {
   const hydrate = useStore((s) => s.hydrate)
@@ -35,6 +36,11 @@ export default function App() {
 
   // Drive the edge open/close behavior.
   useEdgeHover()
+
+  // Diagnostic runs only (?diag=1): records visibility, frame rate and timer
+  // drift so a renderer that Chromium has throttled or occluded cannot look
+  // like a main-process bug.
+  useRendererWatchdog()
 
   // Cold-start warmup (currently disabled by ENABLE_IDLE_WARMUP for the
   // low-memory default). The first shelf/emoji open otherwise pays one-time

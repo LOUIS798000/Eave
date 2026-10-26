@@ -13,6 +13,7 @@ import { filterValidPaths, isExistingFilePath } from './pathValidation'
 import { type InvokeMap, type InvokeChannel, type SendMap, type SendChannel } from '../../shared/ipc'
 import { getStore, loadSettings, saveSettings, pushState, addFiles, getWatcher } from './state'
 import { sendToMainWindow, setInteractive, setHeartbeatPaused, setHotZoneWidth, repositionWindow, getDisplayListOptions, popUpAndRetract, setWindowFocusable, captureExternalForeground, traceFg, resolvePasteTarget, applyFrostMode, onPanelCollapsed, onPanelExpanded } from './window'
+import { diag } from './diag'
 import { registerGlobalHotkey } from './index'
 import { getOnboardingWindow } from './onboardingWindow'
 import { rebuildTrayMenu } from './tray'
@@ -756,7 +757,10 @@ export function registerIpc(): void {
   })
 
   handle('window:set-interactive', (value) => {
+    const t0 = Date.now()
     setInteractive(value)
+    const dt = Date.now() - t0
+    if (dt >= 15) diag('slow', `setInteractive(${value}) ${dt}ms`)
   })
 
   handle('window:set-preview-mode', (active) => {

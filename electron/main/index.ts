@@ -20,8 +20,9 @@ import { prewarmDragIcons } from './drag'
 import { initState, getWatcher, loadSettings, saveSettings, pushState, stopStateTimers, getStore } from './state'
 import { initAutoUpdater } from './updater'
 import { createOnboardingWindow } from './onboardingWindow'
-import { startFullscreenMonitor, stopFullscreenMonitor, triggerFullscreenCheck } from './fullscreen'
+import { startFullscreenMonitor, stopFullscreenMonitor, triggerFullscreenCheck, fullscreenDiagnostics } from './fullscreen'
 import { flushStagedTempRegistry } from './stagedTemp'
+import { installStallWatch, diag, diagEnabled } from './diag'
 import { extname, join, normalize } from 'node:path'
 import { existsSync, createReadStream } from 'node:fs'
 import { createHash } from 'node:crypto'
@@ -125,6 +126,15 @@ app.whenReady().then(() => {
   registerImageProtocol()
 
   createWindow()
+  // Diagnostic builds (EDGE_DROP_DIAG): record main-thread stalls, which are
+  // invisible to every other signal but delay the whole open path.
+  installStallWatch()
+  if (diagEnabled) {
+    // Exercise the fullscreen probe's native struct path once at startup so a
+    // bad ABI shows up as a failed launch rather than a silent false positive.
+    const fs = fullscreenDiagnostics()
+    diag('fullscreen', `state=${fs.state} fg=${fs.fg || '?'} fullscreenWindow=${fs.fullscreenWindow ? 1 : 0}`)
+  }
   // Live acrylic layer, if the user left it on last session.
   applyFrostMode()
   startCursorPoll()
@@ -367,3 +377,4 @@ export function registerGlobalHotkey(targetHotkey?: string): boolean {
     return false
   }
 }
+

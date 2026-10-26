@@ -726,6 +726,13 @@
 }
 
 /* Subtle Bottom Quit Button */
+/* Footer row for the stacked (left/right dock) layout: one quiet quit action. */
+.settings-quit-row {
+  display: flex;
+  justify-content: center;
+  margin: 14px 0 18px;
+}
+
 .subtle-quit-btn {
   display: inline-flex;
   align-items: center;

@@ -20,6 +20,7 @@ import { runtime } from './config'
 import { trimWorkingSets } from './memory'
 import { captureBackdrop } from './backdrop'
 import {
+  armAcrylicLayer,
   destroyAcrylicLayer,
   ensureAcrylicLayer,
   hideAcrylicLayer,
@@ -461,11 +462,11 @@ function cancelFrostShow(): void {
 /**
  * Bring the live glass up now.
  *
- * The caller is the renderer's `window:panel-expanded` report, i.e. the exact
- * frame on which the open clip-path settled and the blade fills its rounded
- * rect. At that moment the acrylic sheet is completely covered by the blade
- * (the blade is still opaque — it only fades to translucent once main says the
- * glass is up), so the rectangle can never be seen before the shape.
+ * Normally the renderer's first `window:blade-rect` report does this (see
+ * `setAcrylicBladeRect`): it is the only side that knows the shape the blade is
+ * painting, so the glass can appear on that shape from the first frame of the
+ * open animation. This function stays as the safety net for a renderer that
+ * never reports, and as the re-raise after the open animation settles.
  */
 function showLiveFrost(): void {
   cancelFrostShow()
@@ -530,13 +531,14 @@ export function setInteractive(value: boolean): void {
     // fully retracted. Capturing here instead would photograph our own blade.
     pushBackdrop()
 
-    // Live glass: the renderer reports the moment the open clip-path settles
-    // (`window:panel-expanded`), which is when the blade exactly covers the
-    // acrylic sheet. This timer is only a safety net for a missed report —
-    // showing the sheet while the blade is still growing is precisely what used
-    // to flash a grey rectangle, so it is deliberately late.
+    // Live glass: armed here, shown by the renderer's first shape report so it
+    // is drawn on the rounded shape the blade is actually painting (not on the
+    // rectangle of its window). This timer is only a safety net for a missed
+    // report — it is deliberately late, because showing a stale rect while the
+    // blade is still growing is what used to flash a grey rectangle.
     cancelFrostShow()
     if (loadSettings().frostLive ?? false) {
+      armAcrylicLayer(mainWindow)
       frostShowTimer = setTimeout(showLiveFrost, 700)
       frostShowTimer.unref?.()
     }

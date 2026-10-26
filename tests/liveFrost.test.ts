@@ -54,6 +54,19 @@ describe('Live acrylic frost', () => {
     expect(glass).toContain('SWP_NOACTIVATE')
   })
 
+  it('writes the visual offset as a Vector3 and names the clip class right', () => {
+    // put_Offset takes a Vector3, not the Vector2 used for Size. Handing it the
+    // short struct corrupts the stack: the whole app dies with 0xC0000005 the
+    // first time a rect is laid out (measured, not guessed).
+    const glass = read('electron/main/composition.ts')
+    expect(glass).toContain("koffi.struct('EdgeDropV3'")
+    expect(glass).toContain('putV3')
+    expect(glass).toMatch(/method\(visual, 15, api\(\)\.proto\.putV3, \{ x, y, z: 0 \}\)/)
+    // CreateRectangleClip returns Windows.UI.Composition.RectangleClip. The
+    // "Composition…" prefix belongs to the WinUI namespace, and verifying
+    // against it made every create() throw (i.e. quietly no live glass at all).
+    expect(glass).toContain("verify(box.value, 'Windows.UI.Composition.RectangleClip')")
+  })
   it('tracks the blade rect and stays pinned under the panel', () => {
     const glass = read('electron/main/composition.ts')
     const adapter = acrylic()
@@ -88,18 +101,56 @@ describe('Live acrylic frost', () => {
     expect(panel).toContain('blade-live-shown')
   })
 
-  it('keeps the frozen frost up until main confirms the blur is on screen', () => {
-    // The whole point: the acrylic layer is a *rectangle*. If the blade turns
-    // translucent before the rounded shape has grown over that rectangle, the
-    // rectangle is what the user sees first; if it goes flat white instead, the
-    // user sees a white flash first. So the blade paints the frozen frost (a
-    // snapshot tinted to match the glass) for the whole growth, and the
-    // translucency is gated on a main -> renderer event.
+  it('knows the exact shape the blade is painting, every frame', () => {
+    // The glass is no longer drawn on the blade's *box* — a rectangle behind a
+    // rounded shape that is still growing is precisely what poked corners out
+    // and showed a sheet before the panel. It is drawn on `blade box ∩
+    // clip-path`, which the renderer measures per frame.
+    const panel = read('src/components/Panel.tsx')
+    expect(panel).toContain('visibleGlassShape')
+    expect(panel).toContain('parseClipShape')
+    expect(panel).toContain('getComputedStyle(container).clipPath')
+    // Chrome keeps calc() in the computed clip-path and interpolates it as
+    // `calc(<pct>% - <px>px)`. Reading "the px" out of that yields NaN for the
+    // whole animation, and a plain whitespace split shreds it into three
+    // tokens, so both have to be handled explicitly.
+    expect(panel).toContain('function evalLength')
+    expect(panel).toContain('function splitTopLevel')
+    expect(panel).toContain('function insetBody')
+    // A corner is rounded only when the intersection really has a rounded
+    // corner there (the blade's, or the clip's) — never gratuitously.
+    expect(panel).toContain('const corner = (')
+    expect(panel).toContain('SHAPE_EPS')
+
+    // Reported from the same commit that flips the clip-path, so main has the
+    // shape before the first frame of the animation is composited.
+    expect(panel).toContain('useLayoutEffect')
+    expect(panel).toContain('requestAnimationFrame(measure)')
+
+    // The shape carries its own corner radii; the default corners are only the
+    // fallback for a caller that has no shape to report.
+    const types = read('shared/types.ts')
+    expect(types).toContain('export interface BladeRadii')
+    expect(types).toMatch(/radii\?: BladeRadii/)
+    expect(read('electron/main/acrylic.ts')).toContain('rect.radii')
+  })
+
+  it('shows the glass on the first shape report, then releases the sheet', () => {
+    // Sequence: the renderer reports the shape it is about to paint → main
+    // draws the glass on that shape → main says "it is on screen" → the blade
+    // goes translucent. Nothing is ever painted that the blade has not reached.
+    const adapter = read('electron/main/acrylic.ts')
+    expect(adapter).toContain('export function armAcrylicLayer')
+    expect(adapter).toMatch(/if \(wantVisible && layer\.isReady\(\) && !layer\.isVisible\(\)\) layer\.raise\(true\)/)
+    const windowSrc = read('electron/main/window.ts')
+    expect(windowSrc).toContain('armAcrylicLayer(mainWindow)')
+
     const panel = read('src/components/Panel.tsx')
     expect(panel).toContain('onFrostLive')
-    expect(panel).toMatch(/liveGlassOn \? ' blade-live-shown'/)
+    // `open &&` is load-bearing: on close the sheet must go opaque in the same
+    // frame the retraction starts, not one round-trip later.
+    expect(panel).toMatch(/open && liveGlassOn \? ' blade-live-shown'/)
     expect(panel).toContain('if (!frostLive) setLiveGlassOn(false)')
-    expect(panel).toContain('livePhotoTint(frostIntensity)')
 
     const css = read('src/styles/panel.css')
     const liveIdx = css.indexOf('.blade.blade-live {')
@@ -116,13 +167,11 @@ describe('Live acrylic frost', () => {
     // one frame on purpose.
     expect(shownBlock).not.toContain('transition:')
 
-    // And the glass is only raised once the open clip-path has settled, which
-    // the renderer reports from a real transitionend — not a guessed timeout.
+    // The settled shape is still confirmed from a real transitionend.
     expect(panel).toContain('reportPanelExpanded')
     expect(panel).toContain("e.propertyName !== 'clip-path'")
     expect(read('shared/ipc.ts')).toContain("'window:panel-expanded'")
     expect(read('electron/main/ipc.ts')).toContain("on('window:panel-expanded'")
-    const windowSrc = read('electron/main/window.ts')
     expect(windowSrc).toContain('setAcrylicVisibilityListener')
     expect(windowSrc).toContain("'window:frost-live'")
   })

@@ -116,19 +116,37 @@ export type ItemSection = 'pinned' | 'shelf'
 
 export type StickPosition = 'left' | 'right' | 'top'
 
+/** Corner radii of the glass shape, in CSS pixels, clockwise from top-left. */
+export interface BladeRadii {
+  topLeft: number
+  topRight: number
+  bottomRight: number
+  bottomLeft: number
+}
+
 /**
- * The blade's box *inside its own window*, in CSS pixels.
+ * The shape the blade *paints* right now, in CSS pixels inside its own window.
  *
- * The renderer measures it (the blade is centred / offset by transforms and by
- * the user's size settings, so main cannot derive it) and reports it over
+ * The blade's box is not what the user sees: the container is clipped by a
+ * clip-path that grows out of the screen edge during the open animation, so the
+ * visible shape is `blade box ∩ clip rect`, with a corner rounded only where
+ * that intersection has an actual rounded corner. The renderer measures it each
+ * frame (the blade is centred / offset by transforms and by the user's size
+ * settings, so main cannot derive it) and reports it over
  * `window:blade-rect`; main turns it into screen coordinates by adding the
- * window position. The live acrylic layer is placed exactly on it.
+ * window position. The live glass is drawn exactly on it, which is why it can
+ * follow the open animation instead of appearing behind it once it settles.
  */
 export interface BladeRect {
   left: number
   top: number
   width: number
   height: number
+  /**
+   * Corner radii of that same shape. Omitted only by callers that have no shape
+   * to describe; main then falls back to the blade's default corners.
+   */
+  radii?: BladeRadii
 }
 
 export interface DisplayInfo {

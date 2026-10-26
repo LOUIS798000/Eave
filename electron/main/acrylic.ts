@@ -7,9 +7,9 @@
  * app the old acrylic-layer API (`showAcrylicLayer`, `setAcrylicBladeRect`, …)
  * so window.ts and ipc.ts keep their sequencing:
  *
- *   open settles ──▶ showAcrylicLayer()  ──▶ listener(true)  ──▶ blade fades to
- *                                                              translucent
- *   close starts ──▶ hideAcrylicLayer()  ──▶ listener(false) ──▶ blade opaque
+ *   open ──▶ armAcrylicLayer() ──▶ first shape report ──▶ glass on screen
+ *                                   └─ listener(true)  ──▶ blade goes translucent
+ *   close starts ──▶ hideAcrylicLayer() ──▶ listener(false) ──▶ blade opaque
  *
  * History, because it explains the shape of this code: this used to be a second
  * Electron window with DWM's acrylic accent. That blur fills the whole window
@@ -77,7 +77,7 @@ export async function ensureAcrylicLayer(
     return null
   }
   layer.setRect(bladeRect ? toGlassRect(bladeRect) : null)
-  layer.setRadii(radiiFor(panelWindow))
+  layer.setRadii(bladeRect?.radii ? clampRadii(bladeRect.radii) : radiiFor(panelWindow))
   if (wantVisible) showAcrylicLayer(panelWindow)
   return panelWindow
 }
@@ -90,12 +90,37 @@ export function setAcrylicTint(frostIntensity: number): void {
   layer?.setBlur(14 + 16 * (1 - t))
 }
 
-/** Renderer's blade rect, in CSS px inside the panel window. */
+/** Renderer's visible shape, in CSS px inside the panel window. */
 export function setAcrylicBladeRect(rect: BladeRect | null): void {
   bladeRect = rect
   if (!layer) return
-  layer.setRect(rect ? toGlassRect(rect) : null)
-  layer.setRadii(radiiFor(panelWindow))
+  if (!rect) {
+    layer.setRect(null)
+    return
+  }
+  layer.setRect(toGlassRect(rect))
+  layer.setRadii(rect.radii ? clampRadii(rect.radii) : radiiFor(panelWindow))
+  // The renderer reports the shape it is *about* to paint, and only it knows
+  // that shape — so the first report after an open request is also what puts
+  // the glass on screen. Showing it any earlier (on the open request itself)
+  // would paint a full-size rectangle the blade has not grown over yet.
+  if (wantVisible && layer.isReady() && !layer.isVisible()) layer.raise(true)
+}
+
+/** Keep radii sane: a clip radius past half the shape is meaningless. */
+function clampRadii(radii: CornerRadii): CornerRadii {
+  return {
+    topLeft: Math.max(0, radii.topLeft),
+    topRight: Math.max(0, radii.topRight),
+    bottomRight: Math.max(0, radii.bottomRight),
+    bottomLeft: Math.max(0, radii.bottomLeft)
+  }
+}
+
+/** Arm the glass for this open: it appears with the renderer's first report. */
+export function armAcrylicLayer(parent: BrowserWindow | null): void {
+  if (parent) panelWindow = parent
+  wantVisible = true
 }
 
 function toGlassRect(rect: BladeRect): GlassRect {
@@ -143,7 +168,7 @@ export function showAcrylicLayer(parent: BrowserWindow | null): boolean {
   if (!bladeRect) return false
   layer.moveToPanel()
   layer.setRect(toGlassRect(bladeRect))
-  layer.setRadii(radiiFor(panelWindow))
+  layer.setRadii(bladeRect.radii ? clampRadii(bladeRect.radii) : radiiFor(panelWindow))
   layer.raise(true)
   return layer.isVisible()
 }
@@ -157,7 +182,7 @@ export function hideAcrylicLayer(): void {
 export function refreshAcrylicPosition(): void {
   if (!layer) return
   layer.moveToPanel()
-  layer.setRadii(radiiFor(panelWindow))
+  layer.setRadii(bladeRect?.radii ? clampRadii(bladeRect.radii) : radiiFor(panelWindow))
   if (wantVisible) layer.raise(true)
 }
 

@@ -127,6 +127,9 @@ function loadBindings() {
   const user32 = koffi.load('user32.dll')
 
   koffi.struct('EdgeDropV2', { x: 'float', y: 'float' })
+  // IVisual.Offset is a Vector3. Passing a Vector2 struct here corrupts the
+  // stack: the callee reads three floats, not two.
+  koffi.struct('EdgeDropV3', { x: 'float', y: 'float', z: 'float' })
   koffi.struct('EdgeDropOut', { value: 'void *' })
   koffi.struct('EdgeDropColor', { a: 'uint8_t', r: 'uint8_t', g: 'uint8_t', b: 'uint8_t' })
   koffi.struct('EdgeDropDQOptions', {
@@ -148,6 +151,7 @@ function loadBindings() {
     putObj: koffi.proto('long EdgeDropPutObj(void *self, void *value)'),
     putObj2: koffi.proto('long EdgeDropPut2(void *self, void *a, void *b)'),
     putV2: koffi.proto('long EdgeDropPutV2(void *self, EdgeDropV2 value)'),
+    putV3: koffi.proto('long EdgeDropPutV3(void *self, EdgeDropV3 value)'),
     putFloat: koffi.proto('long EdgeDropPutFloat(void *self, float value)'),
     putBool: koffi.proto('long EdgeDropPutBool(void *self, uint8_t value)'),
     createSingle: koffi.proto(
@@ -559,7 +563,7 @@ class Compositor {
   createRectangleClip(): Wrapped {
     const box = outBox()
     hresult(method(this.i7, 2, api().proto.create, box), 'CreateRectangleClip')
-    return verify(box.value, 'Windows.UI.Composition.CompositionRectangleClip')
+    return verify(box.value, 'Windows.UI.Composition.RectangleClip')
   }
 
   /** Slot 5 is `(effect, out)`; slot 6 also takes the animatable properties. */
@@ -655,7 +659,7 @@ function setSize(visual: Wrapped, width: number, height: number): void {
   hresult(method(visual, 30, api().proto.putV2, { x: width, y: height }), 'put_Size')
 }
 function setOffset(visual: Wrapped, x: number, y: number): void {
-  hresult(method(visual, 15, api().proto.putV2, { x, y }), 'put_Offset')
+  hresult(method(visual, 15, api().proto.putV3, { x, y, z: 0 }), 'put_Offset')
 }
 function setClip(visual: Wrapped, clip: Wrapped): void {
   hresult(method(visual, 9, api().proto.putObj, clip.ptr), 'put_Clip')

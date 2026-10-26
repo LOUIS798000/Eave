@@ -8,7 +8,7 @@
  * the reverse: the content dims first and the shape draws back into the bar.
  */
 import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react'
 import { useStore } from '../store/appStore'
 import { PANEL_LEAVE_EVENT, PANEL_ENTER_EVENT } from '../hooks/useEdgeHover'
 import { Header } from './Header'
@@ -40,6 +40,193 @@ const SHELF_OPEN_MOTION =
   'clip-path 285ms linear(0, 0.055 3.5%, 0.149 8.5%, 0.414 21.8%, 0.524 27.8%, 0.614 33.3%, 0.693 38.8%, 0.759 44.3%, 0.817 50%, 0.866 56%, 0.907 62.5%, 0.941 69.8%, 0.969 78.3%, 0.989 88.5%, 1)'
 const SHELF_CLOSE_MOTION =
   'clip-path 289ms linear(0, 0.021 1.8%, 0.058 3.8%, 0.116 6.3%, 0.23 10.5%, 0.402 16.8%, 0.503 20.8%, 0.586 24.5%, 0.659 28.2%, 0.725 32.3%, 0.782 36.5%, 0.832 41%, 0.874 46%, 0.911 51.7%, 0.941 58.5%, 0.965 66.8%, 0.982 77.5%, 0.994 93.8%, 1)'
+
+/* ── The shape the user actually sees ────────────────────────────────────
+ * The blade is not a rectangle on screen: the container cuts it with a
+ * clip-path that springs out of the screen edge (SHELF_OPEN_MOTION), so the
+ * visible shape is `blade box ∩ clip rect`, rounded only where that
+ * intersection has a real rounded corner. Main draws the live glass on this —
+ * not on the blade's box — so the glass is behind the rounded shape on every
+ * frame of the open animation instead of appearing as a rectangle that the
+ * blade has to grow over.
+ */
+const SHAPE_EPS = 0.75
+
+/**
+ * One `inset()` / border-radius length → px.
+ *
+ * Chrome keeps `calc()` in the *computed* clip-path (it only resolves it at use
+ * time) and interpolates it as `calc(<pct>% - <px>px)`, so "just read the px"
+ * silently returns NaN for the whole open animation. `base` is the length the
+ * percentages are relative to (width for left/right, height for top/bottom).
+ */
+function evalLength(raw: string | undefined, base: number): number | null {
+  if (!raw) return null
+  const text = raw.trim()
+  if (!text) return null
+  const calc = /^calc\((.*)\)$/i.exec(text)
+  if (!calc) {
+    const n = parseFloat(text)
+    if (!Number.isFinite(n)) return null
+    return text.endsWith('%') ? (n / 100) * base : n
+  }
+  // Sum of `<sign><number><unit>` terms; calc() here only ever adds or
+  // subtracts lengths, so no precedence needed.
+  const terms = calc[1].match(/[+-]?\s*[0-9.]+(?:e[+-]?[0-9]+)?\s*(?:px|%)?/gi)
+  if (!terms || !terms.length) return null
+  let total = 0
+  for (const rawTerm of terms) {
+    const term = rawTerm.replace(/\s+/g, '')
+    const n = parseFloat(term)
+    if (!Number.isFinite(n)) return null
+    total += term.includes('%') ? (n / 100) * base : n
+  }
+  return total
+}
+
+/** CSS 1-to-4 value shorthand (inset sides, border-radius corners). */
+function expandShorthand(parts: string[]): [string, string, string, string] {
+  const [a, b = a, c = a, d = b] = parts
+  return parts.length === 3 ? [a, b, c, b] : [a, b, c, d]
+}
+
+interface RectShape {
+  left: number
+  top: number
+  right: number
+  bottom: number
+  /** Clockwise from top-left. */
+  radii: [number, number, number, number]
+}
+
+/**
+ * Split on whitespace, but never inside `calc(...)`: the computed clip-path of
+ * a half-run transition is `inset(calc(37% - 81px) calc(74% - 2px) …)`, so a
+ * plain `split(/\s+/)` shreds every length into three pieces.
+ */
+function splitTopLevel(text: string): string[] {
+  const parts: string[] = []
+  let depth = 0
+  let current = ''
+  for (const ch of text) {
+    if (ch === '(') depth++
+    else if (ch === ')') depth = Math.max(0, depth - 1)
+    if (depth === 0 && /\s/.test(ch)) {
+      if (current) parts.push(current)
+      current = ''
+      continue
+    }
+    current += ch
+  }
+  if (current) parts.push(current)
+  return parts
+}
+
+/** Body of the outermost `inset(...)`, tolerating nested `calc()` parens. */
+function insetBody(raw: string): string | null {
+  const open = raw.toLowerCase().indexOf('inset(')
+  if (open < 0) return null
+  let depth = 0
+  for (let i = open + 6; i < raw.length; i++) {
+    const ch = raw[i]
+    if (ch === '(') depth++
+    else if (ch === ')') {
+      if (depth === 0) return raw.slice(open + 6, i)
+      depth--
+    }
+  }
+  return null
+}
+
+/** `inset(top right bottom left round tl tr br bl)` in viewport px. */
+function parseClipShape(raw: string, box: DOMRect): RectShape | null {
+  const body = insetBody(raw)
+  if (!body) return null
+  const [sidePart, radiusPart] = body.split(/\bround\b/i)
+  const sides = expandShorthand(splitTopLevel(sidePart.trim()))
+  const top = evalLength(sides[0], box.height)
+  const right = evalLength(sides[1], box.width)
+  const bottom = evalLength(sides[2], box.height)
+  const left = evalLength(sides[3], box.width)
+  if (top === null || right === null || bottom === null || left === null) return null
+  const corners = radiusPart
+    ? expandShorthand(splitTopLevel(radiusPart.trim()))
+    : (['0', '0', '0', '0'] as [string, string, string, string])
+  return {
+    left: box.left + left,
+    top: box.top + top,
+    right: box.right - right,
+    bottom: box.bottom - bottom,
+    radii: [
+      evalLength(corners[0], box.width) ?? 0,
+      evalLength(corners[1], box.width) ?? 0,
+      evalLength(corners[2], box.width) ?? 0,
+      evalLength(corners[3], box.width) ?? 0
+    ]
+  }
+}
+
+/** The blade's own border-radius, clockwise from top-left. */
+function bladeRadii(el: Element, box: DOMRect): [number, number, number, number] {
+  const s = getComputedStyle(el)
+  const one = (raw: string, base: number) => evalLength(raw.split(/\s+/)[0], base) ?? 0
+  return [
+    one(s.borderTopLeftRadius, box.width),
+    one(s.borderTopRightRadius, box.width),
+    one(s.borderBottomRightRadius, box.width),
+    one(s.borderBottomLeftRadius, box.width)
+  ]
+}
+
+/**
+ * The visible shape, in viewport px, or null when nothing of the blade is on
+ * screen. A corner keeps a radius only when the intersection really has one:
+ * an edge that came from a straight cut is square, which is what stops the
+ * glass from rounding corners the blade does not have (and vice versa).
+ */
+function visibleGlassShape(
+  blade: HTMLElement,
+  container: HTMLElement
+): { left: number; top: number; width: number; height: number; radii: { topLeft: number; topRight: number; bottomRight: number; bottomLeft: number } } | null {
+  const b = blade.getBoundingClientRect()
+  if (b.width < 2 || b.height < 2) return null
+  const bRadii = bladeRadii(blade, b)
+  const clip = parseClipShape(getComputedStyle(container).clipPath, container.getBoundingClientRect())
+  const outer: RectShape = clip ?? { left: b.left, top: b.top, right: b.right, bottom: b.bottom, radii: bRadii }
+
+  const left = Math.max(b.left, outer.left)
+  const top = Math.max(b.top, outer.top)
+  const right = Math.min(b.right, outer.right)
+  const bottom = Math.min(b.bottom, outer.bottom)
+  const width = right - left
+  const height = bottom - top
+  if (width < 1.5 || height < 1.5) return null
+
+  const near = (x: number, y: number) => Math.abs(x - y) < SHAPE_EPS
+  const corner = (x: number, y: number, i: 0 | 1 | 2 | 3): number => {
+    const own = [[b.left, b.top], [b.right, b.top], [b.right, b.bottom], [b.left, b.bottom]][i]
+    const cut = [[outer.left, outer.top], [outer.right, outer.top], [outer.right, outer.bottom], [outer.left, outer.bottom]][i]
+    if (near(x, own[0]) && near(y, own[1])) return bRadii[i]
+    if (near(x, cut[0]) && near(y, cut[1])) return outer.radii[i]
+    return 0
+  }
+  // CSS shrinks every radius when one is wider than the shape (the retracted
+  // bar is 3px tall); a RectangleClip does not, so do the shrinking here.
+  const limit = Math.min(width, height) / 2
+  const clamp = (r: number) => Math.max(0, Math.min(r, limit))
+  return {
+    left,
+    top,
+    width,
+    height,
+    radii: {
+      topLeft: clamp(corner(left, top, 0)),
+      topRight: clamp(corner(right, top, 1)),
+      bottomRight: clamp(corner(right, bottom, 2)),
+      bottomLeft: clamp(corner(left, bottom, 3))
+    }
+  }
+}
 
 export function Panel() {
   const open = useStore((s) => s.open)
@@ -158,11 +345,13 @@ export function Panel() {
   // Live acrylic: main renders a real DWM-blurred layer behind this window, so
   // the blade shows glass instead of a snapshot (and needs no backdrop image).
   const frostLive = (settings.frostLive ?? false) && frostIntensity > 0
-  /* True only once main confirms the blur sheet is actually on screen behind
-   * us. Until then the blade paints its OPAQUE sheet: the acrylic layer is a
-   * plain rectangle, so a translucent blade over it while the rounded shape is
-   * still growing shows the rectangle first and the panel second. Fading the
-   * sheet only after the confirmation ties the two together at any frame rate. */
+  /* True only once main confirms the glass sheet is actually painting behind
+   * us. It now arrives on the first frame of the open animation, because main
+   * draws the glass on the exact shape the renderer just reported (see
+   * `visibleGlassShape`). The sheet still waits for it — one frame of an
+   * opaque blade is invisible, while a translucent blade over nothing is a
+   * flash of sharp desktop — and it drops the moment `open` goes false, so the
+   * retraction never runs with a translucent sheet and no glass under it. */
   const [liveGlassOn, setLiveGlassOn] = useState(false)
 
   useEffect(() => {
@@ -187,7 +376,7 @@ export function Panel() {
     ;(bladeStyle as Record<string, unknown>)['--live-sheet'] = String(liveSheetAlpha(frostIntensity))
   }
   const bladeClass = frostLive
-    ? `blade blade-live${liveGlassOn ? ' blade-live-shown' : ''}`
+    ? `blade blade-live${open && liveGlassOn ? ' blade-live-shown' : ''}`
     : 'blade'
 
   /* The frame on which the open clip-path settles is the only one where the
@@ -217,35 +406,74 @@ export function Panel() {
     return window.edge.onBackdrop((next) => setBackdrop(next))
   }, [])
 
-  /* Tell main where the blade is, so it can place the live acrylic layer
-   * exactly behind it. Always reported (not only in live mode): the setting can
-   * be flipped while the panel is open, and the layer must already know where
-   * it goes. */
-  useEffect(() => {
+  /* Tell main the shape the blade is painting, every frame it changes. This is
+   * what lets the glass ride the open animation: main clips the glass to the
+   * same rounded rect, so the blade never grows over a rectangle (and the
+   * glass never rounds a corner the blade has not reached yet). Reported even
+   * when the panel is closed — the setting can be flipped while it is open. */
+  const lastShapeRef = useRef<string>('')
+  useLayoutEffect(() => {
     let raf = 0
-    const report = () => {
-      const el = bladeRef.current
-      if (!el) return
-      const r = el.getBoundingClientRect()
-      if (r.width < 8 || r.height < 8) return
-      window.edge.reportBladeRect({
-        left: Math.round(r.left),
-        top: Math.round(r.top),
-        width: Math.round(r.width),
-        height: Math.round(r.height)
-      })
+    let idle = 0
+    let running = true
+    const measure = () => {
+      raf = 0
+      const bladeEl = bladeRef.current
+      const containerEl = containerRef.current
+      if (bladeEl && containerEl) {
+        const shape = visibleGlassShape(bladeEl, containerEl)
+        const key = shape
+          ? [
+              Math.round(shape.left * 10),
+              Math.round(shape.top * 10),
+              Math.round(shape.width * 10),
+              Math.round(shape.height * 10),
+              shape.radii.topLeft,
+              shape.radii.topRight,
+              shape.radii.bottomRight,
+              shape.radii.bottomLeft
+            ].join('|')
+          : 'none'
+        if (key !== lastShapeRef.current) {
+          lastShapeRef.current = key
+          idle = 0
+          window.edge.reportBladeRect(shape)
+        } else if (++idle > 40) {
+          // Settled (or nothing moving): stop burning a frame callback until
+          // the next open / resize / settings change.
+          running = false
+        }
+      }
+      if (running) raf = requestAnimationFrame(measure)
     }
-    const schedule = () => {
-      cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(report)
+    const kick = () => {
+      running = true
+      idle = 0
+      if (!raf) raf = requestAnimationFrame(measure)
     }
-    schedule()
-    window.addEventListener('resize', schedule)
+    // Reported synchronously, in the same commit that flips the clip-path, so
+    // main has this frame's shape before the first frame of the animation is
+    // composited: the glass appears on the blade's very first frame instead of
+    // one frame behind it.
+    measure()
+    window.addEventListener('resize', kick)
     return () => {
+      running = false
       cancelAnimationFrame(raf)
-      window.removeEventListener('resize', schedule)
+      window.removeEventListener('resize', kick)
     }
-  }, [isHorizontal, panelH, panelWidth, topPanelWidth, settingsOpen, screenW, screenH, midY, open])
+  }, [
+    isHorizontal,
+    panelH,
+    panelWidth,
+    topPanelWidth,
+    settingsOpen,
+    screenW,
+    screenH,
+    midY,
+    open,
+    edgeTransition?.stage
+  ])
 
   useEffect(() => {
     if (!backdrop || frostIntensity <= 0 || frostLive) {
@@ -955,5 +1183,7 @@ function SplitDropZone({ stickPosition = 'left' }: { stickPosition?: 'left' | 'r
     </AnimatePresence>
   )
 }
+
+
 
 

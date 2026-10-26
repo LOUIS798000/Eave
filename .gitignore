@@ -35,6 +35,13 @@ Blue_gradient (1).png
 scratch/*.py
 scratch/cdp*.mjs
 scratch/acrylic-probe/
+scratch/backdrop/
+scratch/backdropprofile/
+scratch/devprofile/
+scratch/packprofile/
+scratch/*.pid
+scratch/*.cjs
+dist-portable-next/
 .devprofile/
 scratch/*.out
 scratch/*.err

@@ -14,11 +14,27 @@
  * The temp files are cleaned up on the next app start (see cleanTemp).
  */
 import { app, nativeImage, type WebContents } from 'electron'
-import { Resvg } from '@resvg/resvg-js'
 import { copyFileSync, mkdirSync, writeFileSync, existsSync, statSync } from 'node:fs'
 import { join, extname } from 'node:path'
 import { getUnpackagedTempDir, toUnpackagedFilePaths } from '../store/paths'
 import type { DragRequest, ItemData } from '../../shared/types'
+
+type ResvgCtor = typeof import('@resvg/resvg-js').Resvg
+
+/**
+ * The Rust SVG rasteriser is only needed while a drag is starting. Loading it
+ * on first use keeps its native memory out of an idle shelf.
+ */
+let resvgCtor: ResvgCtor | null | undefined
+function getResvg(): ResvgCtor | null {
+  if (resvgCtor !== undefined) return resvgCtor
+  try {
+    resvgCtor = (require('@resvg/resvg-js') as typeof import('@resvg/resvg-js')).Resvg
+  } catch {
+    resvgCtor = null
+  }
+  return resvgCtor
+}
 import { getStore } from './state'
 import { getFileKind } from '../../src/lib/fileType'
 import { recordStagedFiles } from './stagedTemp'
@@ -306,7 +322,7 @@ export function stageDragFile(
 
 /** Cache recently built drag icons to avoid re-reading images. */
 const iconCache = new Map<string, Electron.NativeImage>()
-const ICON_CACHE_MAX = 64
+const ICON_CACHE_MAX = 24
 
 /** Pre-fetch OS file icons into cache so dragIcon is synchronous. */
 export function prefetchFileIcons(paths: string[]): void {
@@ -401,7 +417,9 @@ function createFileStackDragIcon(paths: string[], entries?: Array<{ isDirectory?
   const svg = buildFileDragSvg(kinds, count)
 
   try {
-    const resvg = new Resvg(svg, { fitTo: { mode: 'zoom', value: 2 } })
+    const ResvgImpl = getResvg()
+    if (!ResvgImpl) return getFileDragIcon()
+    const resvg = new ResvgImpl(svg, { fitTo: { mode: 'zoom', value: 2 } })
     const pngData = resvg.render().asPng()
     const img = nativeImage.createFromBuffer(pngData, { scaleFactor: 2 })
     if (!img.isEmpty()) {
@@ -477,28 +495,12 @@ function createTextDragIcon(text: string): Electron.NativeImage {
   </svg>`
 
   try {
-    const resvg = new Resvg(svg, { fitTo: { mode: 'zoom', value: 2 } })
+    const ResvgImpl = getResvg()
+    if (!ResvgImpl) return getFileDragIcon()
+    const resvg = new ResvgImpl(svg, { fitTo: { mode: 'zoom', value: 2 } })
     const pngData = resvg.render().asPng()
     const img = nativeImage.createFromBuffer(pngData, { scaleFactor: 2 })
     if (!img.isEmpty()) return img
   } catch {}
   return getFileDragIcon()
-}
-
-/** Pre-warm common drag icons asynchronously in background so first drag is instant. */
-export function prewarmDragIcons(): void {
-  setTimeout(() => {
-    try {
-      const commonKinds = [
-        'pdf', 'word', 'excel', 'powerpoint', 'archive',
-        'text', 'code', 'audio', 'video', 'image',
-        'executable', 'folder', 'file'
-      ]
-      for (const k of commonKinds) {
-        createFileStackDragIcon([`dummy.${k}`])
-      }
-      createFileStackDragIcon(['dummy.image', 'dummy.image'])
-      createFileStackDragIcon(['dummy.image', 'dummy.image', 'dummy.image'])
-    } catch {}
-  }, 400)
 }

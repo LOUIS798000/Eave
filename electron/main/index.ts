@@ -16,7 +16,6 @@ import { createTray, registerIncognitoApplier, refreshTray } from './tray'
 import { registerIpc, registerSendListeners } from './ipc'
 import { reconcileLaunchAtLoginOnStartup } from './loginItems'
 import { isStoreBuild, shouldStartHidden } from './config'
-import { prewarmDragIcons } from './drag'
 import { initState, getWatcher, loadSettings, saveSettings, pushState, stopStateTimers, getStore } from './state'
 import { createOnboardingWindow } from './onboardingWindow'
 import { startFullscreenMonitor, stopFullscreenMonitor, triggerFullscreenCheck, fullscreenDiagnostics } from './fullscreen'
@@ -59,6 +58,12 @@ app.commandLine.appendSwitch(
   'disable-features',
   'AudioServiceOutOfProcess,SpareRendererForSitePerProcess,WinDelaySpellcheckServiceInit,WinRetrieveSuggestionsOnlyOnDemand'
 )
+
+// The network service is its own ~13 MB utility process. This app only loads
+// its own `edgelocal://` protocol and never touches the public internet from a
+// renderer, so hosting the service inside the browser process removes a whole
+// process with no change in behaviour.
+app.commandLine.appendSwitch('enable-features', 'NetworkServiceInProcess2')
 
 // ---- single instance -------------------------------------------------------
 const gotLock = app.requestSingleInstanceLock()
@@ -146,7 +151,6 @@ app.whenReady().then(() => {
   registerIpc()
   registerSendListeners()
   initState()
-  prewarmDragIcons()
 
   // Reflect settings immediately.
   let settings = loadSettings()

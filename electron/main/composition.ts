@@ -809,6 +809,30 @@ export class GlassLayer {
     this.setVisible(isVisible)
   }
 
+  /**
+   * Re-insert the glass under the panel without touching its visibility.
+   *
+   * Activating the panel (the hotkey recorder and the search field make the
+   * window focusable for a moment) can leave the deactivated panel *below*
+   * this topmost overlay, which then paints the blur on top of the cards: the
+   * "everything went blurry until I show the desktop" report. One SetWindowPos
+   * puts it back. Cheap enough to be called on every focus transition.
+   */
+  reassertOrder(): void {
+    if (!this.hwnd || !this.visible) return
+    const panelHwnd = this.panelHwnd()
+    if (!panelHwnd) return
+    api().fn.SetWindowPos(
+      this.hwnd,
+      panelHwnd,
+      0,
+      0,
+      0,
+      0,
+      SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER
+    )
+  }
+
   private panelHwnd(): number {
     const panel = this.panel
     if (!panel || panel.isDestroyed()) return 0

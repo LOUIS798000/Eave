@@ -68,6 +68,18 @@ describe('Desktop frost backdrop', () => {
     expect(DEFAULT_SETTINGS.frostLive).toBe(false)
   })
 
+  it('re-asserts the glass z-order after focus transitions', () => {
+    // Making the panel focusable (hotkey recorder, search) and releasing it can
+    // leave the panel under the topmost glass overlay, which paints the blur on
+    // top of the cards. Every focus transition re-inserts the glass below.
+    const win = read('electron/main/window.ts')
+    expect(win).toContain('function reassertGlassSoon()')
+    expect(win).toContain('reassertGlassSoon()')
+    expect(win).toContain("mainWindow.on('blur'")
+    expect(read('electron/main/acrylic.ts')).toContain('export function reassertAcrylicOrder')
+    expect(read('electron/main/composition.ts')).toContain('reassertOrder(): void')
+  })
+
   it('paints the blade flat and opaque while Settings is open', () => {
     // The clipboard list sits behind the settings view; neither a snapshot of
     // it nor a live-acrylic sample of the previous frame may show through.

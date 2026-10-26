@@ -25,6 +25,7 @@ import {
   ensureAcrylicLayer,
   hideAcrylicLayer,
   refreshAcrylicPosition,
+  reassertAcrylicOrder,
   setAcrylicTint,
   setAcrylicVisibilityListener,
   showAcrylicLayer
@@ -1224,6 +1225,12 @@ export function createWindow(): BrowserWindow {
   // Respect OS-level always-on-top reordering.
   mainWindow.on('focus', () => {
     mainWindow?.setAlwaysOnTop(true, 'screen-saver')
+    reassertGlassSoon()
+  })
+
+  // Losing activation is the moment the panel can slip under the glass.
+  mainWindow.on('blur', () => {
+    reassertGlassSoon()
   })
 
   // Open external links in the default browser.
@@ -1463,6 +1470,19 @@ export function setVisible(visible: boolean): void {
   }
 }
 
+/**
+ * Re-assert the glass layer directly under the panel, now and once the
+ * activation handoff has settled. When the panel is made focusable (hotkey
+ * recorder, search) and then released, Windows can drop the panel below the
+ * topmost glass overlay for a moment — the blur then covers the whole blade,
+ * which reads as "the UI went blurry" until something forces a repaint.
+ */
+function reassertGlassSoon(): void {
+  reassertAcrylicOrder()
+  setTimeout(reassertAcrylicOrder, 120)
+  setTimeout(reassertAcrylicOrder, 420)
+}
+
 export function setWindowFocusable(focusable: boolean): void {
   if (mainWindow && !mainWindow.isDestroyed()) {
     try {
@@ -1505,6 +1525,7 @@ export function setWindowFocusable(focusable: boolean): void {
             void restoreFgAwaited(target, 'release-repair').catch(() => {})
           }
         }
+        reassertGlassSoon()
         return
       }
       applyNoActivateStyle(mainWindow, false)
@@ -1512,6 +1533,7 @@ export function setWindowFocusable(focusable: boolean): void {
       focusabilityApplied = true
       mainWindow.focus()
       traceFg('setWindowFocusable(true) exit')
+      reassertGlassSoon()
     } catch {}
   }
 }

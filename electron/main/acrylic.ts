@@ -186,6 +186,17 @@ export function refreshAcrylicPosition(): void {
   if (wantVisible) layer.raise(true)
 }
 
+/**
+ * Re-assert the glass z-order after the panel window changed its own z-order.
+ * Focus/activation handoffs (hotkey recorder, search field) can drop the
+ * deactivated panel below this topmost overlay — the blur then covers the
+ * cards. Idempotent and cheap; safe to call on every focus transition.
+ */
+export function reassertAcrylicOrder(): void {
+  if (!wantVisible || !bladeRect) return
+  layer?.reassertOrder()
+}
+
 /** Tear the layer down (setting switched off, or app quitting). */
 export function destroyAcrylicLayer(): void {
   wantVisible = false

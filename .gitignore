@@ -42,6 +42,7 @@ scratch/packprofile/
 scratch/*.pid
 scratch/*.cjs
 dist-portable-next/
+dist-portable-*/
 .devprofile/
 scratch/*.out
 scratch/*.err

@@ -1313,6 +1313,13 @@
   color: rgba(29, 29, 31, 0.68);
   font-size: calc(11px * var(--font-scale, 1));
   font-weight: 500;
+  /* Centre the label in the segment: the button's 6px block padding would
+     otherwise push it ~3px below the visual middle of a 22-26px pill. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  line-height: 1.2;
   transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
 }
 
@@ -1347,6 +1354,11 @@
   color: rgba(29, 29, 31, 0.68);
   font-size: calc(11px * var(--font-scale, 1));
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  line-height: 1.2;
   transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
 }
 

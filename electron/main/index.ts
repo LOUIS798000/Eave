@@ -11,7 +11,7 @@
 import { app, BrowserWindow, protocol, session } from 'electron'
 import { APP_CONFIG, runtime } from './config'
 import { ensureDirs, PATHS } from '../store/paths'
-import { createWindow, getMainWindow, setInteractive, setVisible, startCursorPoll, stopCursorPoll, stopHeartbeat, setHotZoneWidth, registerTaskbarCreatedListener } from './window'
+import { createWindow, getMainWindow, setInteractive, setVisible, startCursorPoll, stopCursorPoll, stopHeartbeat, setHotZoneWidth, registerTaskbarCreatedListener, refreshBackdropNow } from './window'
 import { createTray, registerIncognitoApplier, refreshTray } from './tray'
 import { registerIpc, registerSendListeners } from './ipc'
 import { reconcileLaunchAtLoginOnStartup } from './loginItems'
@@ -342,6 +342,9 @@ export function registerGlobalHotkey(targetHotkey?: string): boolean {
       const now = Date.now()
       if (now - _lastHotkeyToggleTime < 500) return
       _lastHotkeyToggleTime = now
+      // Snapshot the desktop before the blade paints, so a hotkey open also
+      // shows the window the user is actually looking at.
+      refreshBackdropNow()
       pushState.togglePanel()
     })
 

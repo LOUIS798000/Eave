@@ -413,7 +413,7 @@ function refreshBackdrop(): void {
   try {
     const url = captureBackdrop({ x: b.x, y: b.y, width: b.width, height: b.height })
     backdropCache = url ? { url, width: b.width, height: b.height } : null
-    console.log(`[Main] Frost backdrop ${url ? `captured (${url.length} chars)` : 'unavailable'}`)
+    if (!backdropCache) console.warn('[Main] Frost backdrop unavailable')
   } catch (err) {
     console.warn('[Main] Frost backdrop refresh failed:', err)
   }
@@ -426,6 +426,11 @@ function scheduleBackdropRefresh(delayMs: number): void {
     refreshBackdrop()
   }, delayMs)
   backdropTimer.unref?.()
+}
+
+/** Re-take the frost snapshot now (only meaningful while the panel is closed). */
+export function refreshBackdropNow(): void {
+  refreshBackdrop()
 }
 
 function pushBackdrop(): void {
@@ -698,6 +703,13 @@ function _pollTick(): void {
   const shouldSend = newState !== lastEdgeState || interactive || (nearEdge && positionChangedEnough)
 
   if (shouldSend) {
+    // Fresh frost snapshot: the cursor just entered the edge strip, so the
+    // panel is still retracted and the desktop behind it is unobstructed. This
+    // is what keeps the frost in sync with whatever window the user switched
+    // to — a close-time snapshot alone showed the *previous* window's content.
+    if (newState && !lastEdgeState && !interactive) {
+      refreshBackdrop()
+    }
     lastEdgeState = newState
     _lastSentX = clientX
     _lastSentY = clientY

@@ -42,6 +42,10 @@ function merge(base: Settings, patch: Partial<Settings>): Settings {
     out.horizontalOffset = 0.5
   }
   out.horizontalOffset = Math.min(1.0, Math.max(0.0, out.horizontalOffset))
+  out.frostIntensity = Math.min(
+    1,
+    Math.max(0, typeof out.frostIntensity === 'number' && Number.isFinite(out.frostIntensity) ? out.frostIntensity : 1)
+  )
   // Panel size: width is always an explicit pixel value; heights keep 0 as
   // "auto" so upgraders retain the old fraction/default behaviour.
   out.panelWidth = Math.round(

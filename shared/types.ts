@@ -220,6 +220,12 @@ export interface Settings {
   showEdgeLocationHint?: boolean
   /** When true, plays tactile audio sound effects for sliders, buttons, and switches. Default: true. */
   soundEffects?: boolean
+  /**
+   * Strength of the frosted-glass backdrop behind the blade (0 = flat white,
+   * 0.5 = soft, 1 = full desktop frost). The frost is a downscaled snapshot of
+   * the desktop, so it costs no continuous rendering. Default: 1.
+   */
+  frostIntensity?: number
   /** Last version for which the user opened/viewed the What's New changelog panel. */
   lastSeenChangelogVersion?: string
   /** When true, hovering cursor near edge activates the panel. When false, panel opens exclusively via Alt + C. Default: true. */
@@ -281,6 +287,7 @@ export const DEFAULT_SETTINGS: Settings = {
   triggerAlignment: 'center',
   showEdgeLocationHint: false,
   soundEffects: true,
+  frostIntensity: 1,
   lastSeenChangelogVersion: undefined,
   hoverActivation: true,
   hoverOpenDelay: 0,

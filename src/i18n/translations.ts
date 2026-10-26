@@ -136,6 +136,11 @@ export interface TranslationKeys {
     typography: string
     textSizeTitle: string
     textSizeDesc: string
+    frostTitle?: string
+    frostDesc?: string
+    frostOff?: string
+    frostSoft?: string
+    frostStrong?: string
     audioAndFeedback?: string
     small?: string
     normal?: string
@@ -353,6 +358,7 @@ export interface TranslationKeys {
     copyBeacon?: string
     beaconStyle?: string
     audioFeedback?: string
+    frost?: string
     alignment?: string
     triggerPosition?: string
     panelHeight?: string
@@ -691,6 +697,11 @@ export const en: TranslationKeys = {
     "typography": "Typography",
     "textSizeTitle": "Text size",
     "textSizeDesc": "Adjust UI typography scale across Edge-Drop",
+    "frostTitle": "Glass frost",
+    "frostDesc": "How much of the desktop shows through the frosted panel",
+    "frostOff": "Off",
+    "frostSoft": "Soft",
+    "frostStrong": "Strong",
     "audioAndFeedback": "Audio & Feedback",
     "small": "Small",
     "normal": "Normal",
@@ -923,6 +934,7 @@ export const en: TranslationKeys = {
     "copyBeacon": "COPY BEACON",
     "beaconStyle": "BEACON STYLE",
     "audioFeedback": "AUDIO FEEDBACK",
+    "frost": "GLASS FROST",
     "alignment": "ALIGNMENT",
     "triggerPosition": "TRIGGER POSITION",
     "panelHeight": "PANEL HEIGHT",
@@ -4066,6 +4078,11 @@ export const zhCN: TranslationKeys = {
     "typography": "排版",
     "textSizeTitle": "文字大小",
     "textSizeDesc": "调整 Edge-Drop 整体的界面排版比例",
+    "frostTitle": "毛玻璃强度",
+    "frostDesc": "桌面透过磨砂面板的程度",
+    "frostOff": "关闭",
+    "frostSoft": "柔和",
+    "frostStrong": "浓郁",
     "audioAndFeedback": "音频和反馈",
     "small": "小",
     "normal": "正常",
@@ -4295,6 +4312,7 @@ export const zhCN: TranslationKeys = {
     "copyBeacon": "复制指示器",
     "beaconStyle": "指示器样式",
     "audioFeedback": "音频反馈",
+    "frost": "毛玻璃",
     "alignment": "对齐",
     "triggerPosition": "触发条位置",
     "panelHeight": "面板高度",

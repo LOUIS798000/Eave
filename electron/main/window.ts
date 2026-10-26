@@ -18,6 +18,7 @@ import koffi from 'koffi'
 import { APP_CONFIG } from './config'
 import { runtime } from './config'
 import { trimWorkingSets } from './memory'
+import { captureBackdrop } from './backdrop'
 import { PATHS } from '../store/paths'
 import { TRANSLATIONS, en } from '../../src/i18n/translations'
 import { computeStickBounds } from './geometry'
@@ -387,12 +388,69 @@ function scheduleMemoryTrim(): void {
   memoryTrimTimer.unref?.()
 }
 
+/* ── Frost backdrop ─────────────────────────────────────────────────────
+ * The blade paints a downscaled screenshot of whatever sits behind it. The
+ * snapshot is taken while the panel is fully retracted (nothing of ours on
+ * screen), cached, and replayed on the next open, so opening never waits on a
+ * capture and never photographs its own blade.
+ */
+type BackdropPayload = { url: string; width: number; height: number }
+
+let backdropCache: BackdropPayload | null = null
+let backdropTimer: ReturnType<typeof setTimeout> | null = null
+
+function refreshBackdrop(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  // The blade is on screen while interactive; capturing now would grab it.
+  if (interactive) return
+  const settings = loadSettings()
+  if ((settings.frostIntensity ?? 1) <= 0) {
+    backdropCache = null
+    return
+  }
+  const b = mainWindow.getBounds()
+  if (b.width < 8 || b.height < 8) return
+  try {
+    const url = captureBackdrop({ x: b.x, y: b.y, width: b.width, height: b.height })
+    backdropCache = url ? { url, width: b.width, height: b.height } : null
+    console.log(`[Main] Frost backdrop ${url ? `captured (${url.length} chars)` : 'unavailable'}`)
+  } catch (err) {
+    console.warn('[Main] Frost backdrop refresh failed:', err)
+  }
+}
+
+function scheduleBackdropRefresh(delayMs: number): void {
+  if (backdropTimer !== null) clearTimeout(backdropTimer)
+  backdropTimer = setTimeout(() => {
+    backdropTimer = null
+    refreshBackdrop()
+  }, delayMs)
+  backdropTimer.unref?.()
+}
+
+function pushBackdrop(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  const b = mainWindow.getBounds()
+  const cached = backdropCache
+  if (!cached || cached.width !== b.width || cached.height !== b.height) {
+    // Geometry changed since the snapshot: skip the frost for this open and
+    // refresh once the panel closes again.
+    sendToMainWindow('window:backdrop', null)
+    return
+  }
+  sendToMainWindow('window:backdrop', cached)
+}
+
 export function setInteractive(value: boolean): void {
   if (!mainWindow || value === interactive) return
   interactive = value
   // Open starts here; hold main-thread thumbnail decodes off its frames.
   noteUiMotion()
   if (value) {
+    // Hand the renderer the frost snapshot taken the last time the panel was
+    // fully retracted. Capturing here instead would photograph our own blade.
+    pushBackdrop()
+
     // Panel is open: disable click-through so user can interact.
     // Remember who is in front BEFORE any search typing can steal focus.
     captureExternalForeground()
@@ -428,6 +486,9 @@ export function setInteractive(value: boolean): void {
       gcTimer.unref?.()
     }
     scheduleMemoryTrim()
+    // Refresh the frost snapshot once the close animation has retracted the
+    // blade — this is the only moment the desktop behind it is unobstructed.
+    scheduleBackdropRefresh(500)
   }
 }
 
@@ -1142,6 +1203,8 @@ export function setVisible(visible: boolean): void {
     mainWindow.showInactive()
     mainWindow.setAlwaysOnTop(true, 'screen-saver')
     mainWindow.setSkipTaskbar(true)
+    // Prime the frost snapshot so the very first hover already has one.
+    scheduleBackdropRefresh(1200)
   } else {
     mainWindow.hide()
     scheduleMemoryTrim()

@@ -222,6 +222,7 @@ const api = {
   onSettings: (cb: (settings: EventArgs<'state:settings'>[0]) => void) => on('state:settings', cb),
   onToggle: (cb: (open?: boolean) => void) => on('window:toggle', cb),
   onOpenSettings: (cb: () => void) => on('window:open-settings', cb),
+  onBackdrop: (cb: (backdrop: EventArgs<'window:backdrop'>[0]) => void) => on('window:backdrop', cb),
   onDragEnd: (cb: () => void) => {
     return on('item:drag-end', () => {
       setInternalDragState(false)

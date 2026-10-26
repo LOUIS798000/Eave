@@ -136,6 +136,12 @@ export interface EventMap {
   'window:toggle': [open?: boolean]
   /** Open the panel directly to settings from the main process (e.g. tray). */
   'window:open-settings': []
+  /**
+   * Frost backdrop for the blade: a downscaled snapshot of the desktop taken
+   * while the panel was retracted. `null` means "no snapshot" (frost disabled,
+   * geometry changed, or capture failed) and the blade falls back to flat white.
+   */
+  'window:backdrop': [backdrop: { url: string; width: number; height: number } | null]
   /** Fired when an OS drag initiated by the app has completed. */
   'item:drag-end': []
   /** Tutorial step sync */

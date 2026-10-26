@@ -143,6 +143,64 @@ export function Panel() {
 
   const bladeRef = useRef<HTMLDivElement>(null)
 
+  /* ── Frost backdrop ───────────────────────────────────────────────────
+   * Main hands us a downscaled snapshot of the desktop behind the window. It
+   * is stretched back over the window and cropped to the blade's own rect, so
+   * the blade shows the (pre-blurred) desktop as its material instead of flat
+   * white. Only present when `frostIntensity > 0` and a snapshot exists; the
+   * blade's CSS background stays opaque underneath so glyphs keep ClearType.
+   */
+  const [backdrop, setBackdrop] = useState<{ url: string; width: number; height: number } | null>(null)
+  const [frostStyle, setFrostStyle] = useState<React.CSSProperties | null>(null)
+  const frostIntensity = settings.frostIntensity ?? 1
+
+  useEffect(() => {
+    return window.edge.onBackdrop((next) => setBackdrop(next))
+  }, [])
+
+  useEffect(() => {
+    if (!backdrop || frostIntensity <= 0) {
+      setFrostStyle(null)
+      return
+    }
+    let raf = 0
+    let settleTimer: ReturnType<typeof setTimeout> | null = null
+
+    const measure = () => {
+      const el = bladeRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      if (r.width < 8 || r.height < 8) return
+      const tint = 0.6 + 0.34 * (1 - frostIntensity)
+      setFrostStyle({
+        '--frost-image': `url("${backdrop.url}")`,
+        // Stretch the snapshot back over the whole window, then shift it so the
+        // blade's own rect lands on the blade.
+        '--frost-size': `${(backdrop.width / r.width) * 100}% ${(backdrop.height / r.height) * 100}%`,
+        '--frost-pos': `${(-r.left / r.width) * 100}% ${(-r.top / r.height) * 100}%`,
+        '--frost-tint': tint.toFixed(3)
+      } as React.CSSProperties)
+    }
+
+    const schedule = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(measure)
+    }
+
+    schedule()
+    // Re-measure once the open spring has settled: during the animation the
+    // blade is still translated, so the crop would be off by that offset.
+    if (settleTimer !== null) clearTimeout(settleTimer)
+    settleTimer = setTimeout(schedule, 420)
+
+    window.addEventListener('resize', schedule)
+    return () => {
+      cancelAnimationFrame(raf)
+      if (settleTimer !== null) clearTimeout(settleTimer)
+      window.removeEventListener('resize', schedule)
+    }
+  }, [backdrop, frostIntensity, isHorizontal, panelH, panelWidth, topPanelWidth, settingsOpen, open])
+
   useEffect(() => {
     const blade = bladeRef.current
     if (!blade) return
@@ -513,6 +571,7 @@ export function Panel() {
             ? ({ width: topPanelWidth, height: panelH, '--hcard-h': `${horizontalCardH}px`, '--hcard-w': `${horizontalCardW}px` } as React.CSSProperties)
             : { width: panelWidth, height: panelH }}
         >
+          {frostStyle && <div className="blade-frost" style={frostStyle} aria-hidden="true" />}
           <Header
             isHorizontal={isHorizontal}
             itemCount={filteredCount}

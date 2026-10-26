@@ -75,6 +75,8 @@ export interface EdgeApi {
   onSettings: (cb: (settings: Settings) => void) => () => void
   onToggle: (cb: (open?: boolean) => void) => () => void
   onOpenSettings: (cb: () => void) => () => void
+  /** Frost backdrop for the blade (downscaled desktop snapshot, or null). */
+  onBackdrop: (cb: (backdrop: { url: string; width: number; height: number } | null) => void) => () => void
   onDragEnd: (cb: () => void) => () => void
   onInternalDrop: (cb: (pos: { x: number; y: number }) => void) => () => void
   onCursorEdge: (cb: (data: {

@@ -1771,6 +1771,35 @@ export function Settings({
                 </div>
               )}
 
+              {/* Card 3: Frost strength */}
+              <div className="settings-shelf-card frost-card appearance-col">
+                <div className="shelf-card-top">
+                  <div className="setting-group-label">{t('groups.frost')}</div>
+                  <div className="setting-title">{t('appearance.frostTitle')}</div>
+                  <div className="setting-desc">{t('appearance.frostDesc')}</div>
+                </div>
+                <div className="shelf-card-bottom">
+                  <div className="setting-pills">
+                    {[
+                      { label: t('appearance.frostOff'), val: 0 },
+                      { label: t('appearance.frostSoft'), val: 0.5 },
+                      { label: t('appearance.frostStrong'), val: 1 }
+                    ].map((opt) => (
+                      <button
+                        key={opt.label}
+                        className={`pill ${Math.abs((settings.frostIntensity ?? 1) - opt.val) < 0.26 ? 'active' : ''}`}
+                        onClick={() => {
+                          playButtonClickSound()
+                          patch({ frostIntensity: opt.val })
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               {/* ── SUB-GROUP 2 DIVIDER: Audio & Feedback ── */}
               <div className="shelf-section-divider">
                 <span className="shelf-section-divider-text">{t('appearance.audioAndFeedback') || 'AUDIO FEEDBACK'}</span>
@@ -2702,6 +2731,35 @@ export function Settings({
                             onClick={() => {
                               playButtonClickSound()
                               patch({ fontSizeScale: opt.val })
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 4: Frost strength */}
+                  <div className="setting-card">
+                    <div className="shelf-card-top">
+                      <div className="setting-group-label">{t('groups.frost')}</div>
+                      <div className="setting-title">{t('appearance.frostTitle')}</div>
+                      <div className="setting-desc">{t('appearance.frostDesc')}</div>
+                    </div>
+                    <div className="shelf-card-bottom">
+                      <div className="setting-pills">
+                        {[
+                          { label: t('appearance.frostOff'), val: 0 },
+                          { label: t('appearance.frostSoft'), val: 0.5 },
+                          { label: t('appearance.frostStrong'), val: 1 }
+                        ].map((opt) => (
+                          <button
+                            key={opt.label}
+                            className={`pill ${Math.abs((settings.frostIntensity ?? 1) - opt.val) < 0.26 ? 'active' : ''}`}
+                            onClick={() => {
+                              playButtonClickSound()
+                              patch({ frostIntensity: opt.val })
                             }}
                           >
                             {opt.label}

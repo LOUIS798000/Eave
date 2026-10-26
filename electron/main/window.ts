@@ -413,8 +413,8 @@ function refreshBackdrop(): void {
   // The blade is on screen while interactive; capturing now would grab it.
   if (interactive) return
   const settings = loadSettings()
-  if ((settings.frostIntensity ?? 1) <= 0 || (settings.frostLive ?? false)) {
-    // Flat white, or the live acrylic layer is doing the work: no snapshot.
+  if ((settings.frostIntensity ?? 1) <= 0) {
+    // Flat white: no snapshot needed.
     backdropCache = null
     return
   }
@@ -477,6 +477,11 @@ function showLiveFrost(): void {
 }
 
 /** Renderer says the open animation has settled (see showLiveFrost). */
+export function onPanelCollapsed(): void {
+  cancelFrostShow()
+  hideAcrylicLayer()
+}
+
 export function onPanelExpanded(): void {
   showLiveFrost()
 }
@@ -1363,3 +1368,5 @@ export function setWindowFocusable(focusable: boolean): void {
 export function focusMainWindow(): void {
   setWindowFocusable(true)
 }
+
+

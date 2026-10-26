@@ -215,7 +215,9 @@ export interface SendMap {
    * rect. Main uses this (instead of a guessed timeout) to bring the live
    * acrylic layer up, which is what keeps the glass in step with the shape.
    */
-  'window:panel-expanded': { args: [] }
+  'window:panel-expanded': { args: [] },
+  /** The blade started retracting: drop the glass on that frame. */
+  'window:panel-collapsed': { args: [] }
 }
 
 /* ------------------------------------------------------------------ */
@@ -239,3 +241,4 @@ export type InvokeResult<C extends InvokeChannel> = InvokeMap[C]['result']
 export type EventArgs<C extends EventChannel> = EventMap[C]
 /** Argument tuple for a fire-and-forget send channel. */
 export type SendArgs<C extends SendChannel> = SendMap[C]['args']
+

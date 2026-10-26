@@ -219,6 +219,7 @@ const api = {
   broadcastTutorialStep: (step: number) => send('tutorial:set-step', step),
   reportBladeRect: (rect: BladeRect | null) => send('window:blade-rect', rect),
   reportPanelExpanded: () => send('window:panel-expanded'),
+  reportPanelCollapsed: () => send('window:panel-collapsed'),
 
   /* Main -> Renderer */
   onItems: (cb: (items: EventArgs<'state:items'>[0]) => void) => on('state:items', cb),
@@ -251,3 +252,4 @@ const _bridge: EdgeApi = api
 void _bridge
 
 contextBridge.exposeInMainWorld('edge', api)
+

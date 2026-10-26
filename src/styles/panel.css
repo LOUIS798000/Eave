@@ -97,7 +97,9 @@
   /* --live-sheet comes from shared/glass.ts so "毛玻璃强度" moves the system
      veil and this sheet together instead of cancelling out. */
   background-color: rgba(251, 251, 253, var(--live-sheet, 0.42));
-  transition: background-color 260ms cubic-bezier(0.32, 0.72, 0, 1);
+  /* No transition on purpose: crossfading would double up the white in the
+     middle of the fade. Both sides of the hand-over are the same desktop with
+     the same white amount, so the switch itself is invisible. */
 }
 .blade.blade-live::before {
   /* The sheen would otherwise stack a second white wash on the glass. */
@@ -1387,4 +1389,5 @@
   stroke-dashoffset: 0;
   transition: none;
 }
+
 

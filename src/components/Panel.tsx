@@ -24,7 +24,7 @@ import { LanguageFlyout } from './LanguageFlyout'
 import { CopyIndicatorCurve } from './CopyIndicatorCurve'
 import { useFilteredItems } from '../hooks/useFilteredItems'
 import { resolvePanelHeight, resolvePanelWidth, resolveTopCardWidth, resolveTopPanelHeight } from '../../shared/panelSize'
-import { liveSheetAlpha } from '../../shared/glass'
+import { livePhotoTint, liveSheetAlpha } from '../../shared/glass'
 
 import { useTranslation } from '../i18n'
 
@@ -206,6 +206,13 @@ export function Panel() {
     return () => el.removeEventListener('transitionend', onTransitionEnd)
   }, [])
 
+  /* Close starts here. Main has to drop the glass in the *same* frame the blade
+   * starts retracting: waiting for setInteractive(false) (300 ms later) leaves
+   * the sheet at full size while the rounded blade shrinks away from it. */
+  useEffect(() => {
+    if (!open) window.edge.reportPanelCollapsed()
+  }, [open])
+
   useEffect(() => {
     return window.edge.onBackdrop((next) => setBackdrop(next))
   }, [])
@@ -253,7 +260,10 @@ export function Panel() {
       if (!el) return
       const r = el.getBoundingClientRect()
       if (r.width < 8 || r.height < 8) return
-      const tint = 0.6 + 0.34 * (1 - frostIntensity)
+      // Live mode uses a denser tint so the frozen frost it paints while the
+      // blade grows matches the glass it hands over to (see shared/glass.ts —
+      // those numbers are measured, not derived).
+      const tint = frostLive ? livePhotoTint(frostIntensity) : 0.6 + 0.34 * (1 - frostIntensity)
       setFrostStyle({
         '--frost-image': `url("${backdrop.url}")`,
         // Stretch the snapshot back over the whole window, then shift it so the
@@ -945,3 +955,5 @@ function SplitDropZone({ stickPosition = 'left' }: { stickPosition?: 'left' | 'r
     </AnimatePresence>
   )
 }
+
+

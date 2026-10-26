@@ -76,6 +76,7 @@ export interface EdgeApi {
   reportBladeRect: (rect: import('./types').BladeRect | null) => void
   /** The open animation has settled — the blade fills its rounded rect. */
   reportPanelExpanded: () => void
+  reportPanelCollapsed: () => void
 
   /* Main -> Renderer */
   onItems: (cb: (items: import('./types').ClipboardItemDto[], meta?: { reason?: 'usage' | 'capture' }) => void) => () => void
@@ -107,3 +108,4 @@ export interface EdgeApi {
   onUpdateProgress: (cb: (progress: { percent: number; bytesPerSecond?: number; transferred?: number; total?: number }) => void) => () => void
   onUpdateDownloaded: (cb: (info: { version: string }) => void) => () => void
 }
+

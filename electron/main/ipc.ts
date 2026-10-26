@@ -12,7 +12,7 @@ import { psHost, getSystemPowerShellPath, getWritableCwd } from './powershell'
 import { filterValidPaths, isExistingFilePath } from './pathValidation'
 import { type InvokeMap, type InvokeChannel, type SendMap, type SendChannel } from '../../shared/ipc'
 import { getStore, loadSettings, saveSettings, pushState, addFiles, getWatcher } from './state'
-import { sendToMainWindow, setInteractive, setHeartbeatPaused, setHotZoneWidth, repositionWindow, getDisplayListOptions, popUpAndRetract, setWindowFocusable, captureExternalForeground, traceFg, resolvePasteTarget, applyFrostMode, onPanelExpanded } from './window'
+import { sendToMainWindow, setInteractive, setHeartbeatPaused, setHotZoneWidth, repositionWindow, getDisplayListOptions, popUpAndRetract, setWindowFocusable, captureExternalForeground, traceFg, resolvePasteTarget, applyFrostMode, onPanelCollapsed, onPanelExpanded } from './window'
 import { registerGlobalHotkey } from './index'
 import { getOnboardingWindow } from './onboardingWindow'
 import { rebuildTrayMenu } from './tray'
@@ -878,6 +878,12 @@ export function registerSendListeners(): void {
     sendToMainWindow('window:frost-live', isAcrylicLayerVisible())
   })
 
+  on('window:panel-collapsed', () => {
+    // The blade started retracting. Dropping the glass on this frame (and not
+    // when `setInteractive(false)` arrives 300 ms later) is what stops a
+    // full-size sheet from being left behind the shrinking blade.
+    onPanelCollapsed()
+  })
   on('window:panel-expanded', () => {
     // The open clip-path has settled and the blade now covers the glass
     // rectangle: this is the only safe moment to reveal it.
@@ -982,3 +988,5 @@ export async function writeItemToClipboard(data: ItemData, capturedAt?: number):
       return writeFileListToClipboard(data.paths)
   }
 }
+
+

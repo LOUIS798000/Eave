@@ -1,419 +1,174 @@
 /**
  * Live frosted glass for the blade ("实时磨砂").
  *
- * CSS cannot blur the desktop, and a *still* snapshot of the desktop (see
- * backdrop.ts) can only be re-taken while the panel is retracted. Real live
- * blur has to come from DWM, which means one extra, deliberately dumb window
- * that sits **directly underneath the panel** and is nothing but a sheet of
- * system acrylic: no page, no content, click-through, never focused.
+ * The drawing itself lives in composition.ts — a Windows.UI.Composition sprite
+ * whose brush is a Gaussian blur of whatever is behind the window, clipped to a
+ * rounded rectangle. This module is only the adapter that gives the rest of the
+ * app the old acrylic-layer API (`showAcrylicLayer`, `setAcrylicBladeRect`, …)
+ * so window.ts and ipc.ts keep their sequencing:
  *
- * Why a separate window instead of `backgroundMaterial` on the panel itself
- * (measured on Windows 11 26200, Electron 34.5.8, GPU disabled):
- *   - BrowserWindow `backgroundMaterial: 'acrylic' | 'mica'` does not render a
- *     backdrop here at all; it paints a flat solid tint (211/243 grey) that
- *     never follows the content behind the window.
- *   - `SetWindowCompositionAttribute(WCA_ACCENT_POLICY,
- *     ACCENT_ENABLE_ACRYLICBLURBEHIND)` does produce a live blur — and it blurs
- *     the **entire window rectangle**, ignoring the page's own alpha. Measured
- *     on a transparent patch of the page over a sharp checkerboard: std-dev
- *     collapsed from 119 to 0.6. So the acrylic window MUST be exactly the
- *     blade's rect; the panel window (blade + flyout gutters, 800x452) can
- *     never host it. Hence: layer window == blade rect, pinned under the panel.
+ *   open settles ──▶ showAcrylicLayer()  ──▶ listener(true)  ──▶ blade fades to
+ *                                                              translucent
+ *   close starts ──▶ hideAcrylicLayer()  ──▶ listener(false) ──▶ blade opaque
  *
- * Cost: one extra renderer process (~15-20 MB) for an empty transparent page.
- * That is why the layer is created lazily and torn down the moment the setting
- * is switched off.
+ * History, because it explains the shape of this code: this used to be a second
+ * Electron window with DWM's acrylic accent. That blur fills the whole window
+ * rectangle and cannot be shaped (SetWindowRgn, DWMWCP_ROUND and
+ * DWM_BB_BLURREGION were all accepted and all ignored), so a square sheet always
+ * poked out of the 24 px rounded blade and the accent painted its own hairline
+ * on top. Windows.UI.Composition blurs a rectangle we own and clip ourselves, so
+ * both defects disappear instead of being hidden.
  */
-import { BrowserWindow, app, screen } from 'electron'
-import { join } from 'node:path'
-import koffi from 'koffi'
-import { liveAccentAlpha } from '../../shared/glass'
+import { BrowserWindow, screen } from 'electron'
 import type { BladeRect } from '../../shared/types'
+import { CornerRadii, GlassLayer, GlassRect, ZERO_RADII } from './composition'
 
 export type { BladeRect }
 
-const WCA_ACCENT_POLICY = 19
-const ACCENT_ENABLE_ACRYLICBLURBEHIND = 4
-/** AccentFlags 0 keeps DWM from drawing its own border inside the sheet. */
-const ACCENT_FLAGS = 0
+/** The blade's corner radius, in CSS pixels (see `.blade` in panel.css). */
+const BLADE_RADIUS = 24
 
-const SWP_NOSIZE = 0x0001
-const SWP_NOMOVE = 0x0002
-const SWP_NOACTIVATE = 0x0010
-const SWP_NOZORDER = 0x0004
-const SWP_FRAMECHANGED = 0x0020
-const SWP_NOOWNERZORDER = 0x0200
-
-const GWL_EXSTYLE = -20
-const WS_EX_LAYERED = 0x00080000
-const WS_EX_NOACTIVATE = 0x08000000
-
-type Win32 = {
-  setComposition: (hwnd: bigint, policy: unknown) => number
-  setWindowPos: (
-    hwnd: bigint,
-    insertAfter: bigint,
-    x: number,
-    y: number,
-    cx: number,
-    cy: number,
-    flags: number
-  ) => boolean
-  getWindowLong: (hwnd: bigint, index: number) => number | bigint
-  setWindowLong: (hwnd: bigint, index: number, value: number) => number | bigint
-}
-
-let win32: Win32 | null = null
-let win32Failed = false
-
-function loadWin32(): Win32 | null {
-  if (process.platform !== 'win32') return null
-  if (win32) return win32
-  if (win32Failed) return null
-  try {
-    const user32 = koffi.load('user32.dll')
-    // koffi.struct registers the type globally; the returned descriptor is only
-    // needed so the `EdgeDropAccentPolicy *` field can be marshalled.
-    koffi.struct('EdgeDropAccentPolicy', {
-      AccentState: 'uint32',
-      AccentFlags: 'uint32',
-      GradientColor: 'uint32',
-      AnimationId: 'uint32'
-    })
-    koffi.struct('EdgeDropWcaData', {
-      Attrib: 'uint32',
-      pvData: 'EdgeDropAccentPolicy *',
-      cbData: 'size_t'
-    })
-    win32 = {
-      // The second parameter must be typed as the struct pointer, otherwise
-      // koffi rejects the plain object ("Unexpected Object value, expected void *").
-      setComposition: user32.func(
-        'int SetWindowCompositionAttribute(uintptr_t hwnd, EdgeDropWcaData *data)'
-      ) as Win32['setComposition'],
-      setWindowPos: user32.func(
-        'bool SetWindowPos(uintptr_t hwnd, uintptr_t insertAfter, int x, int y, int cx, int cy, uint32 flags)'
-      ) as Win32['setWindowPos'],
-      getWindowLong: user32.func('intptr_t GetWindowLongPtrW(uintptr_t hwnd, int index)') as Win32['getWindowLong'],
-      setWindowLong: user32.func(
-        'intptr_t SetWindowLongPtrW(uintptr_t hwnd, int index, intptr_t value)'
-      ) as Win32['setWindowLong']
-    }
-    return win32
-  } catch (err) {
-    win32Failed = true
-    console.warn('[Acrylic] Win32 accent APIs unavailable:', err)
-    return null
-  }
-}
-
-function hwndOf(win: BrowserWindow | null): bigint {
-  if (!win || win.isDestroyed()) return 0n
-  const buf = win.getNativeWindowHandle()
-  return process.arch === 'x64' ? buf.readBigUInt64LE(0) : BigInt(buf.readUInt32LE(0))
-}
-
-/**
- * Gradient colour of the glass, as 0xAABBGGRR. The alpha is how much white the
- * sheet adds on top of the blurred backdrop; the DOM sheet adds the rest. Both
- * alphas come from the same mapping (shared/glass.ts) so the "毛玻璃强度"
- * setting moves the whole stack in one direction instead of cancelling itself.
- */
-function glassColor(frostIntensity: number): number {
-  const alpha = Math.round(liveAccentAlpha(frostIntensity) * 255)
-  return ((alpha << 24) | 0x00faf8f6) >>> 0
-}
-
-function applyAccentColor(win: BrowserWindow, frostIntensity: number): boolean {
-  const api = loadWin32()
-  if (!api) return false
-  const hwnd = hwndOf(win)
-  if (hwnd === 0n) return false
-  try {
-    const style = Number(api.getWindowLong(hwnd, GWL_EXSTYLE))
-    let next = style | WS_EX_NOACTIVATE
-    /*
-     * WS_EX_LAYERED must be OFF or DWM silently ignores the accent: a layered
-     * window is composited by the window itself and never gets a backdrop
-     * material, so the glass layer came out fully see-through (the panel then
-     * looked like it had no frost at all). Electron turns the style on because
-     * the window is created with a translucent backgroundColor, so it has to be
-     * cleared here — the page still composites with alpha, which is what lets
-     * the blur show through.
-     */
-    next &= ~WS_EX_LAYERED
-    if (next !== style) {
-      api.setWindowLong(hwnd, GWL_EXSTYLE, next)
-      api.setWindowPos(
-        hwnd,
-        0n,
-        0,
-        0,
-        0,
-        0,
-        SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOOWNERZORDER
-      )
-    }
-    const ok = api.setComposition(hwnd, {
-      Attrib: WCA_ACCENT_POLICY,
-      pvData: {
-        AccentState: ACCENT_ENABLE_ACRYLICBLURBEHIND,
-        AccentFlags: ACCENT_FLAGS,
-        GradientColor: glassColor(frostIntensity),
-        AnimationId: 0
-      },
-      cbData: 16
-    })
-    return ok !== 0
-  } catch (err) {
-    console.warn('[Acrylic] Failed to apply accent policy:', err)
-    return false
-  }
-}
-
-let layer: BrowserWindow | null = null
-let layerReady = false
-let layerOk = false
-let layerVisible = false
-let bladeRect: BladeRect | null = null
+let layer: GlassLayer | null = null
 let panelWindow: BrowserWindow | null = null
+let bladeRect: BladeRect | null = null
 let wantVisible = false
-let tint = 1
+let visibilityListener: ((visible: boolean) => void) | null = null
 
-/**
- * Called whenever the glass actually appears or disappears on screen. main
- * forwards this to the renderer so the blade's own sheet fades to translucent
- * *exactly* when there is a blur behind it to reveal — the two can never drift
- * apart the way a guessed timeout does.
- */
-let onVisibilityChange: ((visible: boolean) => void) | null = null
-
+/** Forwarded to the renderer so the blade's own sheet can follow the glass. */
 export function setAcrylicVisibilityListener(cb: (visible: boolean) => void): void {
-  onVisibilityChange = cb
+  visibilityListener = cb
+  layer?.setVisibilityListener(cb)
 }
 
-function setLayerVisible(next: boolean): void {
-  if (layerVisible === next) return
-  layerVisible = next
-  onVisibilityChange?.(next)
-}
-
-/** True while the frosted sheet is actually on screen (not merely created). */
 export function isAcrylicLayerVisible(): boolean {
-  return layerVisible && !!getAcrylicLayer()
+  return layer?.isVisible() ?? false
 }
 
-/** The panel window whose client area the reported blade rect is relative to. */
+/** The panel window the reported blade rect is relative to. */
 export function setAcrylicPanel(win: BrowserWindow | null): void {
   panelWindow = win
-  const layerWin = getAcrylicLayer()
-  if (layerWin) positionLayer(layerWin)
+  layer?.moveToPanel()
 }
 
-/** True when a live acrylic layer can exist on this machine. */
+/** True when a live layer can exist on this machine. */
 export function isAcrylicAvailable(): boolean {
-  return loadWin32() !== null
-}
-
-export function getAcrylicLayer(): BrowserWindow | null {
-  return layer && !layer.isDestroyed() ? layer : null
+  return process.platform === 'win32'
 }
 
 /**
- * Create the glass layer (idempotent). The window is not shown until
- * `showAcrylicLayer` and only ever becomes visible if DWM accepted the accent —
- * a failed accent would leave a solid black rectangle, so it stays hidden.
+ * Create the layer (idempotent). Resolves with the panel window when the glass
+ * is ready, or null when composition is unavailable — the caller then simply
+ * keeps painting the frozen snapshot.
  */
-export async function ensureAcrylicLayer(parent: BrowserWindow | null): Promise<BrowserWindow | null> {
+export async function ensureAcrylicLayer(
+  parent: BrowserWindow | null
+): Promise<BrowserWindow | null> {
   if (!isAcrylicAvailable()) return null
-  if (layer && !layer.isDestroyed()) {
-    if (parent) panelWindow = parent
-    return layer
-  }
   if (parent) panelWindow = parent
-  const bounds = parent && !parent.isDestroyed() ? parent.getBounds() : { x: 0, y: 0, width: 8, height: 8 }
-  layer = new BrowserWindow({
-    x: bounds.x,
-    y: bounds.y,
-    width: Math.max(8, Math.round(bladeRect?.width ?? bounds.width)),
-    height: Math.max(8, Math.round(bladeRect?.height ?? bounds.height)),
-    show: false,
-    frame: false,
-    // DWM only applies a backdrop material to a non-layered window.
-    transparent: false,
-    backgroundColor: '#00000000',
-    focusable: false,
-    skipTaskbar: true,
-    hasShadow: false,
-    roundedCorners: false,
-    resizable: false,
-    movable: false,
-    minimizable: false,
-    maximizable: false,
-    fullscreenable: false,
-    alwaysOnTop: true,
-    acceptFirstMouse: false,
-    webPreferences: {
-      sandbox: true,
-      contextIsolation: true,
-      nodeIntegration: false,
-      spellcheck: false,
-      backgroundThrottling: true
-    }
-  })
-  layer.setIgnoreMouseEvents(true, { forward: false })
-  layer.setAlwaysOnTop(true, 'screen-saver')
-  layer.on('closed', () => {
-    layer = null
-    layerReady = false
-    setLayerVisible(false)
-  })
-  layerReady = false
-  layerOk = false
-  const created = layer
-  const pageUrl = join(app.getAppPath(), 'resources', 'acrylic.html')
-  // A tiny local page, not a data: URL: Chromium refuses top-level data:
-  // navigation here (ERR_FAILED). Retry once — the very first navigation in a
-  // freshly started app occasionally aborts with ERR_FAILED as well.
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      await created.loadFile(pageUrl)
-      break
-    } catch (err) {
-      const last = attempt === 3
-      console.warn(`[Acrylic] Layer page load attempt ${attempt} failed:`, err)
-      if (last || created.isDestroyed() || layer !== created) return null
-      await new Promise((resolve) => setTimeout(resolve, 150))
-    }
+  if (!layer) {
+    const created = new GlassLayer()
+    created.setVisibilityListener((visible) => visibilityListener?.(visible))
+    layer = created
   }
-  if (layer !== created || created.isDestroyed()) return null
-  layerOk = applyAccentColor(created, tint)
-  if (!layerOk) console.warn('[Acrylic] DWM rejected the accent policy — falling back to the snapshot frost')
-  layerReady = true
-  if (wantVisible && layerOk) showAcrylicLayer(parent)
-  return created
+  const live = layer.create(panelWindow)
+  if (!live) {
+    layer.destroy()
+    layer = null
+    return null
+  }
+  layer.setRect(bladeRect ? toGlassRect(bladeRect) : null)
+  layer.setRadii(radiiFor(panelWindow))
+  if (wantVisible) showAcrylicLayer(panelWindow)
+  return panelWindow
 }
 
-/** Update the white tint without recreating the window. */
+/** Blur strength / tint changes. The white sheet itself is CSS. */
 export function setAcrylicTint(frostIntensity: number): void {
-  tint = frostIntensity
-  const win = getAcrylicLayer()
-  if (!win || !layerReady) return
-  layerOk = applyAccentColor(win, tint)
-  if (!layerOk) hideAcrylicLayer()
+  // More "毛玻璃强度" = more desktop showing through, which reads as a slightly
+  // tighter blur. Keep it inside a range that stays legible over text.
+  const t = Math.max(0, Math.min(1, Number.isFinite(frostIntensity) ? frostIntensity : 1))
+  layer?.setBlur(14 + 16 * (1 - t))
 }
 
-/**
- * Renderer-side blade rect (CSS px inside the panel window). The absolute
- * screen position is recomputed every time the panel moves, so display
- * changes and the preview-widening resize stay in sync for free.
- */
+/** Renderer's blade rect, in CSS px inside the panel window. */
 export function setAcrylicBladeRect(rect: BladeRect | null): void {
   bladeRect = rect
-  const win = getAcrylicLayer()
-  if (win) positionLayer(win)
+  if (!layer) return
+  layer.setRect(rect ? toGlassRect(rect) : null)
+  layer.setRadii(radiiFor(panelWindow))
+}
+
+function toGlassRect(rect: BladeRect): GlassRect {
+  return { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
 }
 
 /**
- * Place the layer exactly over the blade.
- *
- * The blade can land on a half device pixel (its CSS left is 30 at 125% => 37.5
- * physical px), and Electron round-trips DIP <-> physical on every setBounds.
- * Rounding the *whole* rect to device pixels first and converting back once
- * keeps this idempotent; comparing raw DIP values instead made the layer grow a
- * pixel on every open.
+ * The blade rounds only the corners facing away from the screen edge (the ones
+ * on the edge are square, because the panel is flush with it).
  */
-function positionLayer(win: BrowserWindow): void {
-  if (!bladeRect) return
-  const panel = panelWindow && !panelWindow.isDestroyed() ? panelWindow : null
-  const origin = panel ? panel.getBounds() : { x: 0, y: 0 }
-  const scale = panel ? screen.getDisplayMatching(panel.getBounds()).scaleFactor : 1
-  const s = Number.isFinite(scale) && scale > 0 ? scale : 1
-  const physLeft = Math.round((origin.x + bladeRect.left) * s)
-  const physTop = Math.round((origin.y + bladeRect.top) * s)
-  const physWidth = Math.max(8, Math.round(bladeRect.width * s))
-  const physHeight = Math.max(8, Math.round(bladeRect.height * s))
-  const target = {
-    x: physLeft / s,
-    y: physTop / s,
-    width: physWidth / s,
-    height: physHeight / s
+function radiiFor(panel: BrowserWindow | null): CornerRadii {
+  if (!panel || panel.isDestroyed()) return ZERO_RADII
+  const bounds = panel.getBounds()
+  const area = screen.getDisplayMatching(bounds).workArea
+  const onTop = bounds.y <= area.y + 1
+  const onBottom = bounds.y + bounds.height >= area.y + area.height - 1
+  const onLeft = bounds.x <= area.x + 1
+  const onRight = bounds.x + bounds.width >= area.x + area.width - 1
+  if (onTop && !onBottom) {
+    return { topLeft: 0, topRight: 0, bottomRight: BLADE_RADIUS, bottomLeft: BLADE_RADIUS }
   }
-  const current = win.getBounds()
-  if (
-    current.x !== Math.round(target.x) ||
-    current.y !== Math.round(target.y) ||
-    current.width !== Math.round(target.width) ||
-    current.height !== Math.round(target.height)
-  ) {
-    win.setBounds(target)
+  if (onBottom && !onTop) {
+    return { topLeft: BLADE_RADIUS, topRight: BLADE_RADIUS, bottomRight: 0, bottomLeft: 0 }
+  }
+  if (onLeft && !onRight) {
+    return { topLeft: 0, topRight: BLADE_RADIUS, bottomRight: BLADE_RADIUS, bottomLeft: 0 }
+  }
+  if (onRight && !onLeft) {
+    return { topLeft: BLADE_RADIUS, topRight: 0, bottomRight: 0, bottomLeft: BLADE_RADIUS }
+  }
+  return {
+    topLeft: BLADE_RADIUS,
+    topRight: BLADE_RADIUS,
+    bottomRight: BLADE_RADIUS,
+    bottomLeft: BLADE_RADIUS
   }
 }
 
-/** Re-pin the glass directly under the panel window (z-order, then size). */
+/** Raise the glass directly under the panel and start painting it. */
 export function showAcrylicLayer(parent: BrowserWindow | null): boolean {
   wantVisible = true
-  const win = getAcrylicLayer()
-  if (!win || !layerReady || !layerOk) return false
+  if (!layer) return false
+  if (parent) panelWindow = parent
+  if (!layer.isReady()) return false
   if (!bladeRect) return false
-  positionLayer(win)
-  win.setAlwaysOnTop(true, 'screen-saver')
-  const api = loadWin32()
-  const parentHwnd = hwndOf(parent)
-  if (api && parentHwnd !== 0n) {
-    // Insert the glass directly *below* the panel: the sheet blends over it.
-    api.setWindowPos(
-      hwndOf(win),
-      parentHwnd,
-      0,
-      0,
-      0,
-      0,
-      SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER
-    )
-  }
-  if (!win.isVisible()) win.showInactive()
-  setLayerVisible(true)
-  return true
+  layer.moveToPanel()
+  layer.setRect(toGlassRect(bladeRect))
+  layer.setRadii(radiiFor(panelWindow))
+  layer.raise(true)
+  return layer.isVisible()
 }
 
 export function hideAcrylicLayer(): void {
   wantVisible = false
-  setLayerVisible(false)
-  const win = getAcrylicLayer()
-  if (win && win.isVisible()) win.hide()
+  layer?.setVisible(false)
 }
 
 /** Reposition after the panel window moved / resized (display change, preview). */
 export function refreshAcrylicPosition(): void {
-  const win = getAcrylicLayer()
-  if (!win) return
-  positionLayer(win)
-  if (wantVisible && layerOk) win.setAlwaysOnTop(true, 'screen-saver')
+  if (!layer) return
+  layer.moveToPanel()
+  layer.setRadii(radiiFor(panelWindow))
+  if (wantVisible) layer.raise(true)
 }
 
 /** Tear the layer down (setting switched off, or app quitting). */
 export function destroyAcrylicLayer(): void {
   wantVisible = false
-  setLayerVisible(false)
-  const win = getAcrylicLayer()
+  layer?.destroy()
   layer = null
-  layerReady = false
-  layerOk = false
-  if (win) {
-    try {
-      win.destroy()
-    } catch {
-      /* already gone */
-    }
-  }
 }
 
-/** True once the layer exists AND DWM accepted the accent. */
+/** True once the layer exists and its compositor accepted the visual tree. */
 export function isAcrylicLayerLive(): boolean {
-  return !!getAcrylicLayer() && layerOk
+  return !!layer && layer.isReady()
 }
-
-
-
-

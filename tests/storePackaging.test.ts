@@ -147,7 +147,7 @@ describe('GitHub vs Store packaging contracts (on-disk, not assumed)', () => {
     expect(xml).toContain(`TaskId="${STORE_STARTUP_TASK_ID}"`)
     expect(xml).not.toContain('SlackStartup')
     expect(xml).toContain('Enabled="true"')
-    expect(xml).toContain('DisplayName="Eave"')
+    expect(xml).toContain('DisplayName="檐下"')
   })
 
   it('electron-builder still injects customExtensionsPath into the AppX Extensions block', () => {

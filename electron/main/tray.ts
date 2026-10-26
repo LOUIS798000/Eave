@@ -98,7 +98,7 @@ export function updateTrayIcon(): void {
 export function createTray(): Tray {
   const image = getTrayImage()
   tray = new Tray(image)
-  tray.setToolTip('Eave')
+  tray.setToolTip('檐下')
 
   // Register system theme change listener once
   if (!themeListenerRegistered) {

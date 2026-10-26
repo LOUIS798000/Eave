@@ -1,7 +1,7 @@
 {
   "name": "eave",
   "version": "0.3.3",
-  "description": "Eave — a frosted glass shelf that drops out of the top edge of your screen to hold what you copy.",
+  "description": "檐下 (Eave) — 从屏幕顶边滑出的毛玻璃搁板，收住你复制的一切。",
   "author": "Eave",
   "license": "Apache-2.0",
   "private": true,
@@ -87,7 +87,7 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "Eave",
+      "shortcutName": "檐下",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "artifactName": "Eave-Setup-${version}.${ext}"
@@ -97,7 +97,7 @@
       "publisher": "CN=Eave",
       "publisherDisplayName": "Eave",
       "applicationId": "Eave",
-      "displayName": "Eave",
+      "displayName": "檐下",
       "capabilities": [
         "runFullTrust",
         "internetClient"

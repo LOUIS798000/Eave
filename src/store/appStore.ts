@@ -106,6 +106,16 @@ interface AppState {
   setLanguageFlyoutOpen: (open: boolean, rect?: { x?: number; y?: number; width?: number; height?: number } | null) => void
   previewFlyoutRect: { top: number; bottom: number; left?: number; right?: number } | null
   setPreviewFlyoutRect: (rect: { top: number; bottom: number; left?: number; right?: number } | null) => void
+  /**
+   * Screen rect of the open clear dropdown, in CSS pixels inside the window.
+   *
+   * The dropdown escapes the blade's clip (it is portalled to <body>) so it can
+   * hang below the panel — which means the pointer sitting on it is outside the
+   * blade. The hover-retention test has to count this rect as "inside", or the
+   * panel closes the moment the user reaches for the lower menu rows.
+   */
+  clearMenuRect: { top: number; bottom: number; left: number; right: number } | null
+  setClearMenuRect: (rect: { top: number; bottom: number; left: number; right: number } | null) => void
   isInternalCopying: boolean
   copyFlareActive: boolean
   flareKey: number
@@ -320,6 +330,8 @@ export const useStore = create<AppState>((set, get) => ({
   },
   previewFlyoutRect: null,
   setPreviewFlyoutRect: (rect) => set({ previewFlyoutRect: rect }),
+  clearMenuRect: null,
+  setClearMenuRect: (rect) => set({ clearMenuRect: rect }),
   setPreviewItemId: (id, rect) => {
     set({ previewItemId: id, previewItemRect: rect || null, ...(id ? {} : { previewFlyoutRect: null }) })
     if (id) {

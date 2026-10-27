@@ -222,6 +222,29 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, paddingRight: 2, position: 'relative', zIndex: 260 }}>
+        {isHorizontal && !settingsOpen && settings.incognito && (
+          <div
+            title={t('behaviour.incognitoDesc')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              height: 22,
+              padding: '0 9px',
+              borderRadius: 11,
+              background: 'rgba(255, 159, 10, 0.14)',
+              color: 'rgba(146, 92, 0, 0.95)',
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: '0.01em',
+              whiteSpace: 'nowrap',
+              marginRight: 2
+            }}
+          >
+            <span style={{ width: 5, height: 5, borderRadius: 3, background: 'rgba(255, 159, 10, 0.95)' }} />
+            {t('behaviour.incognitoTitle')}
+          </div>
+        )}
         {isHorizontal && !settingsOpen && itemCount != null && (
           <div className="footer-capsule" style={{ marginRight: 2 }}>
             <span className="footer-capsule-count" title={`${itemCount}`}>

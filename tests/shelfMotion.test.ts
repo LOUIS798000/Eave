@@ -84,7 +84,12 @@ describe('shelf open/close motion', () => {
     expect(hideDelay).toBeGreaterThanOrEqual(close.ms)
     expect(css).toMatch(/\.blade-container\.is-open \.blade::after \{[^}]*background-color: rgba\(255, 255, 255, 0\);[^}]*visibility: visible;/)
     expect(css).toMatch(/\.blade-container\.reduce-motion \.blade::after \{[^}]*transition-duration: 0\.01s;/)
-    // Highest z-index used inside the blade (ClearMenu dropdown) stays below the veil.
-    expect(read('src/components/ClearMenu.tsx')).toContain('zIndex: 350')
+    // The clear dropdown is portalled out of the blade (a short top dock would
+    // otherwise clip its lower rows), so it is no longer competing for z-order
+    // inside the blade: its in-blade trigger stays under the veil, and the
+    // dropdown itself lives on the body layer.
+    const clearMenu = read('src/components/ClearMenu.tsx')
+    expect(clearMenu).toContain('createPortal')
+    expect(clearMenu).toContain('zIndex: open ? 350')
   })
 })

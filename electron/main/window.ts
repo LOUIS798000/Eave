@@ -93,11 +93,32 @@ if (process.platform === 'win32') {
 
 const GWL_EXSTYLE = -20
 const WS_EX_NOACTIVATE = 0x08000000
+const WS_EX_TRANSPARENT = 0x00000020
 
 function getHwnd(win: BrowserWindow | null): number | bigint {
   if (!win || win.isDestroyed()) return 0
   const handleBuf = win.getNativeWindowHandle()
   return process.arch === 'x64' ? handleBuf.readBigUInt64LE(0) : handleBuf.readUInt32LE(0)
+}
+
+/**
+ * True when the window currently hit-tests as click-through at the OS level.
+ *
+ * This is the authority on whether the user can click the panel — the
+ * `interactive` flag below is only our intent. They can drift apart (a display
+ * reconfiguration, a DWM/z-order reset, or a throw in the middle of
+ * setInteractive after the flag was already flipped), which shows up as "the
+ * shelf opens but nothing on it responds".
+ */
+function isClickThrough(win: BrowserWindow | null): boolean {
+  if (process.platform !== 'win32' || !win || win.isDestroyed() || !getWindowLongPtrFn) return false
+  const hwnd = getHwnd(win)
+  if (!hwnd) return false
+  try {
+    return (Number(getWindowLongPtrFn(hwnd, GWL_EXSTYLE)) & WS_EX_TRANSPARENT) !== 0
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -540,8 +561,23 @@ function pushBackdrop(): void {
   sendToMainWindow('window:backdrop', cached)
 }
 
+/** Push the intended hit-test state onto the OS window. Cheap and idempotent. */
+function applyMouseState(value: boolean): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (value) mainWindow.setIgnoreMouseEvents(false)
+  else mainWindow.setIgnoreMouseEvents(true, { forward: false })
+}
+
 export function setInteractive(value: boolean): void {
-  if (!mainWindow || value === interactive) return
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (value === interactive) {
+    // Same intent as last time — but the OS-level style is what actually
+    // decides whether clicks land, and it can drift on its own. Re-asserting
+    // it costs one Win32 call, so a repeated setInteractive(true) from the
+    // renderer's self-heal path repairs the window instead of being swallowed.
+    applyMouseState(value)
+    return
+  }
   interactive = value
   diag('main', `setInteractive ${value}`)
   // Open starts here; hold main-thread thumbnail decodes off its frames.
@@ -573,7 +609,7 @@ export function setInteractive(value: boolean): void {
       gcTimer = null
     }
     cancelMemoryTrim()
-    mainWindow.setIgnoreMouseEvents(false)
+    applyMouseState(true)
     // Use 'screen-saver' level to stay above fullscreen apps (YouTube fullscreen, games, etc.)
     // 'floating' (HWND_TOPMOST) can be pushed behind by fullscreen D3D/browser windows.
     mainWindow.setAlwaysOnTop(true, 'screen-saver')
@@ -583,7 +619,7 @@ export function setInteractive(value: boolean): void {
     // Panel is closed: full click-through, no forwarding needed.
     cancelFrostShow()
     hideAcrylicLayer()
-    mainWindow.setIgnoreMouseEvents(true, { forward: false })
+    applyMouseState(false)
     mainWindow.setAlwaysOnTop(true, 'screen-saver')
     mainWindow.setSkipTaskbar(true)
     applyNoActivateStyle(mainWindow, true)
@@ -1282,10 +1318,20 @@ export function createWindow(): BrowserWindow {
   // app losing focus, which is already faster than the user notices.
   if (heartbeatTimer !== null) clearInterval(heartbeatTimer)
   heartbeatTimer = setInterval(() => {
-    if (runtime.quitting || heartbeatPaused || interactive) return
-    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
-      mainWindow.setAlwaysOnTop(true, 'screen-saver')
+    if (runtime.quitting || heartbeatPaused) return
+    if (!mainWindow || mainWindow.isDestroyed() || !mainWindow.isVisible()) return
+    if (interactive) {
+      // Self-heal the one drift that bricks the app: our flag says the panel is
+      // interactive but the HWND still has WS_EX_TRANSPARENT, so every click
+      // walks through it to whatever is behind. Hover still opens the shelf,
+      // which makes it look alive while nothing on it responds.
+      if (isClickThrough(mainWindow)) {
+        diag('main', 'click-through drifted while open — re-arming clicks')
+        applyMouseState(true)
+      }
+      return
     }
+    mainWindow.setAlwaysOnTop(true, 'screen-saver')
   }, 2000)
 
   return mainWindow

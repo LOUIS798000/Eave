@@ -400,6 +400,20 @@ export function useEdgeHover(): void {
         const bladeHeight = topH + 8
         const inBlade = y >= -BUFFER_PX && y <= bladeHeight && x >= dockX - BUFFER_PX && x <= dockX + dockWidth + BUFFER_PX
         if (inBlade) return true
+        // The clear dropdown is portalled out of the blade so it can hang below
+        // it; its rect is already in window coordinates.
+        const menu = state.clearMenuRect
+        if (menu) {
+          const MENU_BUFFER = 6
+          if (
+            x >= menu.left - MENU_BUFFER &&
+            x <= menu.right + MENU_BUFFER &&
+            y >= menu.top - MENU_BUFFER &&
+            y <= menu.bottom + MENU_BUFFER
+          ) {
+            return true
+          }
+        }
         if (hasFlyout && state.previewFlyoutRect && state.previewFlyoutRect.left !== undefined && state.previewFlyoutRect.right !== undefined) {
           const FLYOUT_BUFFER = 24
           const flyoutScreenLeft = dockX + state.previewFlyoutRect.left

@@ -1,8 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import { TrashIcon } from './icons'
 import { playButtonClickSound } from '../lib/soundEffects'
 import { useTranslation } from '../i18n'
+import { useStore } from '../store/appStore'
 import type { ClipboardItemDto } from '../../shared/types'
 
 interface ClearMenuProps {
@@ -24,6 +26,9 @@ const WINDOWS: { key: '1h' | '6h' | '24h'; hours: number }[] = [
   { key: '6h', hours: 6 },
   { key: '24h', hours: 24 }
 ]
+
+const MENU_WIDTH = 190
+const MENU_GAP = 6
 
 const menuItemStyle: CSSProperties = {
   width: '100%',
@@ -52,9 +57,30 @@ export function ClearMenu({
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [confirmAll, setConfirmAll] = useState(false)
+  const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null)
   const ref = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const setClearMenuRect = useStore((s) => s.setClearMenuRect)
 
-  // Force-close menu when panel slides closed
+  const isMenuDown = menuDirection === 'down'
+
+  // Anchor the dropdown to the button. The menu is portalled to <body> so it is
+  // not clipped by the blade: with a short top dock (e.g. 150px) the lower rows
+  // — including "clear all" — used to fall outside the panel and could never be
+  // clicked.
+  const measure = useCallback(() => {
+    const el = ref.current
+    if (!el || typeof window === 'undefined') return
+    const r = el.getBoundingClientRect()
+    const width = window.innerWidth
+    const height = window.innerHeight
+    const left = Math.max(8, Math.min(r.right - MENU_WIDTH, width - MENU_WIDTH - 8))
+    // menuDirection 'down' hangs from the button; 'up' rises above it. Either
+    // way stay inside the window so the OS surface can't clip the menu.
+    const top = isMenuDown ? r.bottom + MENU_GAP : Math.max(8, r.top - MENU_GAP - 190)
+    setAnchor({ top: Math.min(top, height - 12), left })
+  }, [isMenuDown])
+
   useEffect(() => {
     if (!panelOpen) {
       setOpen(false)
@@ -62,11 +88,46 @@ export function ClearMenu({
     }
   }, [panelOpen])
 
+  useLayoutEffect(() => {
+    if (!open) {
+      setAnchor(null)
+      return
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [open, measure])
+
+  // Keep the hover-retention test aware of the dropdown while it is open: the
+  // pointer has to sit below the blade to reach the lower rows, and without
+  // this the panel would close under it.
+  useEffect(() => {
+    if (!open) {
+      setClearMenuRect(null)
+      return
+    }
+    const el = menuRef.current
+    if (!el) return
+    const publish = () => {
+      const r = el.getBoundingClientRect()
+      setClearMenuRect({ top: r.top, bottom: r.bottom, left: r.left, right: r.right })
+    }
+    publish()
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(publish) : null
+    ro?.observe(el)
+    return () => {
+      ro?.disconnect()
+      setClearMenuRect(null)
+    }
+  }, [open, anchor, setClearMenuRect])
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
+      const target = e.target as Node | null
+      if (!target) return
+      if (ref.current?.contains(target)) return
+      if (menuRef.current?.contains(target)) return
+      setOpen(false)
     }
     if (open) window.addEventListener('mousedown', handleClickOutside)
     return () => window.removeEventListener('mousedown', handleClickOutside)
@@ -97,8 +158,6 @@ export function ClearMenu({
     onClearAll()
   }
 
-  const isMenuDown = menuDirection === 'down'
-
   return (
     <div ref={ref} style={{ position: 'relative', zIndex: open ? 350 : 'auto' }}>
       <button
@@ -116,58 +175,61 @@ export function ClearMenu({
         <span>{t('item.clear')}</span>
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: isMenuDown ? -6 : 6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: isMenuDown ? -6 : 6, scale: 0.98 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            style={{
-              position: 'absolute',
-              top: isMenuDown ? 'calc(100% + 6px)' : undefined,
-              bottom: isMenuDown ? undefined : 'calc(100% + 6px)',
-              right: 0,
-              minWidth: 190,
-              background: 'rgba(255, 255, 255, 0.97)',
-              border: '1px solid rgba(255, 255, 255, 0.8)',
-              borderRadius: 16,
-              padding: 4,
-              boxShadow: '0 0 0 1px rgba(20, 22, 40, 0.05), 0 16px 40px rgba(20, 22, 40, 0.14), inset 0 1px 0 rgba(255, 255, 255, 1)',
-              zIndex: 350
-            }}
-          >
-            {WINDOWS.map((w) => (
+      {createPortal(
+        <AnimatePresence>
+          {open && anchor && (
+            <motion.div
+              ref={menuRef}
+              initial={{ opacity: 0, y: isMenuDown ? -6 : 6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: isMenuDown ? -6 : 6, scale: 0.98 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              style={{
+                position: 'fixed',
+                top: anchor.top,
+                left: anchor.left,
+                minWidth: MENU_WIDTH,
+                background: 'rgba(255, 255, 255, 0.97)',
+                border: '1px solid rgba(255, 255, 255, 0.8)',
+                borderRadius: 16,
+                padding: 4,
+                boxShadow: '0 0 0 1px rgba(20, 22, 40, 0.05), 0 16px 40px rgba(20, 22, 40, 0.14), inset 0 1px 0 rgba(255, 255, 255, 1)',
+                zIndex: 4000
+              }}
+            >
+              {WINDOWS.map((w) => (
+                <button
+                  key={w.key}
+                  type="button"
+                  onClick={() => clearWindow(w.hours)}
+                  style={menuItemStyle}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(120, 120, 128, 0.14)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  {t(`item.clearLast${w.key}` as any)}
+                </button>
+              ))}
+
+              <div style={{ height: 1, background: 'rgba(60, 60, 67, 0.12)', margin: '4px 2px' }} />
+
               <button
-                key={w.key}
                 type="button"
-                onClick={() => clearWindow(w.hours)}
-                style={menuItemStyle}
+                onClick={handleAllClick}
+                style={{
+                  ...menuItemStyle,
+                  color: confirmAll ? '#ff3b30' : 'rgba(29, 29, 31, 0.85)',
+                  fontWeight: confirmAll ? 600 : 400
+                }}
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(120, 120, 128, 0.14)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
               >
-                {t(`item.clearLast${w.key}` as any)}
+                {confirmAll ? t('item.clearAllConfirm') : t('item.clearAll')}
               </button>
-            ))}
-
-            <div style={{ height: 1, background: 'rgba(60, 60, 67, 0.12)', margin: '4px 2px' }} />
-
-            <button
-              type="button"
-              onClick={handleAllClick}
-              style={{
-                ...menuItemStyle,
-                color: confirmAll ? '#ff3b30' : 'rgba(29, 29, 31, 0.85)',
-                fontWeight: confirmAll ? 600 : 400
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(120, 120, 128, 0.14)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-            >
-              {confirmAll ? t('item.clearAllConfirm') : t('item.clearAll')}
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   )
 }

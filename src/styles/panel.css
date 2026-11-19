@@ -1404,4 +1404,45 @@
   transition: none;
 }
 
+/* ── Dark theme overrides ─────────────────────────────────────────────── */
+:root[data-theme="dark"] .blade {
+  background-color: #1c1e24;
+  border-color: var(--blade-border);
+  color: var(--text-primary);
+}
+:root[data-theme="dark"] .blade.blade-settings {
+  background-color: #1c1e24;
+}
+:root[data-theme="dark"] .blade-frost {
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(26, 28, 34, var(--frost-tint, 0.82)) 0%,
+      rgba(22, 24, 30, var(--frost-tint, 0.82)) 55%,
+      rgba(18, 20, 26, var(--frost-tint, 0.82)) 100%
+    ),
+    var(--frost-image, none);
+}
+:root[data-theme="dark"] .blade.blade-live.blade-live-shown {
+  background-color: rgba(24, 26, 32, var(--live-sheet, 0.52));
+}
+:root[data-theme="dark"] .seg-thumb,
+:root[data-theme="dark"] .segmented-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.32);
+}
+:root[data-theme="dark"] .settings-card,
+:root[data-theme="dark"] .settings-row,
+:root[data-theme="dark"] .clear-menu-popover,
+:root[data-theme="dark"] .preview-flyout {
+  background: rgba(34, 36, 44, 0.94);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+:root[data-theme="dark"] .excluded-app-chip {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+
 

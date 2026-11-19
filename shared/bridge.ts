@@ -21,10 +21,16 @@ export interface EdgeApi {
   deleteBatchItems: (ids: string[]) => Promise<import('./types').ClipboardItemDto[]>
   clearItems: () => Promise<import('./types').ClipboardItemDto[]>
   getFullText: (id: string) => Promise<string>
+  updateItemText: (id: string, text: string) => Promise<import('./types').ClipboardItemDto[]>
+  searchItems: (query: string) => Promise<string[]>
+  syncPasteQueue: (ids: string[]) => Promise<string[]>
+  pasteQueueNext: () => Promise<boolean>
   removeSubitem: (req: DragRequest) => Promise<boolean>
   copyItem: (id: string) => Promise<boolean>
+  copyItemPlain: (id: string) => Promise<boolean>
   copySubitem: (req: DragRequest) => Promise<boolean>
   pasteItem: (id: string) => Promise<boolean>
+  pasteItemPlain: (id: string) => Promise<boolean>
   pasteSubitem: (req: DragRequest) => Promise<boolean>
   pasteEmoji: (text: string) => Promise<boolean>
   emojiGlyphs: (files: string[]) => Promise<Record<string, string>>
@@ -88,6 +94,7 @@ export interface EdgeApi {
   }) => void) => () => void
   onToast: (cb: (toast: { id: string; message: string; tone: 'info' | 'error'; params?: Record<string, string | number> }) => void) => () => void
   onCopyFlare: (cb: () => void) => () => void
+  onQueueUpdated: (cb: (ids: string[]) => void) => () => void
   onTutorialStep: (cb: (step: number) => void) => () => void
 }
 

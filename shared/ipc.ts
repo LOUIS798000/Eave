@@ -34,11 +34,26 @@ export interface InvokeMap {
   /** Fetch the full text payload from disk for a large text item on-demand. */
   'item:get-full-text': { args: [id: string]; result: string }
 
+  /** Update a text item's content in-place (strips HTML formatting). */
+  'item:update-text': { args: [id: string, text: string]; result: ClipboardItemDto[] }
+
+  /** Full-text search across stored payloads, file names, and image names. */
+  'item:search': { args: [query: string]; result: string[] }
+
+  /** Sync the ordered sequential paste queue IDs to main (registers Alt+V only while non-empty). */
+  'queue:sync': { args: [ids: string[]]; result: string[] }
+
+  /** Paste the next item in the sequential queue immediately. */
+  'queue:paste-next': { args: []; result: boolean }
+
   /** Remove a specific sub-item from a bundle. */
   'item:remove-subitem': { args: [req: DragRequest]; result: boolean }
 
   /** Copy an item back onto the system clipboard. */
   'item:copy': { args: [id: string]; result: boolean }
+
+  /** Copy a text item back onto the system clipboard as plain text (stripping HTML). */
+  'item:copy-plain': { args: [id: string]; result: boolean }
 
   /** Copy a single sub-item (one file of a bundle, or one image of a
    *  collection) onto the system clipboard. */
@@ -46,6 +61,9 @@ export interface InvokeMap {
 
   /** Copy an item and paste it directly into the active application. */
   'item:paste': { args: [id: string]; result: boolean }
+
+  /** Copy a text item as plain text (stripping HTML) and paste into the active application. */
+  'item:paste-plain': { args: [id: string]; result: boolean }
 
   /** Copy a sub-item and paste it directly into the active application. */
   'item:paste-subitem': { args: [req: DragRequest]; result: boolean }
@@ -146,6 +164,8 @@ export interface EventMap {
   'ui:toast': [toast: { id: string; message: string; tone: 'info' | 'error'; params?: Record<string, string | number> }]
   /** Fired when an OS copy event (Ctrl+C) is detected by the main process watcher. */
   'ui:copy-flare': []
+  /** Remaining item IDs in the sequential paste queue after main pops an entry via Alt+V. */
+  'queue:updated': [ids: string[]]
   /**
    * Main-process cursor poll signals: fired when the cursor enters/leaves
    * the screen-edge hot zone. The renderer uses this to open/close the panel

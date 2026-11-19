@@ -29,12 +29,24 @@ export function ItemList() {
   const total = pinned.length + recent.length
   
   const isDraggingAny = useStore((s) => !!s.dragActive || !!s.internalDragReq)
-  const settings = useStore((s) => s.settings)
-  const isHorizontal = settings.stickPosition === 'top'
-  
+  const isHorizontal = useStore((s) => s.settings.stickPosition === 'top')
+  const reduceMotion = useStore((s) => !!s.settings.reduceMotion)
+  const pinnedDefaultExpanded = useStore((s) => !!s.settings.pinnedDefaultExpanded)
+  const selectedItemId = useStore((s) => s.selectedItemId)
+  const stickPosition = useStore((s) => s.settings.stickPosition)
+  const pasteQueue = useStore((s) => s.pasteQueue)
+  const clearPasteQueue = useStore((s) => s.clearPasteQueue)
+  const pasteQueueNext = useStore((s) => s.pasteQueueNext)
+
   const typeFilter = useStore((s) => s.typeFilter) || 'all'
   const filterScrollMap = useRef<Record<string, { top: number; left: number }>>({})
   const prevFilterRef = useRef(typeFilter)
+
+  // Progressive rendering window: keep initial mount light (40 cards) when
+  // software compositing is active, and expand smoothly as the user scrolls
+  // or navigates deeper with the keyboard.
+  const BATCH_SIZE = 40
+  const [visibleRecentCount, setVisibleRecentCount] = useState(BATCH_SIZE)
 
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>(() => {
@@ -42,10 +54,22 @@ export function ItemList() {
       const saved = localStorage.getItem('edge_drop_pinned_collapsed_map')
       if (saved) return JSON.parse(saved)
     } catch {}
-    return { all: true, text: true, image: true, file: true, link: true }
+    return {}
   })
 
-  const pinnedCollapsed = collapsedMap[typeFilter] ?? true
+  const pinnedCollapsed = collapsedMap[typeFilter] ?? !pinnedDefaultExpanded
+
+  // When the user toggles "Expand Pinned by Default" in Settings, immediately
+  // synchronize the collapsed map instead of being shadowed by stale localStorage.
+  const prevPinnedDefaultRef = useRef(pinnedDefaultExpanded)
+  useEffect(() => {
+    if (prevPinnedDefaultRef.current !== pinnedDefaultExpanded) {
+      prevPinnedDefaultRef.current = pinnedDefaultExpanded
+      const next: Record<string, boolean> = {}
+      try { localStorage.removeItem('edge_drop_pinned_collapsed_map') } catch {}
+      setCollapsedMap(next)
+    }
+  }, [pinnedDefaultExpanded])
 
   const setPinnedCollapsed = (val: boolean) => {
     setCollapsedMap((prev) => {
@@ -186,18 +210,39 @@ export function ItemList() {
     }
   }, [query, isHorizontal])
 
+  // Reset progressive render window when switching filter or query
+  useEffect(() => {
+    setVisibleRecentCount(BATCH_SIZE)
+  }, [typeFilter, query])
+
+  // Ensure keyboard-selected item is mounted & scrolled into view
+  useEffect(() => {
+    if (!selectedItemId) return
+    const recentIdx = recent.findIndex((it) => it.id === selectedItemId)
+    if (recentIdx >= visibleRecentCount) {
+      setVisibleRecentCount(Math.min(recent.length, recentIdx + BATCH_SIZE))
+    }
+    const raf = requestAnimationFrame(() => {
+      const card = listRef.current?.querySelector(`[data-item-id="${CSS.escape(selectedItemId)}"]`)
+      if (card && typeof (card as HTMLElement).scrollIntoView === 'function') {
+        ;(card as HTMLElement).scrollIntoView({ block: 'nearest', inline: 'nearest' })
+      }
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [selectedItemId, recent, visibleRecentCount])
+
   // Reset scroll map when switching dock position
-  const prevStickPos = useRef(settings.stickPosition)
+  const prevStickPos = useRef(stickPosition)
   useLayoutEffect(() => {
-    if (prevStickPos.current !== settings.stickPosition) {
-      prevStickPos.current = settings.stickPosition
+    if (prevStickPos.current !== stickPosition) {
+      prevStickPos.current = stickPosition
       filterScrollMap.current = {}
       if (listRef.current) {
         listRef.current.scrollTop = 0
         listRef.current.scrollLeft = 0
       }
     }
-  }, [settings.stickPosition])
+  }, [stickPosition])
 
   useEffect(() => {
     if (!isDraggingAny) {
@@ -214,6 +259,16 @@ export function ItemList() {
     const scrollPos = isHorizontal ? el.scrollLeft : el.scrollTop
     const next = scrollPos > 50
     setShowScrollTop((prev) => (prev === next ? prev : next))
+
+    // Load next batch smoothly when approaching the end of the rendered window
+    if (visibleRecentCount < recent.length) {
+      const remaining = isHorizontal
+        ? el.scrollWidth - el.clientWidth - el.scrollLeft
+        : el.scrollHeight - el.clientHeight - el.scrollTop
+      if (remaining < 320) {
+        setVisibleRecentCount((prev) => Math.min(recent.length, prev + BATCH_SIZE))
+      }
+    }
   }
 
   const scrollToTop = () => {
@@ -348,6 +403,35 @@ export function ItemList() {
       onDrop={handleDragLeaveOrDrop}
       onScroll={handleScroll}
     >
+      {pasteQueue.length > 0 && (
+        <div className="paste-queue-bar" role="status" aria-live="polite">
+          <span className="paste-queue-badge">{pasteQueue.length}</span>
+          <span className="paste-queue-label">
+            {t('queue.title') || 'Queue'} · {t('queue.hint') || 'Alt+V'}
+          </span>
+          <button
+            type="button"
+            className="paste-queue-btn primary"
+            onClick={() => {
+              playButtonClickSound()
+              void pasteQueueNext()
+            }}
+          >
+            {t('queue.pasteNext') || 'Paste next'}
+          </button>
+          <button
+            type="button"
+            className="paste-queue-btn"
+            onClick={() => {
+              playButtonClickSound()
+              clearPasteQueue()
+            }}
+          >
+            {t('queue.clear') || 'Clear'}
+          </button>
+        </div>
+      )}
+
       {total === 0 ? (
         <EmptyState filtered={query.trim().length > 0} />
       ) : (
@@ -410,7 +494,7 @@ export function ItemList() {
                   <span className="recent-label-text">{t('item.recent')}</span>
                 </div>
               )}
-              {recent.map((it) => (
+              {recent.slice(0, visibleRecentCount).map((it) => (
                 <ClipboardItemCard key={it.id} item={it} />
               ))}
             </section>
@@ -424,7 +508,7 @@ export function ItemList() {
             initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.85 }}
-            transition={{ duration: settings.reduceMotion ? 0.01 : 0.14, ease: 'easeOut' }}
+            transition={{ duration: reduceMotion ? 0.01 : 0.14, ease: 'easeOut' }}
             className={`scroll-top-btn${isHorizontal ? ' horizontal' : ''}`}
             onClick={scrollToTop}
             title={t('item.scrollToTop')}

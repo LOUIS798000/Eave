@@ -740,6 +740,8 @@ export function useEdgeHover(): void {
       // Don't close during an external OS file drag — the drag surface may
       // temporarily shift focus to the OS drag-ghost or file manager.
       if (state.dragActive && !state.internalDragReq) return
+      // Don't close while the user is editing text inline inside PreviewFlyout.
+      if (state.editingPreview) return
       scheduleClose(400, 'window:blur')
     }
 

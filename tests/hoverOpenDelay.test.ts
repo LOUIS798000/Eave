@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
@@ -101,11 +101,14 @@ describe('hover open delay — wiring', () => {
   })
 
   it('has its strings in every language', () => {
-    const src = read('src/i18n/translations.ts')
-    const dictionaries = src.match(/export const \w+: TranslationKeys = \{/g)?.length ?? 0
-    expect(dictionaries).toBe(31)
-    for (const key of ['"hoverDelayTitle"', '"hoverDelayDesc"', '"hoverDelayInstant"', '"hoverDelay"']) {
-      expect(src.split(`${key}:`).length - 1).toBe(dictionaries)
+    const dir = join(__dirname, '..', 'src', 'i18n', 'locales')
+    const files = readdirSync(dir).filter((f) => f.endsWith('.ts'))
+    expect(files.length).toBe(31)
+    for (const file of files) {
+      const src = readFileSync(join(dir, file), 'utf8')
+      for (const key of ['"hoverDelayTitle"', '"hoverDelayDesc"', '"hoverDelayInstant"', '"hoverDelay"']) {
+        expect(src).toContain(`${key}:`)
+      }
     }
   })
 })

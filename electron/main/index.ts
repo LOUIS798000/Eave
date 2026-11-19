@@ -8,12 +8,13 @@
  *   3. On 'window-all-closed' we DON'T quit (the panel is hidden, not closed).
  *   4. Quit from the tray menu tears everything down cleanly.
  */
-import { app, BrowserWindow, protocol, session } from 'electron'
+import { app, BrowserWindow, globalShortcut, protocol, session } from 'electron'
+import { psHost } from './powershell'
 import { APP_CONFIG, runtime } from './config'
 import { ensureDirs, PATHS } from '../store/paths'
-import { createWindow, getMainWindow, setInteractive, setVisible, startCursorPoll, stopCursorPoll, stopHeartbeat, setHotZoneWidth, registerTaskbarCreatedListener, refreshBackdropNow, applyFrostMode } from './window'
+import { createWindow, getMainWindow, setInteractive, setVisible, startCursorPoll, stopCursorPoll, stopHeartbeat, setHotZoneWidth, registerTaskbarCreatedListener, refreshBackdropNow, applyFrostMode, captureExternalForeground } from './window'
 import { createTray, registerIncognitoApplier, refreshTray } from './tray'
-import { registerIpc, registerSendListeners } from './ipc'
+import { registerIpc, registerSendListeners, pasteNextFromQueue } from './ipc'
 import { reconcileLaunchAtLoginOnStartup } from './loginItems'
 import { isStoreBuild, shouldStartHidden } from './config'
 import { initState, getWatcher, loadSettings, saveSettings, pushState, stopStateTimers, getStore } from './state'
@@ -105,7 +106,9 @@ app.on('before-quit', () => {
     flushStagedTempRegistry()
   } catch { /* ignore */ }
   try {
-    const { globalShortcut } = require('electron')
+    psHost.dispose()
+  } catch { /* ignore */ }
+  try {
     globalShortcut.unregisterAll()
   } catch { /* ignore */ }
 })
@@ -243,6 +246,9 @@ function registerImageProtocol(): void {
           ? normalize(decodeURIComponent(rawTarget.slice('file/'.length)))
           : resolveStoredImage(PATHS.imagesDir(), rawTarget)?.filePath
 
+        if (isFileThumb && (!filePath || !getStore().isKnownFilePath(filePath))) {
+          return new Response('Forbidden', { status: 403 })
+        }
         if (!filePath || !existsSync(filePath)) return new Response('Not found', { status: 404 })
         return await createThumbnailResponse(filePath, !isFileThumb, request)
       }
@@ -251,6 +257,9 @@ function registerImageProtocol(): void {
       if (request.url.startsWith(`${APP_CONFIG.imageProtocol}://file/`)) {
         const rawPath = request.url.slice(`${APP_CONFIG.imageProtocol}://file/`.length)
         const filePath = normalize(decodeURIComponent(rawPath))
+        if (!getStore().isKnownFilePath(filePath)) {
+          return new Response('Forbidden', { status: 403 })
+        }
         if (existsSync(filePath)) {
           const ext = extname(filePath).toLowerCase()
           let contentType = 'image/png'
@@ -343,37 +352,65 @@ async function createThumbnailResponse(filePath: string, isStoredCapture: boolea
 void setInteractive
 
 let _lastHotkeyToggleTime = 0
+let _registeredToggleHotkey: string | null = null
+let _queueHotkeyRegistered = false
+const QUEUE_PASTE_HOTKEY = 'Alt+V'
+
+export function syncQueueHotkey(active: boolean): void {
+  try {
+    if (active) {
+      if (_queueHotkeyRegistered) return
+      const ok = globalShortcut.register(QUEUE_PASTE_HOTKEY, () => {
+        if (runtime.quitting) return
+        void pasteNextFromQueue()
+      })
+      _queueHotkeyRegistered = ok
+    } else if (_queueHotkeyRegistered) {
+      try { globalShortcut.unregister(QUEUE_PASTE_HOTKEY) } catch { /* ignore */ }
+      _queueHotkeyRegistered = false
+    }
+  } catch (err) {
+    console.warn('[Main] Failed to sync queue hotkey:', err)
+  }
+}
 
 export function registerGlobalHotkey(targetHotkey?: string): boolean {
   try {
-    const { globalShortcut } = require('electron')
-    globalShortcut.unregisterAll()
+    if (_registeredToggleHotkey) {
+      try { globalShortcut.unregister(_registeredToggleHotkey) } catch { /* ignore */ }
+      _registeredToggleHotkey = null
+    }
     const settings = loadSettings()
     const hotkey = targetHotkey || settings.toggleHotkey || 'Alt+C'
 
-    const success = globalShortcut.register(hotkey, () => {
+    const fireToggle = () => {
       if (runtime.quitting) return
       const now = Date.now()
       if (now - _lastHotkeyToggleTime < 500) return
       _lastHotkeyToggleTime = now
+      // Capture external foreground BEFORE opening so keyboard navigation can
+      // focus the shelf safely and still restore focus to the user's app on paste.
+      try { captureExternalForeground() } catch { /* ignore */ }
       // Snapshot the desktop before the blade paints, so a hotkey open also
       // shows the window the user is actually looking at.
       refreshBackdropNow()
       pushState.togglePanel()
-    })
+    }
 
-    if (!success && hotkey !== 'Alt+C') {
+    const success = globalShortcut.register(hotkey, fireToggle)
+    if (success) {
+      _registeredToggleHotkey = hotkey
+      return true
+    }
+
+    if (hotkey !== 'Alt+C') {
       console.warn(`[Main] Failed to register global shortcut ${hotkey}, falling back to Alt+C`)
-      globalShortcut.register('Alt+C', () => {
-        if (runtime.quitting) return
-        const now = Date.now()
-        if (now - _lastHotkeyToggleTime < 500) return
-        _lastHotkeyToggleTime = now
-        pushState.togglePanel()
-      })
+      if (globalShortcut.register('Alt+C', fireToggle)) {
+        _registeredToggleHotkey = 'Alt+C'
+      }
       return false
     }
-    return success
+    return false
   } catch (err) {
     console.error('[Main] Failed to register global shortcut:', err)
     return false

@@ -2040,3 +2040,76 @@
 .blade-top-tiny .settings-shelf-track .shelf-section-divider {
   display: none;
 }
+
+/* ── Dark mode overrides for Settings (both shelf & stack layouts) ──── */
+:root[data-theme="dark"] .setting-card,
+:root[data-theme="dark"] .settings-shelf-card,
+:root[data-theme="dark"] .settings-shelf-track.tab-view .settings-shelf-card {
+  background: rgba(40, 43, 52, 0.78);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 8px rgba(0, 0, 0, 0.24);
+}
+:root[data-theme="dark"] .setting-card:hover,
+:root[data-theme="dark"] .settings-shelf-card:hover {
+  background: rgba(48, 52, 63, 0.88);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+:root[data-theme="dark"] .setting-group-label,
+:root[data-theme="dark"] .settings-shelf-card .setting-group-label {
+  color: rgba(235, 235, 245, 0.48);
+}
+:root[data-theme="dark"] .setting-title,
+:root[data-theme="dark"] .settings-shelf-card .setting-title {
+  color: var(--text-primary);
+}
+:root[data-theme="dark"] .setting-desc,
+:root[data-theme="dark"] .settings-shelf-card .setting-desc {
+  color: var(--text-secondary);
+}
+:root[data-theme="dark"] .setting-pills,
+:root[data-theme="dark"] .settings-shelf-card .setting-pills,
+:root[data-theme="dark"] .placement-3way-wrap.shelf-placement-3way {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+:root[data-theme="dark"] .setting-pills .pill,
+:root[data-theme="dark"] .settings-shelf-card .setting-pills .pill,
+:root[data-theme="dark"] .placement-3way-wrap .pill {
+  color: rgba(235, 235, 245, 0.72);
+}
+:root[data-theme="dark"] .setting-pills .pill:hover:not(.active),
+:root[data-theme="dark"] .settings-shelf-card .setting-pills .pill:hover:not(.active),
+:root[data-theme="dark"] .placement-3way-wrap .pill:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+:root[data-theme="dark"] .setting-pills .pill.active,
+:root[data-theme="dark"] .settings-shelf-card .setting-pills .pill.active,
+:root[data-theme="dark"] .placement-3way-wrap .pill.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme="dark"] .settings-header-pill,
+:root[data-theme="dark"] .settings-tab-btn {
+  color: var(--text-secondary);
+}
+:root[data-theme="dark"] .settings-header-pill.active,
+:root[data-theme="dark"] .settings-tab-btn.active {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+:root[data-theme="dark"] .setting-slider-val,
+:root[data-theme="dark"] .panel-size-preset,
+:root[data-theme="dark"] .panel-size-stepper {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+:root[data-theme="dark"] .setting-slider-labels {
+  color: var(--text-tertiary);
+}
+:root[data-theme="dark"] .toggle-track {
+  background: rgba(255, 255, 255, 0.16);
+}
+

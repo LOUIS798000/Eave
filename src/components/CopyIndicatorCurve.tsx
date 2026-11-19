@@ -12,7 +12,7 @@
  */
 import { useMemo, type CSSProperties } from 'react'
 import { useStore } from '../store/appStore'
-import { OCTO_PATH } from './LiquidOctopusLoader'
+import { OCTO_PATH } from '../lib/octoPath'
 import { COPY_TAB_BEHIND_EDGE, COPY_TAB_DEPTH, copyTabPath, edgeBarCenter } from '../lib/copyIndicatorShape'
 
 const ICON_FILTER = 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28))'

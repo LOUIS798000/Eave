@@ -14,7 +14,7 @@ import { loadSettings, saveSettings } from '../store/settings'
 import { getMainWindow, setVisible, repositionWindow, getDisplayListOptions, registerWindowRepositionListener, popUpAndRetract } from './window'
 import type { StickPosition } from '../../shared/types'
 import { pushState } from './state'
-import { TRANSLATIONS, en } from '../../src/i18n/translations'
+import { MAIN_STRINGS } from '../../src/i18n/mainStrings'
 
 let tray: Tray | null = null
 let themeListenerRegistered = false
@@ -165,7 +165,7 @@ export function createTray(): Tray {
     }))
   }
 
-function getTrayText(settingsLang: string | undefined, key: keyof typeof en['tray']): string {
+function getTrayText(settingsLang: string | undefined, key: string): string {
   let langCode = settingsLang || 'system'
   if (langCode === 'system') {
     const sysLangs = app.getPreferredSystemLanguages()
@@ -202,13 +202,13 @@ function getTrayText(settingsLang: string | undefined, key: keyof typeof en['tra
     else if (first.startsWith('no') || first.startsWith('nb') || first.startsWith('nn')) langCode = 'no'
     else langCode = 'en'
   }
-  const dict = TRANSLATIONS[langCode]
-  return (dict?.tray?.[key]) || en.tray[key] || key
+  const dict = MAIN_STRINGS[langCode]
+  return (dict?.tray?.[key]) || MAIN_STRINGS.en.tray[key] || key
 }
 
   const rebuild = () => {
     const settings = loadSettings()
-    const t = (k: keyof typeof en['tray']) => getTrayText(settings.language, k)
+    const t = (k: string) => getTrayText(settings.language, k)
 
     const menu = Menu.buildFromTemplate([
       {

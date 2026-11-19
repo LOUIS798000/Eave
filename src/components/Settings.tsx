@@ -257,6 +257,160 @@ export function Settings({
     patch({ hoverOpenDelay: normalizeHoverOpenDelay(rawVal) })
   }
 
+  const [excludedAppDraft, setExcludedAppDraft] = useState('')
+
+  const handleAddExcludedApp = () => {
+    const cleaned = excludedAppDraft.trim()
+    if (!cleaned) return
+    const current = settings.excludedApps ?? []
+    if (current.some((x) => x.toLowerCase() === cleaned.toLowerCase())) {
+      setExcludedAppDraft('')
+      return
+    }
+    playButtonClickSound()
+    void patch({ excludedApps: [...current, cleaned] })
+    setExcludedAppDraft('')
+  }
+
+  const handleRemoveExcludedApp = (appName: string) => {
+    playButtonClickSound()
+    const current = settings.excludedApps ?? []
+    void patch({ excludedApps: current.filter((x) => x !== appName) })
+  }
+
+  const renderThemeCard = (layout: 'shelf' | 'stack') => {
+    const isShelf = layout === 'shelf'
+    const currentTheme = settings.theme ?? 'system'
+    const opts: Array<{ label: string; val: 'system' | 'light' | 'dark' }> = [
+      { label: t('appearance.themeSystem') || 'System', val: 'system' },
+      { label: t('appearance.themeLight') || 'Light', val: 'light' },
+      { label: t('appearance.themeDark') || 'Dark', val: 'dark' }
+    ]
+    return (
+      <div className={isShelf ? 'settings-shelf-card theme-card appearance-col' : 'setting-card'}>
+        <div className="shelf-card-top">
+          <div className="setting-group-label">{t('groups.theme') || 'THEME'}</div>
+          <div className="setting-title">{t('appearance.themeTitle') || 'Theme'}</div>
+          <div className="setting-desc">{t('appearance.themeDesc') || 'Match Windows or force Light / Dark glass'}</div>
+        </div>
+        <div className="shelf-card-bottom">
+          <div className="setting-pills">
+            {opts.map((opt) => (
+              <button
+                key={opt.val}
+                type="button"
+                className={`pill ${currentTheme === opt.val ? 'active' : ''}`}
+                onClick={() => {
+                  playButtonClickSound()
+                  void patch({ theme: opt.val })
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const renderPinnedExpandedCard = (layout: 'shelf' | 'stack') => {
+    const isShelf = layout === 'shelf'
+    return (
+      <div className={isShelf ? 'settings-shelf-card rules-card behaviour-col' : 'setting-card'}>
+        <div className="shelf-card-top">
+          <div className="setting-group-label">{t('groups.pinnedExpanded') || 'PINNED SECTION'}</div>
+        </div>
+        <div className="shelf-card-inline">
+          <div className="shelf-card-inline-text">
+            <div className="setting-title">{t('behaviour.pinnedDefaultExpandedTitle') || 'Expand Pinned by Default'}</div>
+            <div className="setting-desc">{t('behaviour.pinnedDefaultExpandedDesc') || 'Show pinned items immediately without clicking to expand'}</div>
+          </div>
+          <div className="shelf-card-inline-action">
+            <Toggle
+              checked={settings.pinnedDefaultExpanded ?? false}
+              onChange={(v) => patch({ pinnedDefaultExpanded: v })}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const renderExcludedAppsCard = (layout: 'shelf' | 'stack') => {
+    const isShelf = layout === 'shelf'
+    const apps = settings.excludedApps ?? []
+    return (
+      <div className={isShelf ? 'settings-shelf-card rules-card behaviour-col' : 'setting-card'}>
+        <div className="shelf-card-top">
+          <div className="setting-group-label">{t('groups.excludedApps') || 'EXCLUDED APPS'}</div>
+          <div className="setting-title">{t('behaviour.excludedAppsTitle') || 'Excluded Apps'}</div>
+          <div className="setting-desc">{t('behaviour.excludedAppsDesc') || 'Pause clipboard capture while these apps are focused'}</div>
+        </div>
+        <div className="shelf-card-bottom">
+          <div className="excluded-apps-wrap">
+            <div className="excluded-apps-input-row">
+              <input
+                type="text"
+                className="excluded-apps-input"
+                placeholder={t('behaviour.excludedAppsPlaceholder') || 'e.g. KeePass.exe'}
+                value={excludedAppDraft}
+                onChange={(e) => setExcludedAppDraft(e.target.value)}
+                onPointerDown={() => {
+                  void window.edge.focusWindow?.(true)?.catch?.(() => {})
+                  void window.edge.pauseHotkey?.(true)?.catch?.(() => {})
+                }}
+                onFocus={() => {
+                  void window.edge.focusWindow?.(true)?.catch?.(() => {})
+                  void window.edge.pauseHotkey?.(true)?.catch?.(() => {})
+                }}
+                onBlur={() => {
+                  void window.edge.focusWindow?.(false)?.catch?.(() => {})
+                  void window.edge.pauseHotkey?.(false)?.catch?.(() => {})
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleAddExcludedApp()
+                  } else if (e.key === 'Escape') {
+                    e.stopPropagation()
+                    ;(e.currentTarget as HTMLInputElement).blur()
+                  }
+                }}
+                spellCheck={false}
+              />
+              <button
+                type="button"
+                className="excluded-apps-add-btn"
+                disabled={!excludedAppDraft.trim()}
+                onClick={handleAddExcludedApp}
+              >
+                {t('behaviour.excludedAppsAdd') || 'Add'}
+              </button>
+            </div>
+            {apps.length > 0 && (
+              <div className="excluded-apps-chips">
+                {apps.map((appName) => (
+                  <span key={appName} className="excluded-app-chip">
+                    <span>{appName}</span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${appName}`}
+                      onClick={() => handleRemoveExcludedApp(appName)}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const renderHoverDelayCard = (layout: 'shelf' | 'stack') => {
     const isShelf = layout === 'shelf'
     return (
@@ -677,6 +831,9 @@ export function Settings({
                 </div>
               </div>
 
+              {renderPinnedExpandedCard('shelf')}
+              {renderExcludedAppsCard('shelf')}
+
               {/* ── SUB-GROUP 4 DIVIDER: Storage & Retention ── */}
               <div className="shelf-section-divider">
                 <span className="shelf-section-divider-text">{t('tabs.storageRetention') || 'STORAGE & RETENTION'}</span>
@@ -1046,6 +1203,8 @@ export function Settings({
                 </div>
               )}
 
+              {renderThemeCard('shelf')}
+
               {/* Card 3: Frost strength */}
               <div className="settings-shelf-card frost-card appearance-col">
                 <div className="shelf-card-top">
@@ -1381,6 +1540,9 @@ export function Settings({
                       </div>
                     </div>
                   </div>
+
+                  {renderPinnedExpandedCard('stack')}
+                  {renderExcludedAppsCard('stack')}
 
                   {/* ── SUB-GROUP 4: Storage & Retention ─────────────── */}
                   <div className="setting-section-divider">
@@ -2001,6 +2163,8 @@ export function Settings({
                       </div>
                     </div>
                   </div>
+
+                  {renderThemeCard('stack')}
 
                   {/* Card 4: Frost strength */}
                   <div className="setting-card">

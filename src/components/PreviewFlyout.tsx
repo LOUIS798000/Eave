@@ -5,6 +5,7 @@ import { formatBytes, formatImageDisplayName } from '../lib/format'
 import { getFileKind } from '../lib/fileType'
 import { FileKindIcon, FolderOpenIcon, CopyIcon, CheckIcon, ExternalLinkIcon, CloseIcon, GlobeIcon } from './icons'
 import { parseUrlPreview } from '../lib/urlPreview'
+import { getAvailableTextTransforms } from '../lib/textTransforms'
 import { parseColor } from '../lib/colorUtils'
 import { detectCode } from '../lib/codeDetect'
 import { CodeBlock } from './CodeBlock'
@@ -545,8 +546,11 @@ function PreviewContent({
   const startDrag = useDragOut()
 
   const [fullText, setFullText] = useState<string | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [draftText, setDraftText] = useState('')
 
   useEffect(() => {
+    setEditing(false)
     if (item?.data?.kind === 'text' && item.data.hasFullPayload) {
       window.edge.getFullText(item.id).then((t) => setFullText(t)).catch(() => {})
     } else {
@@ -554,12 +558,153 @@ function PreviewContent({
     }
   }, [item?.id, item?.data?.hasFullPayload])
 
+  useEffect(() => {
+    useStore.getState().setEditingPreview(editing)
+    if (!editing) return
+    void window.edge.focusWindow?.(true)?.catch?.(() => {})
+    return () => {
+      useStore.getState().setEditingPreview(false)
+      void window.edge.focusWindow?.(false)?.catch?.(() => {})
+    }
+  }, [editing])
+
   if (item.data.kind === 'text') {
     const activeText = fullText ?? item.data.text
     const text: string = activeText.length > 20000
       ? activeText.slice(0, 20000) + `\n\n${t('flyout.contentTruncated')}`
       : activeText
     const isUrl = item.data.isUrl
+    const smartTransforms = getAvailableTextTransforms(activeText, isUrl)
+
+    const applyTransform = async (e: React.MouseEvent, fn: (s: string) => string) => {
+      e.stopPropagation()
+      playButtonClickSound()
+      const next = fn(activeText)
+      if (next === activeText) return
+      await useStore.getState().updateItemText(item.id, next)
+      setFullText(next)
+    }
+
+    const startEditing = (e: React.MouseEvent) => {
+      e.stopPropagation()
+      playButtonClickSound()
+      setDraftText(activeText)
+      setEditing(true)
+    }
+
+    const saveEditing = async (e: React.MouseEvent) => {
+      e.stopPropagation()
+      playButtonClickSound()
+      await useStore.getState().updateItemText(item.id, draftText)
+      setFullText(draftText)
+      setEditing(false)
+    }
+
+    const cancelEditing = (e: React.MouseEvent) => {
+      e.stopPropagation()
+      playButtonClickSound()
+      setEditing(false)
+    }
+
+    if (editing) {
+      return (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}
+        >
+          <textarea
+            className="preview-edit-area"
+            value={draftText}
+            onChange={(e) => setDraftText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.stopPropagation()
+                setEditing(false)
+              } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault()
+                void useStore.getState().updateItemText(item.id, draftText).then(() => {
+                  setFullText(draftText)
+                  setEditing(false)
+                })
+              }
+            }}
+            autoFocus
+            spellCheck={false}
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <button
+              type="button"
+              onClick={cancelEditing}
+              style={{
+                height: 28,
+                padding: '0 12px',
+                borderRadius: 8,
+                border: '1px solid var(--divider)',
+                background: 'var(--bg-inset)',
+                color: 'var(--text-primary)',
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: 'pointer'
+              }}
+            >
+              {t('item.cancelEdit')}
+            </button>
+            <button
+              type="button"
+              onClick={saveEditing}
+              style={{
+                height: 28,
+                padding: '0 12px',
+                borderRadius: 8,
+                border: 'none',
+                background: 'var(--accent)',
+                color: '#fff',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              {t('item.saveText')}
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    const renderSmartBar = () => (
+      <div className="preview-smart-bar" onClick={(e) => e.stopPropagation()}>
+        {smartTransforms.map((tr) => (
+          <button
+            key={tr.id}
+            type="button"
+            className="preview-smart-chip"
+            onClick={(e) => void applyTransform(e, tr.apply)}
+          >
+            {t(tr.labelKey as any)}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="preview-smart-chip"
+          onClick={(e) => {
+            e.stopPropagation()
+            playButtonClickSound()
+            void useStore.getState().copyPlain(item.id)
+          }}
+          title={t('item.copyPlain')}
+        >
+          {t('item.plainBadge')}
+        </button>
+        <button
+          type="button"
+          className="preview-smart-chip"
+          onClick={startEditing}
+          title={t('item.editText')}
+        >
+          {t('item.editText')}
+        </button>
+      </div>
+    )
 
     if (isUrl) {
       const info = parseUrlPreview(activeText)
@@ -579,8 +724,8 @@ function PreviewContent({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              background: 'rgba(255, 255, 255, 0.55)',
-              border: '1px solid rgba(255, 255, 255, 0.8)',
+              background: 'var(--bg-chip)',
+              border: '1px solid var(--blade-border)',
               borderRadius: 999,
               padding: '3px 10px',
               maxWidth: 'calc(100% - 75px)',
@@ -588,10 +733,10 @@ function PreviewContent({
               whiteSpace: 'nowrap',
               boxSizing: 'border-box'
             }}>
-              <GlobeIcon width={13} height={13} style={{ color: 'rgba(60, 60, 67, 0.66)', flexShrink: 0 }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#1d1d1f', fontFamily: SYS_FONT, flexShrink: 0, whiteSpace: 'nowrap' }}>{info.serviceName}</span>
-              <span style={{ fontSize: 11, color: 'rgba(60, 60, 67, 0.35)', flexShrink: 0 }}>·</span>
-              <span style={{ fontSize: 11.5, color: 'rgba(60, 60, 67, 0.6)', fontFamily: SYS_FONT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flexShrink: 1 }}>{info.domain}</span>
+              <GlobeIcon width={13} height={13} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: SYS_FONT, flexShrink: 0, whiteSpace: 'nowrap' }}>{info.serviceName}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-quaternary)', flexShrink: 0 }}>·</span>
+              <span style={{ fontSize: 11.5, color: 'var(--text-secondary)', fontFamily: SYS_FONT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flexShrink: 1 }}>{info.domain}</span>
             </div>
 
             <div className="act-pill">
@@ -607,6 +752,7 @@ function PreviewContent({
               />
             </div>
           </div>
+          {smartTransforms.length > 0 && renderSmartBar()}
 
           {info.title && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -710,15 +856,20 @@ function PreviewContent({
             const sel = window.getSelection()?.toString()
             if (sel && sel.trim().length > 0) return
             e.stopPropagation()
-            tryPaste(() => useStore.getState().paste(item.id))
+            if (e.shiftKey) {
+              tryPaste(() => useStore.getState().pastePlain(item.id))
+            } else {
+              tryPaste(() => useStore.getState().paste(item.id))
+            }
           }}
           title={t('flyout.clickToPaste')}
           style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 10, cursor: 'pointer', width: '100%' }}
         >
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, position: 'sticky', top: 0, zIndex: 2 }}>
-            <div className="act-pill">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, position: 'sticky', top: 0, zIndex: 2 }}>
+            {renderSmartBar()}
+            <div className="act-pill" style={{ flexShrink: 0 }}>
               <QuickActionButton
-              title={t('flyout.copyText')}
+                title={t('flyout.copyText')}
                 icon={CopyIcon}
                 onClick={() => useStore.getState().copy(item.id)}
               />
@@ -742,22 +893,27 @@ function PreviewContent({
           const sel = window.getSelection()?.toString()
           if (sel && sel.trim().length > 0) return
           e.stopPropagation()
-          tryPaste(() => useStore.getState().paste(item.id))
+          if (e.shiftKey) {
+            tryPaste(() => useStore.getState().pastePlain(item.id))
+          } else {
+            tryPaste(() => useStore.getState().paste(item.id))
+          }
         }}
         title={t('flyout.clickToPaste')}
         style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 10, cursor: 'pointer' }}
       >
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, position: 'sticky', top: 0, zIndex: 2 }}>
-          <div className="act-pill">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, position: 'sticky', top: 0, zIndex: 2 }}>
+          {renderSmartBar()}
+          <div className="act-pill" style={{ flexShrink: 0 }}>
             <QuickActionButton
-            title={t('flyout.copyText')}
+              title={t('flyout.copyText')}
               icon={CopyIcon}
               onClick={() => useStore.getState().copy(item.id)}
             />
           </div>
         </div>
         <div style={{
-          color: 'rgba(29, 29, 31, 0.86)',
+          color: 'var(--text-primary)',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
           fontSize: 13.5,

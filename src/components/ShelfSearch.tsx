@@ -66,6 +66,19 @@ export function ShelfSearch() {
     disengage()
   }, [disengage])
 
+  // Keyboard shortcut hook: Ctrl+F or '/' dispatches 'eave:focus-search'.
+  useEffect(() => {
+    const onFocusSearch = () => {
+      engage()
+      try {
+        inputRef.current?.focus()
+        inputRef.current?.select()
+      } catch { /* ignore */ }
+    }
+    window.addEventListener('eave:focus-search', onFocusSearch)
+    return () => window.removeEventListener('eave:focus-search', onFocusSearch)
+  }, [engage])
+
   return (
     <div className={`search${query ? ' has-query' : ''}`}>
       <SearchIcon className="search-icon" width={14} height={14} />

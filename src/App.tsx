@@ -12,7 +12,7 @@ import { useEffect, useRef } from 'react'
 import { Panel } from './components/Panel'
 import { useStore } from './store/appStore'
 import { edge } from './lib/edge'
-import { applyReduceMotion } from './lib/theme'
+import { applyReduceMotion, applyThemeMode } from './lib/theme'
 import { useEdgeHover } from './hooks/useEdgeHover'
 import { useRendererWatchdog } from './hooks/useRendererWatchdog'
 
@@ -250,6 +250,12 @@ export default function App() {
       } else {
         useStore.getState().setOpen(next)
         edge.setInteractive(next)
+        // Hotkey/tray open: grant keyboard focus so arrow keys, Enter, Shift+Enter,
+        // Alt+1..9, Q, and Ctrl+F work immediately without touching the mouse.
+        // Main already captured the user's foreground window before toggling.
+        try {
+          void edge.focusWindow(true)?.catch?.(() => {})
+        } catch { /* ignore */ }
       }
     })
     const offOpenSettings = edge.onOpenSettings(() => {
@@ -264,6 +270,9 @@ export default function App() {
       if (useStore.getState().isInternalCopying) return
       useStore.getState().triggerCopyFlare()
     })
+    const offQueueUpdated = edge.onQueueUpdated?.((ids) => {
+      useStore.getState().setPasteQueue(ids)
+    })
     return () => {
       offItems()
       offSettings()
@@ -272,15 +281,26 @@ export default function App() {
       offOpenSettings()
       offTutorialStep()
       offCopyFlare()
+      offQueueUpdated?.()
     }
   }, [hydrate, setItems, setSettings, pushToast])
 
-  // Apply theme whenever settings change.
+  // Apply theme & motion preferences whenever settings or OS scheme change.
   useEffect(() => {
     applyReduceMotion(settings.reduceMotion)
     const scale = settings.fontSizeScale ?? 1.0
     document.documentElement.style.setProperty('--font-scale', String(scale))
   }, [settings.reduceMotion, settings.fontSizeScale])
+
+  useEffect(() => {
+    const pref = settings.theme ?? 'system'
+    applyThemeMode(pref)
+    if (pref !== 'system' || typeof window.matchMedia !== 'function') return
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => applyThemeMode('system')
+    mq.addEventListener?.('change', onChange)
+    return () => mq.removeEventListener?.('change', onChange)
+  }, [settings.theme])
 
   if (!hydrated) {
     return <div className="root" />

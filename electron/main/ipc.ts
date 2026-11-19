@@ -9,12 +9,13 @@ import { app, ipcMain, clipboard, nativeImage, shell, net } from 'electron'
 import { existsSync } from 'node:fs'
 import { execFile } from 'node:child_process'
 import { psHost, getSystemPowerShellPath, getWritableCwd } from './powershell'
+import { sendCtrlVNative, writeFileDropListNative } from './win32Native'
 import { filterValidPaths, isExistingFilePath } from './pathValidation'
 import { type InvokeMap, type InvokeChannel, type SendMap, type SendChannel } from '../../shared/ipc'
 import { getStore, loadSettings, saveSettings, pushState, addFiles, getWatcher } from './state'
 import { sendToMainWindow, setInteractive, setHeartbeatPaused, setHotZoneWidth, repositionWindow, getDisplayListOptions, popUpAndRetract, setWindowFocusable, captureExternalForeground, traceFg, resolvePasteTarget, applyFrostMode, onPanelCollapsed, onPanelExpanded } from './window'
 import { diag } from './diag'
-import { registerGlobalHotkey } from './index'
+import { registerGlobalHotkey, syncQueueHotkey } from './index'
 import { getOnboardingWindow } from './onboardingWindow'
 import { rebuildTrayMenu } from './tray'
 import { startDragOut, resolveDragData, prestageDrag, stageDragFile } from './drag'
@@ -55,14 +56,14 @@ function toast(message: string, tone: 'info' | 'error' = 'info', params?: Record
   sendToMainWindow('ui:toast', { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, message, tone, params })
 }
 
-/** Simulate pressing Ctrl+V via PowerShell after returning focus to the previous active window. */
+/** Simulate pressing Ctrl+V natively via Win32 SendInput (falls back to PowerShell if unavailable). */
 function simulatePaste(): void {
   if (process.platform === 'win32') {
-    // Run via the persistent powershell host for near-zero latency (no process spawn overhead)
+    if (sendCtrlVNative()) return
+    // Fallback to lazy PowerShell host only if native SendInput fails
     psHost.run("Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^v')", 2000)
       .catch((err) => {
         console.error('[Main] simulatePaste psHost failed, using fallback:', err)
-        // Fallback to spawning powershell process via absolute system path
         execFile(getSystemPowerShellPath(), [
           '-NoProfile',
           '-NonInteractive',
@@ -79,12 +80,8 @@ function simulatePaste(): void {
  * Write file *references* onto the system clipboard so that paste in Explorer,
  * Word, Slack, and every other shell-aware app copies the actual files.
  *
- * WHY POWERSHELL: Electron's clipboard API calls EmptyClipboard() on every
- * write. Sequential calls (writeBuffer then writeText) leave only the LAST
- * format — which was always the plain path string, making every paste land as
- * text. PowerShell's Clipboard.SetFileDropList writes CF_HDROP + FileNameW +
- * Shell IDList Array + all other shell formats in a single atomic transaction.
- * Paths are base64-encoded so any character (spaces, quotes, Unicode) is safe.
+ * Uses native Win32 CF_HDROP (in-process via koffi) first so no PowerShell
+ * child process is needed. Falls back to PowerShell SetFileDropList if needed.
  *
  * Returns false when no valid path remained (e.g. every source file was
  * deleted since capture) so callers can surface an explicit error.
@@ -93,6 +90,9 @@ async function writeFileListToClipboard(rawPaths: string[]): Promise<boolean> {
   const validPaths = toUnpackagedFilePaths(filterValidPaths(rawPaths))
   if (validPaths.length === 0) return false
   if (process.platform === 'win32') {
+    if (await writeFileDropListNative(validPaths)) {
+      return true
+    }
     try {
       const addLines = validPaths
         .map(p => `$c.Add([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${Buffer.from(p, 'utf8').toString('base64')}')))|Out-Null`)
@@ -189,6 +189,63 @@ export async function syncLoginItemSettings(launchAtLogin?: boolean): Promise<vo
   }
 }
 
+let pasteQueueIds: string[] = []
+let _lastQueuePasteTime = 0
+
+/** Pop the head of the sequential paste queue and paste it into the active app. */
+export async function pasteNextFromQueue(): Promise<boolean> {
+  const now = Date.now()
+  if (now - _lastQueuePasteTime < 350) return false
+  _lastQueuePasteTime = now
+
+  // Drop stale IDs that were deleted since queueing
+  pasteQueueIds = pasteQueueIds.filter((id) => !!getStore().get(id))
+  if (pasteQueueIds.length === 0) {
+    syncQueueHotkey(false)
+    sendToMainWindow('queue:updated', [])
+    return false
+  }
+
+  const nextId = pasteQueueIds.shift()!
+  const item = getStore().get(nextId)
+  if (!item) {
+    syncQueueHotkey(pasteQueueIds.length > 0)
+    sendToMainWindow('queue:updated', [...pasteQueueIds])
+    return false
+  }
+
+  const watcher = getWatcher()
+  watcher.setPaused(true)
+  try {
+    pushState.togglePanel(false)
+    const fullText = item.data.kind === 'text' ? getStore().getFullText(nextId) : undefined
+    const payload = item.data.kind === 'text' && fullText ? { ...item.data, text: fullText } : item.data
+    const ok = await writeItemToClipboard(payload, item.capturedAt)
+    if (!ok) {
+      toast('toast.imageUnavailable', 'error')
+      return false
+    }
+    const sendDelay = await resolvePasteTarget(50)
+    if (sendDelay < 0) {
+      // User invoked Alt+V directly while another app already holds focus: paste right away
+      setTimeout(() => simulatePaste(), 40)
+    } else {
+      setTimeout(() => simulatePaste(), sendDelay)
+    }
+  } finally {
+    syncQueueHotkey(pasteQueueIds.length > 0)
+    sendToMainWindow('queue:updated', [...pasteQueueIds])
+    if (pasteQueueIds.length === 0) {
+      toast('toast.queueDone', 'info')
+    }
+    setTimeout(() => {
+      watcher.resyncSignature()
+      watcher.setPaused(loadSettings().incognito)
+    }, 350)
+  }
+  return true
+}
+
 export function registerIpc(): void {
   handle('state:load', () => {
     return {
@@ -279,6 +336,27 @@ export function registerIpc(): void {
     return getStore().getFullText(id)
   })
 
+  handle('item:update-text', (id, text) => {
+    const ok = getStore().updateText(id, text)
+    if (ok) pushState.items({ reason: 'usage' })
+    return getStore().toDto()
+  })
+
+  handle('item:search', (query) => {
+    return getStore().searchIds(query)
+  })
+
+  handle('queue:sync', (ids) => {
+    const clean = Array.isArray(ids) ? ids.filter((id) => typeof id === 'string' && !!getStore().get(id)) : []
+    pasteQueueIds = Array.from(new Set(clean))
+    syncQueueHotkey(pasteQueueIds.length > 0)
+    return [...pasteQueueIds]
+  })
+
+  handle('queue:paste-next', async () => {
+    return pasteNextFromQueue()
+  })
+
   handle('item:copy', async (id) => {
     const item = getStore().get(id)
     console.log('[IPC] item:copy id=', id, 'found=', !!item)
@@ -315,6 +393,26 @@ export function registerIpc(): void {
     }, 200)
 
     return true
+  })
+
+  handle('item:copy-plain', async (id) => {
+    const item = getStore().get(id)
+    if (!item || item.data.kind !== 'text') return false
+    const watcher = getWatcher()
+    watcher.setPaused(true)
+    try {
+      const fullText = getStore().getFullText(id)
+      clipboard.clear()
+      clipboard.writeText(fullText)
+      getStore().touch(id)
+      pushState.items({ reason: 'usage' })
+      return true
+    } finally {
+      setTimeout(() => {
+        watcher.resyncSignature()
+        watcher.setPaused(loadSettings().incognito)
+      }, 200)
+    }
   })
 
   handle('item:copy-subitem', async (req) => {
@@ -448,6 +546,52 @@ export function registerIpc(): void {
     return true
   })
 
+  handle('item:paste-plain', async (id) => {
+    const now = Date.now()
+    if (now - _lastPasteTime < PASTE_GUARD_MS) return false
+    _lastPasteTime = now
+
+    const item = getStore().get(id)
+    if (!item || item.data.kind !== 'text') return false
+
+    const watcher = getWatcher()
+    watcher.setPaused(true)
+    try {
+      pushState.togglePanel(false)
+      const fullText = getStore().getFullText(id)
+      clipboard.clear()
+      clipboard.writeText(fullText)
+
+      const settings = loadSettings()
+      if (settings.movePastedToTop !== false) {
+        getStore().touch(id)
+      }
+
+      const sendDelay = await resolvePasteTarget(50)
+      if (sendDelay < 0) {
+        toast('toast.pasteFallback', 'info')
+      } else {
+        setTimeout(() => {
+          traceFg('sendKeys')
+          simulatePaste()
+          setTimeout(() => traceFg('sendKeys+400ms'), 400)
+        }, sendDelay)
+      }
+
+      if (settings.movePastedToTop !== false) {
+        setTimeout(() => {
+          pushState.items()
+        }, 250)
+      }
+    } finally {
+      setTimeout(() => {
+        watcher.resyncSignature()
+        watcher.setPaused(loadSettings().incognito)
+      }, 350)
+    }
+    return true
+  })
+
   handle('item:paste-subitem', async (req) => {
     const now = Date.now()
     if (now - _lastPasteTime < PASTE_GUARD_MS) {
@@ -497,7 +641,7 @@ export function registerIpc(): void {
       }
     } finally {
       setTimeout(() => {
-        watcher.invalidateSignature()
+        watcher.resyncSignature()
         watcher.setPaused(loadSettings().incognito)
       }, 350)
     }

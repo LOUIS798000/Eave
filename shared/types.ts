@@ -41,7 +41,7 @@ export type ClipboardImageFields = {
 
 /** Discriminated union describing the payload of a clipboard item. */
 export type ItemData =
-  | { kind: 'text'; text: string; html?: string; isUrl: boolean; isColor?: boolean; hasFullPayload?: boolean; previewText?: string }
+  | { kind: 'text'; text: string; html?: string; hasHtml?: boolean; isUrl: boolean; isColor?: boolean; hasFullPayload?: boolean; previewText?: string }
   | ({ kind: 'image' } & ClipboardImageFields)
   | { kind: 'image-collection'; images: ClipboardImageFields[] }
   | { kind: 'files'; paths: string[]; entries?: FileEntry[] }
@@ -83,7 +83,7 @@ export interface FileEntry {
 /** Payload sent over IPC: same as ClipboardItem but with inline image previews. */
 export interface ClipboardItemDto extends Omit<ClipboardItem, 'data'> {
   data:
-  | { kind: 'text'; text: string; html?: string; isUrl: boolean; isColor?: boolean; hasFullPayload?: boolean; previewText?: string }
+  | { kind: 'text'; text: string; html?: string; hasHtml?: boolean; isUrl: boolean; isColor?: boolean; hasFullPayload?: boolean; previewText?: string }
   | ({ kind: 'image'; preview: string } & ClipboardImageFields)
   | { kind: 'image-collection'; images: Array<ClipboardImageFields & { preview: string }> }
   | { kind: 'files'; paths: string[]; previews?: string[]; entries?: FileEntry[] }
@@ -266,6 +266,12 @@ export interface Settings {
   v026UpgradeCleaned?: boolean
   /** Configurable global hotkey accelerator to toggle Eave shelf (e.g. 'Alt+C', 'Alt+Shift+C'). Default: 'Alt+C'. */
   toggleHotkey?: string
+  /** Color theme preference ('system' | 'light' | 'dark'). Default: 'system'. */
+  theme?: 'system' | 'light' | 'dark'
+  /** Process executable names (case-insensitive, e.g. 'keepass.exe') ignored by clipboard capture. */
+  excludedApps?: string[]
+  /** When true, the Pinned section opens expanded by default instead of collapsed. Default: false. */
+  pinnedDefaultExpanded?: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -303,7 +309,10 @@ export const DEFAULT_SETTINGS: Settings = {
   hoverOpenDelay: 0,
   fontSizeScale: 1.0,
   language: 'system',
-  toggleHotkey: 'Alt+C'
+  toggleHotkey: 'Alt+C',
+  theme: 'system',
+  excludedApps: [],
+  pinnedDefaultExpanded: false
 }
 
 

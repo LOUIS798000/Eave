@@ -37,7 +37,7 @@ const menuItemStyle: CSSProperties = {
   padding: '7px 10px',
   borderRadius: 7,
   background: 'transparent',
-  color: 'rgba(29, 29, 31, 0.85)',
+  color: 'var(--text-primary)',
   fontSize: 12,
   fontWeight: 400,
   border: 'none',
@@ -189,11 +189,11 @@ export function ClearMenu({
                 top: anchor.top,
                 left: anchor.left,
                 minWidth: MENU_WIDTH,
-                background: 'rgba(255, 255, 255, 0.97)',
-                border: '1px solid rgba(255, 255, 255, 0.8)',
+                background: 'var(--bg-3)',
+                border: '1px solid var(--blade-border)',
                 borderRadius: 16,
                 padding: 4,
-                boxShadow: '0 0 0 1px rgba(20, 22, 40, 0.05), 0 16px 40px rgba(20, 22, 40, 0.14), inset 0 1px 0 rgba(255, 255, 255, 1)',
+                boxShadow: 'var(--shadow-float)',
                 zIndex: 4000
               }}
             >
@@ -203,24 +203,24 @@ export function ClearMenu({
                   type="button"
                   onClick={() => clearWindow(w.hours)}
                   style={menuItemStyle}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(120, 120, 128, 0.14)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-inset-strong)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
                   {t(`item.clearLast${w.key}` as any)}
                 </button>
               ))}
 
-              <div style={{ height: 1, background: 'rgba(60, 60, 67, 0.12)', margin: '4px 2px' }} />
+              <div style={{ height: 1, background: 'var(--divider)', margin: '4px 2px' }} />
 
               <button
                 type="button"
                 onClick={handleAllClick}
                 style={{
                   ...menuItemStyle,
-                  color: confirmAll ? '#ff3b30' : 'rgba(29, 29, 31, 0.85)',
+                  color: confirmAll ? 'var(--act-danger)' : 'var(--text-primary)',
                   fontWeight: confirmAll ? 600 : 400
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(120, 120, 128, 0.14)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-inset-strong)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
               >
                 {confirmAll ? t('item.clearAllConfirm') : t('item.clearAll')}

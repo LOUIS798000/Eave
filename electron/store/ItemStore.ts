@@ -9,8 +9,8 @@
  *   - Persist the index to JSON and image bytes to per-item PNG files.
  *   - Convert internal items to the serializable DTO form for the renderer.
  */
-import { existsSync, readFileSync, writeFileSync, rmSync, statSync, readdirSync } from 'node:fs'
-import { join, extname, basename as pathBasename } from 'node:path'
+import { existsSync, readFileSync, writeFileSync, rmSync, statSync, readdirSync, renameSync, copyFileSync } from 'node:fs'
+import { join, extname, basename as pathBasename, normalize, resolve } from 'node:path'
 import { nativeImage, safeStorage } from 'electron'
 import { thumbnailUrlForFile, thumbnailUrlForStoredImage } from '../main/imageProtocol'
 import {
@@ -43,10 +43,64 @@ export type ItemsRemovedListener = (removed: readonly ClipboardItem[]) => void
 export class ItemStore {
   private items: ClipboardItem[] = []
   private sigToId = new Map<string, string>()
+  private idToSig = new Map<string, string>()
   /** Small, bounded thumbnails for renderer DTOs. Original image bytes stay on disk. */
   private previewCache = new Map<string, string>()
 
   constructor(private readonly onRemoved?: ItemsRemovedListener) {}
+
+  private registerSig(id: string, sig: string): void {
+    const prev = this.idToSig.get(id)
+    if (prev && prev !== sig && this.sigToId.get(prev) === id) {
+      this.sigToId.delete(prev)
+    }
+    this.sigToId.set(sig, id)
+    this.idToSig.set(id, sig)
+  }
+
+  private unregisterItem(it: ClipboardItem): void {
+    const sig = this.idToSig.get(it.id)
+    if (sig !== undefined) {
+      if (this.sigToId.get(sig) === it.id) {
+        this.sigToId.delete(sig)
+      }
+      this.idToSig.delete(it.id)
+    } else {
+      const computed =
+        it.data.kind === 'text' && it.data.hasFullPayload
+          ? contentSignature({ ...it.data, text: this.getFullText(it.id) })
+          : contentSignature(it.data)
+      if (this.sigToId.get(computed) === it.id) {
+        this.sigToId.delete(computed)
+      }
+    }
+  }
+
+  private isImageIdReferenced(imageId: string): boolean {
+    for (const it of this.items) {
+      if (it.data.kind === 'image' && it.data.imageId === imageId) return true
+      if (it.data.kind === 'image-collection' && it.data.images.some((img) => img.imageId === imageId)) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private cleanupItemAssets(it: ClipboardItem): void {
+    if (it.data.kind === 'image') {
+      if (!this.isImageIdReferenced(it.data.imageId)) {
+        this.removeImageFile(it.data.imageId)
+      }
+    } else if (it.data.kind === 'image-collection') {
+      for (const img of it.data.images) {
+        if (!this.isImageIdReferenced(img.imageId)) {
+          this.removeImageFile(img.imageId)
+        }
+      }
+    } else if (it.data.kind === 'text') {
+      this.removeTextPayload(it.id)
+    }
+  }
 
   private notifyRemoved(removed: ClipboardItem[]): void {
     if (removed.length === 0) return
@@ -57,44 +111,63 @@ export class ItemStore {
     }
   }
 
+  private parseRawIndex(rawStr: string): { index: Index | null; needsMigration: boolean } {
+    let parsedJson: any = null
+    try {
+      parsedJson = JSON.parse(rawStr)
+    } catch {
+      return { index: null, needsMigration: false }
+    }
+
+    if (parsedJson && parsedJson.encrypted === true && typeof parsedJson.payload === 'string') {
+      if (safeStorage.isEncryptionAvailable()) {
+        try {
+          const decryptedStr = safeStorage.decryptString(Buffer.from(parsedJson.payload, 'base64'))
+          return { index: JSON.parse(decryptedStr) as Index, needsMigration: false }
+        } catch (err) {
+          console.error('[ItemStore] DPAPI decryption failed:', err)
+        }
+      } else {
+        console.warn('[ItemStore] safeStorage unavailable to decrypt items.json')
+      }
+      return { index: null, needsMigration: false }
+    }
+
+    if (parsedJson && Array.isArray(parsedJson.items)) {
+      return { index: parsedJson as Index, needsMigration: true }
+    }
+
+    return { index: null, needsMigration: false }
+  }
+
   /** Load persisted state from disk. Called once at startup. */
   load(): void {
     try {
       const file = PATHS.indexFile()
-      if (!existsSync(file)) {
+      const bakFile = `${file}.bak`
+      if (!existsSync(file) && !existsSync(bakFile)) {
         this.items = []
         this.rebuildIndex()
         return
       }
 
-      const rawBuffer = readFileSync(file)
+      const rawBuffer = existsSync(file) ? readFileSync(file) : Buffer.alloc(0)
       const rawStr = rawBuffer.toString('utf8').trim()
-      let parsedIndex: Index | null = null
-      let needsMigration = false
+      let { index: parsedIndex, needsMigration } = rawStr
+        ? this.parseRawIndex(rawStr)
+        : { index: null, needsMigration: false }
 
-      let parsedJson: any = null
-      try {
-        parsedJson = JSON.parse(rawStr)
-      } catch {
-        /* Raw non-JSON payload */
-      }
-
-      if (parsedJson && parsedJson.encrypted === true && typeof parsedJson.payload === 'string') {
-        // Encrypted DPAPI Envelope
-        if (safeStorage.isEncryptionAvailable()) {
-          try {
-            const decryptedStr = safeStorage.decryptString(Buffer.from(parsedJson.payload, 'base64'))
-            parsedIndex = JSON.parse(decryptedStr) as Index
-          } catch (err) {
-            console.error('[ItemStore] DPAPI decryption failed:', err)
+      // Recover automatically from the last known-good backup when primary is truncated/corrupted.
+      if ((!parsedIndex || !Array.isArray(parsedIndex.items)) && existsSync(bakFile)) {
+        try {
+          const bakRaw = readFileSync(bakFile, 'utf8').trim()
+          const recovered = this.parseRawIndex(bakRaw)
+          if (recovered.index && Array.isArray(recovered.index.items)) {
+            console.warn('[ItemStore] Primary items.json was unreadable; recovered from .bak backup')
+            parsedIndex = recovered.index
+            needsMigration = true
           }
-        } else {
-          console.warn('[ItemStore] safeStorage unavailable to decrypt items.json')
-        }
-      } else if (parsedJson && Array.isArray(parsedJson.items)) {
-        // Plain JSON (Legacy v0.1.1 format from active users)
-        parsedIndex = parsedJson as Index
-        needsMigration = true
+        } catch { /* ignore backup read errors */ }
       }
 
       if (parsedIndex && Array.isArray(parsedIndex.items)) {
@@ -119,13 +192,14 @@ export class ItemStore {
         }
 
         this.rebuildIndex()
+        this.reconcileOrphanAssets()
 
         // Auto-migrate legacy plain JSON: create backup & upgrade to DPAPI encryption
         if (needsMigration || migratedAnyPayloads) {
           console.log('[ItemStore] Migrating items.json to DPAPI safeStorage encryption and disk payloads...')
           try {
             const backupFile = `${file}.v1.bak`
-            if (!existsSync(backupFile)) {
+            if (!existsSync(backupFile) && rawBuffer.length > 0) {
               writeFileSync(backupFile, rawBuffer)
             }
             this.persist()
@@ -142,17 +216,58 @@ export class ItemStore {
       console.error('[ItemStore] Failed to load index file:', err)
       this.items = []
       this.sigToId.clear()
+      this.idToSig.clear()
     }
+  }
+
+  /** Remove orphaned payload/image files left behind by past crashes or bugs. */
+  public reconcileOrphanAssets(): void {
+    const liveIds = new Set(this.items.map((it) => it.id))
+    const liveImageIds = new Set<string>()
+    for (const it of this.items) {
+      if (it.data.kind === 'image') liveImageIds.add(it.data.imageId)
+      else if (it.data.kind === 'image-collection') {
+        for (const img of it.data.images) liveImageIds.add(img.imageId)
+      }
+    }
+
+    try {
+      const payloadsDir = PATHS.payloadsDir()
+      if (existsSync(payloadsDir)) {
+        for (const f of readdirSync(payloadsDir)) {
+          if (!f.endsWith('.txt')) continue
+          const id = f.slice(0, -4)
+          if (id && !liveIds.has(id)) {
+            try { rmSync(join(payloadsDir, f), { force: true }) } catch { /* ignore */ }
+          }
+        }
+      }
+    } catch { /* ignore */ }
+
+    try {
+      const imagesDir = PATHS.imagesDir()
+      if (existsSync(imagesDir)) {
+        for (const f of readdirSync(imagesDir)) {
+          const dot = f.lastIndexOf('.')
+          if (dot <= 0) continue
+          const imageId = f.slice(0, dot)
+          if (/^[a-z0-9]{6,12}-[a-z0-9]{6,12}$/i.test(imageId) && !liveImageIds.has(imageId)) {
+            try { rmSync(join(imagesDir, f), { force: true }) } catch { /* ignore */ }
+          }
+        }
+      }
+    } catch { /* ignore */ }
   }
 
   private rebuildIndex(): void {
     this.sigToId.clear()
+    this.idToSig.clear()
     for (const it of this.items) {
       if (it.data.kind === 'text' && it.data.hasFullPayload) {
         const full = this.getFullText(it.id)
-        this.sigToId.set(contentSignature({ ...it.data, text: full }), it.id)
+        this.registerSig(it.id, contentSignature({ ...it.data, text: full }))
       } else {
-        this.sigToId.set(contentSignature(it.data), it.id)
+        this.registerSig(it.id, contentSignature(it.data))
       }
     }
   }
@@ -170,7 +285,7 @@ export class ItemStore {
     }, 150)
   }
 
-  /** Synchronous disk write (called by debounced timer or on app shutdown). */
+  /** Synchronous atomic disk write (called by debounced timer or on app shutdown). */
   public persistSync(): void {
     if (this.persistTimer) {
       clearTimeout(this.persistTimer)
@@ -180,7 +295,10 @@ export class ItemStore {
       const indexObj: Index = { items: this.items }
       const jsonStr = JSON.stringify(indexObj)
       const file = PATHS.indexFile()
+      const tmpFile = `${file}.tmp`
+      const bakFile = `${file}.bak`
 
+      let serialized: string
       if (safeStorage.isEncryptionAvailable()) {
         const encryptedBuf = safeStorage.encryptString(jsonStr)
         const envelope = {
@@ -188,9 +306,24 @@ export class ItemStore {
           encrypted: true,
           payload: encryptedBuf.toString('base64')
         }
-        writeFileSync(file, JSON.stringify(envelope), 'utf8')
+        serialized = JSON.stringify(envelope)
       } else {
-        writeFileSync(file, JSON.stringify(indexObj), 'utf8')
+        serialized = jsonStr
+      }
+
+      // Preserve the previous good file as a rolling backup before replacing it.
+      if (existsSync(file)) {
+        try { copyFileSync(file, bakFile) } catch { /* best-effort backup */ }
+      }
+
+      // Atomic write-then-rename so abrupt shutdowns never leave half-written JSON.
+      writeFileSync(tmpFile, serialized, 'utf8')
+      try {
+        renameSync(tmpFile, file)
+      } catch {
+        // Windows AV scanners can briefly hold a handle during rename; fall back cleanly.
+        writeFileSync(file, serialized, 'utf8')
+        try { rmSync(tmpFile, { force: true }) } catch { /* ignore */ }
       }
     } catch (err) {
       console.error('[ItemStore] Persistence failed:', err)
@@ -210,12 +343,6 @@ export class ItemStore {
     for (let i = this.items.length - 1; i >= 0; i--) {
       const it = this.items[i]
       if (stillNeed > 0 && !it.pinned) {
-        this.sigToId.delete(contentSignature(it.data))
-        if (it.data.kind === 'image') this.removeImageFile(it.data.imageId)
-        if (it.data.kind === 'image-collection') {
-          it.data.images.forEach((img) => this.removeImageFile(img.imageId))
-        }
-        if (it.data.kind === 'text') this.removeTextPayload(it.id)
         evicted.push(it)
         stillNeed--
       } else {
@@ -223,6 +350,10 @@ export class ItemStore {
       }
     }
     this.items = survivors
+    for (const it of evicted) {
+      this.unregisterItem(it)
+      this.cleanupItemAssets(it)
+    }
     this.notifyRemoved(evicted)
   }
 
@@ -270,7 +401,7 @@ export class ItemStore {
 
     const item: ClipboardItem = { id, data: finalData, capturedAt: now, hitCount: 1, pinned: false }
     this.items.unshift(item)
-    this.sigToId.set(sig, id)
+    this.registerSig(id, sig)
     if (data.kind === 'image') this.writeImageFile(data.imageId)
     this.trim(limit)
     this.persist()
@@ -310,12 +441,8 @@ export class ItemStore {
     const idx = this.items.findIndex((x) => x.id === id)
     if (idx < 0) return
     const [removed] = this.items.splice(idx, 1)
-    this.sigToId.delete(contentSignature(removed.data))
-    if (removed.data.kind === 'image') this.removeImageFile(removed.data.imageId)
-    if (removed.data.kind === 'image-collection') {
-      removed.data.images.forEach((img) => this.removeImageFile(img.imageId))
-    }
-    if (removed.data.kind === 'text') this.removeTextPayload(removed.id)
+    this.unregisterItem(removed)
+    this.cleanupItemAssets(removed)
     this.persistSync()
     this.notifyRemoved([removed])
   }
@@ -333,12 +460,8 @@ export class ItemStore {
     })
 
     for (const removed of toRemove) {
-      this.sigToId.delete(contentSignature(removed.data))
-      if (removed.data.kind === 'image') this.removeImageFile(removed.data.imageId)
-      if (removed.data.kind === 'image-collection') {
-        removed.data.images.forEach((img) => this.removeImageFile(img.imageId))
-      }
-      if (removed.data.kind === 'text') this.removeTextPayload(removed.id)
+      this.unregisterItem(removed)
+      this.cleanupItemAssets(removed)
     }
     this.persistSync()
     this.notifyRemoved(toRemove)
@@ -411,15 +534,15 @@ export class ItemStore {
     }
 
     // Update target item
-    this.sigToId.delete(contentSignature(tgt.data))
+    this.unregisterItem(tgt)
     tgt.data = newData
-    this.sigToId.set(contentSignature(newData), tgt.id)
+    this.registerSig(tgt.id, contentSignature(newData))
     tgt.capturedAt = Date.now() // bump time
 
     // Remove source item completely but DO NOT delete its underlying files/images
     // because they are now owned by the target!
     const [removed] = this.items.splice(srcIdx, 1)
-    this.sigToId.delete(contentSignature(removed.data))
+    this.unregisterItem(removed)
 
     this.persist()
     return { ok: true }
@@ -441,6 +564,9 @@ export class ItemStore {
         sourceItem.data = { kind: 'image', ...sourceItem.data.images[0] }
       } else if (sourceItem.data.images.length === 0) {
         this.items.splice(sourceIndex, 1)
+      }
+      if (!this.isImageIdReferenced(req.imageId)) {
+        this.removeImageFile(req.imageId)
       }
       this.rebuildIndex()
       this.persist()
@@ -561,17 +687,13 @@ export class ItemStore {
     const removed: ClipboardItem[] = []
     for (const it of this.items) {
       if (it.pinned) kept.push(it)
-      else {
-        this.sigToId.delete(contentSignature(it.data))
-        if (it.data.kind === 'image') this.removeImageFile(it.data.imageId)
-        if (it.data.kind === 'image-collection') {
-          it.data.images.forEach((img) => this.removeImageFile(img.imageId))
-        }
-        if (it.data.kind === 'text') this.removeTextPayload(it.id)
-        removed.push(it)
-      }
+      else removed.push(it)
     }
     this.items = kept
+    for (const it of removed) {
+      this.unregisterItem(it)
+      this.cleanupItemAssets(it)
+    }
     this.persistSync()
     this.notifyRemoved(removed)
   }
@@ -586,19 +708,100 @@ export class ItemStore {
         kept.push(it)
       } else {
         expired.push(it)
-        this.sigToId.delete(contentSignature(it.data))
-        if (it.data.kind === 'image') this.removeImageFile(it.data.imageId)
-        if (it.data.kind === 'image-collection') {
-          it.data.images.forEach((img) => this.removeImageFile(img.imageId))
-        }
       }
     }
     if (expired.length > 0) {
       this.items = kept
+      for (const it of expired) {
+        this.unregisterItem(it)
+        this.cleanupItemAssets(it)
+      }
       this.persistSync()
       this.notifyRemoved(expired)
     }
     return expired.length > 0
+  }
+
+  /** Update a text item's content in-place (strips rich HTML formatting). */
+  updateText(id: string, nextText: string): boolean {
+    const item = this.items.find((x) => x.id === id)
+    if (!item || item.data.kind !== 'text') return false
+    const bounded = nextText.length > 500000 ? nextText.slice(0, 500000) : nextText
+    const trimmed = bounded.trim()
+    const isUrl = /^(https?:\/\/|www\.)[^\s]+$/i.test(trimmed)
+    const isColor = /^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(trimmed)
+
+    this.unregisterItem(item)
+    if (bounded.length > 300) {
+      this.writeTextPayload(id, bounded)
+      item.data = {
+        kind: 'text',
+        text: bounded.slice(0, 300),
+        previewText: bounded.slice(0, 300),
+        hasFullPayload: true,
+        isUrl,
+        isColor
+      }
+    } else {
+      this.removeTextPayload(id)
+      item.data = {
+        kind: 'text',
+        text: bounded,
+        isUrl,
+        isColor
+      }
+    }
+    this.registerSig(id, contentSignature({ ...item.data, text: bounded }))
+    this.persist()
+    return true
+  }
+
+  /**
+   * Full-text search across all stored items (including >300-char disk text
+   * payloads, image filenames, and file paths/extensions).
+   */
+  searchIds(query: string): string[] {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return this.items.map((it) => it.id)
+    const matches: string[] = []
+    for (const it of this.items) {
+      if (it.data.kind === 'text') {
+        const full = it.data.hasFullPayload ? this.getFullText(it.id) : it.data.text
+        if (full.toLowerCase().includes(needle)) matches.push(it.id)
+      } else if (it.data.kind === 'files') {
+        if (it.data.paths.some((p) => p.toLowerCase().includes(needle))) matches.push(it.id)
+      } else if (it.data.kind === 'image') {
+        if (it.data.fileName && it.data.fileName.toLowerCase().includes(needle)) matches.push(it.id)
+      } else if (it.data.kind === 'image-collection') {
+        if (it.data.images.some((img) => img.fileName && img.fileName.toLowerCase().includes(needle))) {
+          matches.push(it.id)
+        }
+      }
+    }
+    return matches
+  }
+
+  /**
+   * Security allowlist for `edgelocal://file/` and `edgelocal://thumb/file/`:
+   * only allow paths that belong to living history entries or app-managed dirs.
+   */
+  isKnownFilePath(filePath: string): boolean {
+    if (!filePath) return false
+    const target = resolve(normalize(filePath)).toLowerCase()
+    const imagesRoot = resolve(PATHS.imagesDir()).toLowerCase()
+    const tempRoot = resolve(PATHS.tempDir()).toLowerCase()
+    if (target.startsWith(imagesRoot + '\\') || target.startsWith(imagesRoot + '/') ||
+        target.startsWith(tempRoot + '\\') || target.startsWith(tempRoot + '/')) {
+      return true
+    }
+    for (const it of this.items) {
+      if (it.data.kind === 'files') {
+        for (const p of it.data.paths) {
+          if (resolve(normalize(p)).toLowerCase() === target) return true
+        }
+      }
+    }
+    return false
   }
 
   get(id: string): ClipboardItem | undefined {
@@ -806,6 +1009,7 @@ export class ItemStore {
           data: {
             kind: 'text',
             text: d.text,
+            hasHtml: Boolean(d.html),
             isUrl: d.isUrl,
             isColor: d.isColor,
             hasFullPayload: d.hasFullPayload,
@@ -835,12 +1039,18 @@ function isImageExt(p: string): boolean {
 /**
  * Build display metadata for a single file path. `size` is best-effort (0 when
  * the file can't be stat'd — e.g. a path on a disconnected drive); the renderer
- * hides the size label when it's 0.
+ * hides the size label when it's 0. Cached with a 30s TTL so repeated toDto()
+ * pushes do not synchronously stat every path on every mutation.
  */
-const fileEntryCache = new Map<string, FileEntry>()
+const FILE_ENTRY_TTL_MS = 30_000
+const fileEntryCache = new Map<string, { entry: FileEntry; at: number }>()
 
 function buildFileEntry(p: string): FileEntry {
-  if (fileEntryCache.has(p)) return fileEntryCache.get(p)!
+  const now = Date.now()
+  const cached = fileEntryCache.get(p)
+  if (cached && now - cached.at < FILE_ENTRY_TTL_MS) {
+    return cached.entry
+  }
   let size = 0
   let isDirectory = false
   try {
@@ -859,7 +1069,10 @@ function buildFileEntry(p: string): FileEntry {
     isImage: !isDirectory && isImageExt(p),
     isDirectory
   }
-  if (fileEntryCache.size > 500) fileEntryCache.clear()
-  fileEntryCache.set(p, entry)
+  if (fileEntryCache.size >= 500) {
+    const oldest = fileEntryCache.keys().next().value
+    if (oldest !== undefined) fileEntryCache.delete(oldest)
+  }
+  fileEntryCache.set(p, { entry, at: now })
   return entry
 }

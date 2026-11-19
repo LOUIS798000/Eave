@@ -14,8 +14,11 @@ import { loadRecents } from '../lib/emoji/prefs'
 import type { ClipboardItemDto, Settings, DragRequest } from '../../shared/types'
 import { DEFAULT_SETTINGS } from '../../shared/types'
 import { playEdgeRetractSound, playEdgeBeaconAppearSound, playEdgeExpandSound, playButtonClickSound } from '../lib/soundEffects'
+import { itemRenderKey } from '../lib/itemSignature'
 
 let flareTimer: ReturnType<typeof setTimeout> | null = null
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
+let searchRequestSeq = 0
 
 export type EdgeTransitionStage =
   | 'retracting'
@@ -45,6 +48,20 @@ interface AppState {
   hydrated: boolean
   /** Free-text search filter (UI-only state). */
   query: string
+  /** Item IDs matched by main-process full-text search (for >300-char payloads). */
+  searchMatchIds: string[] | null
+  /** Currently keyboard-selected item ID inside the shelf list. */
+  selectedItemId: string | null
+  setSelectedItemId: (id: string | null) => void
+  /** True while inline text editing is active in PreviewFlyout (prevents window:blur close). */
+  editingPreview: boolean
+  setEditingPreview: (editing: boolean) => void
+  /** Ordered item IDs queued for sequential pasting via Alt+V. */
+  pasteQueue: string[]
+  setPasteQueue: (ids: string[]) => void
+  toggleQueueItem: (id: string) => void
+  clearPasteQueue: () => void
+  pasteQueueNext: () => Promise<void>
   typeFilter: import('../../shared/types').TypeFilter
   setTypeFilter: (filter: import('../../shared/types').TypeFilter) => void
   /** Whether the panel blade is expanded. */
@@ -130,9 +147,12 @@ interface AppState {
   remove: (id: string) => Promise<void>
   clear: (ids?: string[]) => Promise<void>
   copy: (id: string) => Promise<void>
+  copyPlain: (id: string) => Promise<void>
   copySubitem: (req: DragRequest) => Promise<void>
   paste: (id: string) => Promise<void>
+  pastePlain: (id: string) => Promise<void>
   pasteSubitem: (req: DragRequest) => Promise<void>
+  updateItemText: (id: string, text: string) => Promise<void>
   pasteEmoji: (text: string) => Promise<void>
   patchSettings: (patch: Partial<Settings>) => Promise<void>
   refreshLaunchAtLogin: () => Promise<void>
@@ -146,6 +166,40 @@ export const useStore = create<AppState>((set, get) => ({
   settings: { ...DEFAULT_SETTINGS },
   hydrated: false,
   query: '',
+  searchMatchIds: null,
+  selectedItemId: null,
+  setSelectedItemId: (selectedItemId) => set({ selectedItemId }),
+  editingPreview: false,
+  setEditingPreview: (editingPreview) => set({ editingPreview }),
+  pasteQueue: [],
+  setPasteQueue: (pasteQueue) => set({ pasteQueue }),
+  toggleQueueItem: (id) => {
+    const cur = get().pasteQueue
+    const exists = cur.includes(id)
+    const next = exists ? cur.filter((x) => x !== id) : [...cur, id]
+    set({ pasteQueue: next })
+    if (!exists && cur.length === 0) {
+      get().pushToast({ id: `queue-add-${Date.now()}`, message: 'toast.queueAdded', tone: 'info' })
+    }
+    try {
+      void edge.syncPasteQueue?.(next)?.catch?.(() => {})
+    } catch { /* ignore */ }
+  },
+  clearPasteQueue: () => {
+    if (get().pasteQueue.length === 0) return
+    set({ pasteQueue: [] })
+    try {
+      void edge.syncPasteQueue?.([])?.catch?.(() => {})
+    } catch { /* ignore */ }
+  },
+  async pasteQueueNext() {
+    set({ isInternalCopying: true })
+    try {
+      await edge.pasteQueueNext?.()
+    } finally {
+      setTimeout(() => set({ isInternalCopying: false }), 600)
+    }
+  },
   typeFilter: 'all',
   setTypeFilter: (typeFilter) => {
     if (get().typeFilter === typeFilter && !get().emojiOpen) return
@@ -266,9 +320,27 @@ export const useStore = create<AppState>((set, get) => ({
     const prevItems = get().items
     if (
       prevItems.length === items.length &&
-      prevItems.every((it, i) => it.id === items[i]?.id && it.pinned === items[i]?.pinned && it.hitCount === items[i]?.hitCount && it.capturedAt === items[i]?.capturedAt)
+      prevItems.every(
+        (it, i) =>
+          it.id === items[i]?.id &&
+          it.pinned === items[i]?.pinned &&
+          it.hitCount === items[i]?.hitCount &&
+          it.capturedAt === items[i]?.capturedAt &&
+          itemRenderKey(it) === itemRenderKey(items[i])
+      )
     ) {
       return
+    }
+    // Prune deleted items from pasteQueue so badge counts stay accurate
+    const curQueue = get().pasteQueue
+    if (curQueue.length > 0) {
+      const idSet = new Set(items.map((it) => it.id))
+      const pruned = curQueue.filter((id) => idSet.has(id))
+      if (pruned.length !== curQueue.length) {
+        set({ items, pasteQueue: pruned })
+        try { void edge.syncPasteQueue?.(pruned)?.catch?.(() => {}) } catch { /* ignore */ }
+        return
+      }
     }
     // Copy confirmation is owned by `ui:copy-flare` (App.tsx). Firing it again
     // here replayed the indicator after a slow capture (large spreadsheet)
@@ -277,7 +349,33 @@ export const useStore = create<AppState>((set, get) => ({
   },
   setSettings: (next) => set({ settings: next }),
 
-  setQuery: (query) => set({ query }),
+  setQuery: (query) => {
+    set({ query })
+    const trimmed = query.trim()
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer)
+      searchDebounceTimer = null
+    }
+    if (!trimmed) {
+      searchRequestSeq++
+      set({ searchMatchIds: null })
+      return
+    }
+    const seq = ++searchRequestSeq
+    searchDebounceTimer = setTimeout(() => {
+      searchDebounceTimer = null
+      try {
+        const res = edge.searchItems?.(trimmed)
+        if (res && typeof (res as Promise<string[]>).then === 'function') {
+          void (res as Promise<string[]>).then((ids) => {
+            if (seq === searchRequestSeq && Array.isArray(ids)) {
+              set({ searchMatchIds: ids })
+            }
+          }).catch(() => {})
+        }
+      } catch { /* ignore in test envs without bridge */ }
+    }, 90)
+  },
   setOpen: (open) => {
     set({ open })
     if (!open) {
@@ -295,12 +393,15 @@ export const useStore = create<AppState>((set, get) => ({
         if (takeSearchEngaged()) {
           void edge.focusWindow(false)?.catch?.(() => {})
           void edge.pauseHotkey(false)?.catch?.(() => {})
+        } else {
+          // Always ensure keyboard focusability acquired via hotkey open is released on close
+          void edge.focusWindow(false)?.catch?.(() => {})
         }
       } catch { /* ignore */ }
       // NOTE: Do NOT reset styleFlyoutOpen here — closePanel() handles the
       // sequencing so the flyout exit animation completes before the panel closes.
       // Only reset previewItemId so the normal preview flyout clears correctly.
-      set({ previewItemId: null, previewItemRect: null, expandedStackId: null })
+      set({ previewItemId: null, previewItemRect: null, expandedStackId: null, selectedItemId: null, editingPreview: false })
       edge.setPreviewMode(false)
     }
   },
@@ -440,6 +541,18 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
+  async copyPlain(id) {
+    set({ isInternalCopying: true })
+    try {
+      const ok = await edge.copyItemPlain(id)
+      if (ok) {
+        get().pushToast({ id: `copy-plain-${Date.now()}`, message: 'toast.copiedPlain', tone: 'info' })
+      }
+    } finally {
+      setTimeout(() => set({ isInternalCopying: false }), 400)
+    }
+  },
+
   async copySubitem(req) {
     set({ isInternalCopying: true })
     try {
@@ -455,12 +568,29 @@ export const useStore = create<AppState>((set, get) => ({
     setTimeout(() => set({ isInternalCopying: false }), 600)
   },
 
+  async pastePlain(id) {
+    set({ isInternalCopying: true })
+    try {
+      await edge.pasteItemPlain(id)
+    } finally {
+      setTimeout(() => set({ isInternalCopying: false }), 600)
+    }
+  },
+
   async pasteSubitem(req) {
     set({ isInternalCopying: true })
     try {
       await edge.pasteSubitem(req)
     } finally {
       setTimeout(() => set({ isInternalCopying: false }), 600)
+    }
+  },
+
+  async updateItemText(id, text) {
+    const items = await edge.updateItemText(id, text)
+    if (Array.isArray(items)) {
+      set({ items })
+      get().pushToast({ id: `edit-${Date.now()}`, message: 'toast.textSaved', tone: 'info' })
     }
   },
 

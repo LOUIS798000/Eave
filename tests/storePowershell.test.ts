@@ -100,32 +100,44 @@ describe('getWritableCwd', () => {
   })
 })
 
-describe('PersistentPowerShell spawn options', () => {
+describe('PersistentPowerShell spawn options (lazy on-demand)', () => {
   afterEach(() => {
     delete process.env.APP_BUILD_TARGET
   })
 
-  it('GitHub exe: does not force a cwd (inherits process cwd)', async () => {
+  it('does not spawn powershell.exe on module import (zero idle footprint)', async () => {
     delete process.env.APP_BUILD_TARGET
     spawn.mockClear()
     vi.resetModules()
     await import('../electron/main/powershell')
+    expect(spawn).not.toHaveBeenCalled()
+  })
+
+  it('GitHub exe: spawns lazily on run() without forcing cwd', async () => {
+    delete process.env.APP_BUILD_TARGET
+    spawn.mockClear()
+    vi.resetModules()
+    const mod = await import('../electron/main/powershell')
     if (process.platform !== 'win32') return
-    expect(spawn).toHaveBeenCalled()
+    void mod.psHost.run('Write-Host hi', 50).catch(() => {})
+    expect(spawn).toHaveBeenCalledTimes(1)
     const opts = spawn.mock.calls[0][2] as { cwd?: string; windowsHide?: boolean }
     expect(opts.windowsHide).toBe(true)
     expect(opts.cwd).toBeUndefined()
+    mod.psHost.dispose()
   })
 
-  it('Store: sets cwd to a writable directory', async () => {
+  it('Store: spawns lazily on run() with a writable cwd', async () => {
     process.env.APP_BUILD_TARGET = 'store'
     spawn.mockClear()
     vi.resetModules()
     const mod = await import('../electron/main/powershell')
     if (process.platform !== 'win32') return
-    expect(spawn).toHaveBeenCalled()
+    void mod.psHost.run('Write-Host hi', 50).catch(() => {})
+    expect(spawn).toHaveBeenCalledTimes(1)
     const opts = spawn.mock.calls[0][2] as { cwd?: string; windowsHide?: boolean }
     expect(opts.windowsHide).toBe(true)
     expect(opts.cwd).toBe(mod.getWritableCwd())
+    mod.psHost.dispose()
   })
 })

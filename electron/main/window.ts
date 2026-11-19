@@ -31,7 +31,7 @@ import {
   showAcrylicLayer
 } from './acrylic'
 import { PATHS } from '../store/paths'
-import { TRANSLATIONS, en } from '../../src/i18n/translations'
+import { MAIN_STRINGS } from '../../src/i18n/mainStrings'
 import { computeStickBounds } from './geometry'
 import {
   resolvePanelWidth,
@@ -1418,12 +1418,12 @@ export function getDisplayListOptions(): Array<{
     else if (first.startsWith('ru')) langCode = 'ru'
     else langCode = 'en'
   }
-  const dict = TRANSLATIONS[langCode]
-  const primaryText = dict?.position?.primaryDisplay || en.position.primaryDisplay
+  const dict = MAIN_STRINGS[langCode]
+  const primaryText = dict?.primaryDisplay || MAIN_STRINGS.en.primaryDisplay
   // Localized side tags reuse the fully translated tray words; vertical
   // arrangements get no tag rather than inventing untranslated strings.
   const sideWord = (key: 'left' | 'right'): string =>
-    (dict?.tray?.[key]) || en.tray[key] || key
+    (dict?.tray?.[key]) || MAIN_STRINGS.en.tray[key] || key
 
   return all.map((d, index) => {
     const isPrimary = d.id === primary.id

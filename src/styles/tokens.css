@@ -91,4 +91,59 @@
   --act-on-ink: #ffffff;
   --act-danger: #ff3b30;
   --act-danger-bg: rgba(255, 59, 48, 0.12);
+  --flare-fill: rgba(255, 255, 255, 0.78);
+}
+
+/* Dark Liquid Glass palette — toggled via data-theme="dark" (System / Dark setting) */
+:root[data-theme="dark"] {
+  --bg-0: #16171b;
+  --bg-1: rgba(36, 38, 46, 0.72);
+  --bg-2: rgba(30, 32, 39, 0.68);
+  --bg-3: rgba(44, 47, 56, 0.85);
+  --bg-glass: rgba(28, 30, 36, 0.72);
+  --bg-card: rgba(44, 47, 56, 0.62);
+  --bg-card-hover: rgba(58, 62, 74, 0.82);
+  --bg-card-hover-strong: rgba(68, 73, 86, 0.94);
+  --bg-card-pinned: rgba(52, 56, 68, 0.76);
+  --bg-chip: rgba(52, 55, 66, 0.76);
+  --bg-inset: rgba(255, 255, 255, 0.08);
+  --bg-inset-strong: rgba(255, 255, 255, 0.14);
+  --seg-track: rgba(255, 255, 255, 0.09);
+
+  --blade-bg: linear-gradient(
+    180deg,
+    rgba(28, 30, 36, 0.95) 0%,
+    rgba(24, 26, 32, 0.93) 46%,
+    rgba(20, 22, 28, 0.92) 100%
+  );
+  --blade-border: rgba(255, 255, 255, 0.12);
+
+  --edge-light: rgba(255, 255, 255, 0.14);
+  --edge-strong: rgba(255, 255, 255, 0.22);
+  --divider: rgba(255, 255, 255, 0.1);
+  --hairline: rgba(255, 255, 255, 0.14);
+  --hairline-soft: rgba(255, 255, 255, 0.08);
+
+  --text-primary: #f2f2f7;
+  --text-secondary: rgba(235, 235, 245, 0.68);
+  --text-tertiary: rgba(235, 235, 245, 0.5);
+  --text-quaternary: rgba(235, 235, 245, 0.28);
+
+  --accent: #3b9eff;
+  --accent-glow: rgba(59, 158, 255, 0.34);
+
+  --shadow-blade: 0 18px 50px rgba(0, 0, 0, 0.52), 0 2px 8px rgba(0, 0, 0, 0.28);
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 2px 6px rgba(0, 0, 0, 0.22);
+  --shadow-float: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 18px 44px rgba(0, 0, 0, 0.55);
+
+  --act-surface: rgba(44, 47, 56, 0.9);
+  --act-surface-hover: rgba(62, 66, 78, 1);
+  --act-shadow: 0 2px 8px rgba(0, 0, 0, 0.36), 0 6px 16px rgba(0, 0, 0, 0.28);
+  --act-ink: rgba(235, 235, 245, 0.85);
+  --act-hover: rgba(255, 255, 255, 0.14);
+  --act-on: #f2f2f7;
+  --act-on-ink: #16171b;
+  --act-danger: #ff453a;
+  --act-danger-bg: rgba(255, 69, 58, 0.18);
+  --flare-fill: rgba(30, 32, 40, 0.88);
 }

@@ -68,15 +68,20 @@ const ClipboardItemBase = forwardRef<HTMLDivElement, Props>(({ item }, ref) => {
   const startDrag = useDragOut()
   const [copied, setCopied] = useState(false)
 
-  const settings = useStore((s) => s.settings)
-  const isHorizontal = settings.stickPosition === 'top'
+  const pastePlain = useStore.getState().pastePlain
+  const isHorizontal = useStore((s) => s.settings.stickPosition === 'top')
   const colorInfo = item.data.kind === 'text' ? parseColor(item.data.text) : null
 
   // Accordion expansion: ONE stack open at a time, coordinated store-wide
   // (expanding another stack collapses this one; Escape / outside click /
   // filter or settings switches collapse via the same store field).
-  const expandedStackId = useStore((s) => s.expandedStackId)
-  const expanded = expandedStackId === item.id
+  // Atomic boolean selector prevents re-rendering all 250 cards on every expand.
+  const expanded = useStore((s) => s.expandedStackId === item.id)
+  const isSelected = useStore((s) => s.selectedItemId === item.id)
+  const queuePosition = useStore((s) => {
+    const idx = s.pasteQueue.indexOf(item.id)
+    return idx >= 0 ? idx + 1 : 0
+  })
   const setExpandedFlag = useCallback((v: boolean) => {
     useStore.getState().setExpandedStackId(v ? item.id : null)
   }, [item.id])
@@ -179,8 +184,12 @@ const ClipboardItemBase = forwardRef<HTMLDivElement, Props>(({ item }, ref) => {
     if (useStore.getState().previewItemId === item.id) {
       return
     }
+    if (e?.shiftKey && item.data.kind === 'text') {
+      tryPaste(() => pastePlain(item.id))
+      return
+    }
     tryPaste(() => paste(item.id))
-  }, [paste, item.id])
+  }, [paste, pastePlain, item.id, item.data.kind])
 
   const onExpand = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation()
@@ -272,6 +281,15 @@ const ClipboardItemBase = forwardRef<HTMLDivElement, Props>(({ item }, ref) => {
       useStore.getState().setPreviewItemId(null)
     }
 
+    // Alt+Click toggles this card in the sequential paste queue (Alt+V)
+    if (e.altKey) {
+      e.stopPropagation()
+      e.preventDefault()
+      playButtonClickSound()
+      useStore.getState().toggleQueueItem(item.id)
+      return
+    }
+
     if (isBundle && !expanded) {
       onExpand(e)
     } else if (!isBundle) {
@@ -291,7 +309,8 @@ const ClipboardItemBase = forwardRef<HTMLDivElement, Props>(({ item }, ref) => {
       }}
       initial={false}
       animate={{ opacity: 1 }}
-      className={`item${item.pinned ? ' pinned' : ''}${isBundle ? ' bundle' : ''}${expanded ? ' is-expanded' : ''}${colorInfo ? ` is-color-card ${colorInfo.isLight ? 'is-light-color' : 'is-dark-color'}` : ''}${isImageFolderCard || isFileCard ? ' is-image-folder-card' : ''}`}
+      className={`item${item.pinned ? ' pinned' : ''}${isSelected ? ' is-selected' : ''}${queuePosition > 0 ? ' is-queued' : ''}${isBundle ? ' bundle' : ''}${expanded ? ' is-expanded' : ''}${colorInfo ? ` is-color-card ${colorInfo.isLight ? 'is-light-color' : 'is-dark-color'}` : ''}${isImageFolderCard || isFileCard ? ' is-image-folder-card' : ''}`}
+      data-item-id={item.id}
       data-expanded-stack={expanded ? 'true' : undefined}
       style={{
         ...(expandedWidth ? { width: expandedWidth, minWidth: expandedWidth, maxWidth: expandedWidth } : {}),
@@ -301,6 +320,19 @@ const ClipboardItemBase = forwardRef<HTMLDivElement, Props>(({ item }, ref) => {
         } as React.CSSProperties : {})
       }}
     >
+      {queuePosition > 0 && (
+        <span
+          className="queue-order-badge"
+          title={t('queue.toggleTooltip') || 'Queued for Alt+V sequential paste'}
+          onClick={(e) => {
+            e.stopPropagation()
+            playButtonClickSound()
+            useStore.getState().toggleQueueItem(item.id)
+          }}
+        >
+          {queuePosition}
+        </span>
+      )}
       {copied && (
         <motion.div
           key="copy-ripple"

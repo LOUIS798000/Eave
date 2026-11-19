@@ -16,6 +16,7 @@ import { prefetchFileIcons } from './drag'
 import { forgetStagedItems, reconcileTempOnStartup } from './stagedTemp'
 import { runtime } from './config'
 import { getMainWindow, registerClipboardUpdateListener, requestPollBoost } from './window'
+import { getForegroundProcessName, isAppExcluded } from './win32Native'
 
 const store = new ItemStore((removed) => forgetStagedItems(removed))
 const watcher = new ClipboardWatcher(600, 220)
@@ -72,8 +73,12 @@ export function initState(): void {
     }
   }
   watcher.start((data, png) => {
-    if (loadSettings().incognito) return
-    store.pruneExpired(loadSettings().autoDeleteHours)
+    const s = loadSettings()
+    if (s.incognito) return
+    if (s.excludedApps && s.excludedApps.length > 0 && isAppExcluded(getForegroundProcessName(), s.excludedApps)) {
+      return
+    }
+    store.pruneExpired(s.autoDeleteHours)
     if (data.kind === 'image' && png && data.imageId) {
       store.stageImageBytes(data.imageId, png)
       png = undefined as any
@@ -81,10 +86,14 @@ export function initState(): void {
     if (data.kind === 'files' && data.paths) {
       prefetchFileIcons(data.paths)
     }
-    store.add(data, loadSettings().historyLimit)
+    store.add(data, s.historyLimit)
     pushState.items()
   }, () => {
-    if (loadSettings().incognito) return
+    const s = loadSettings()
+    if (s.incognito) return
+    if (s.excludedApps && s.excludedApps.length > 0 && isAppExcluded(getForegroundProcessName(), s.excludedApps)) {
+      return
+    }
     const win = getMainWindow()
     if (win && !win.isDestroyed()) {
       win.webContents.send('ui:copy-flare')
@@ -165,17 +174,6 @@ export const pushState = {
   openSettings(): void {
     console.log('[Main] Sending window:open-settings event to renderer')
     send('window:open-settings')
-  },
-  updateAvailable(info: { version: string }): void {
-    console.log('[Main] Sending app:update-available event to renderer:', info)
-    send('app:update-available', info)
-  },
-  updateProgress(progress: { percent: number; bytesPerSecond?: number; transferred?: number; total?: number }): void {
-    send('app:update-progress', progress)
-  },
-  updateDownloaded(info: { version: string }): void {
-    console.log('[Main] Sending app:update-downloaded event to renderer:', info)
-    send('app:update-downloaded', info)
   }
 }
 

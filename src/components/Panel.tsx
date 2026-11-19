@@ -23,6 +23,8 @@ import { IndicatorStyleFlyout } from './IndicatorStyleFlyout'
 import { LanguageFlyout } from './LanguageFlyout'
 import { CopyIndicatorCurve } from './CopyIndicatorCurve'
 import { useFilteredItems } from '../hooks/useFilteredItems'
+import { tryPaste } from '../lib/tryPaste'
+import { playButtonClickSound } from '../lib/soundEffects'
 import { resolvePanelHeight, resolvePanelWidth, resolveTopCardWidth, resolveTopPanelHeight } from '../../shared/panelSize'
 import { livePhotoTint, liveSheetAlpha } from '../../shared/glass'
 
@@ -276,6 +278,100 @@ export function Panel() {
       return () => window.clearTimeout(timer)
     }
   }, [open, setSettingsOpen, setQuery, setEmojiOpen])
+
+  // Keyboard-first shelf navigation: arrows select cards, Enter pastes
+  // (Shift+Enter pastes plain text), Alt+1..9 quick-pastes, Ctrl+F focuses search,
+  // Delete removes, P pins/unpins.
+  useEffect(() => {
+    if (!open || settingsOpen || emojiOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      const inInput = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+
+      // Ctrl+F (or '/' outside input) -> focus search bar
+      if (((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') || (!inInput && e.key === '/')) {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('eave:focus-search'))
+        return
+      }
+
+      // Alt+1..9 -> direct paste of top 9 visible items
+      if (e.altKey && !e.ctrlKey && !e.metaKey && e.key >= '1' && e.key <= '9') {
+        const idx = Number(e.key) - 1
+        const item = filteredItems[idx]
+        if (item) {
+          e.preventDefault()
+          if (e.shiftKey && item.data.kind === 'text') {
+            tryPaste(() => useStore.getState().pastePlain(item.id))
+          } else {
+            tryPaste(() => useStore.getState().paste(item.id))
+          }
+        }
+        return
+      }
+
+      if (filteredItems.length === 0) return
+
+      const horizontal = useStore.getState().settings.stickPosition === 'top'
+      const nextKey = horizontal ? 'ArrowRight' : 'ArrowDown'
+      const prevKey = horizontal ? 'ArrowLeft' : 'ArrowUp'
+
+      // Allow ArrowDown/ArrowUp even while typing in search (and left/right when not in input)
+      const isNext = e.key === nextKey || (inInput && horizontal && e.key === 'ArrowDown')
+      const isPrev = e.key === prevKey || (inInput && horizontal && e.key === 'ArrowUp')
+      if ((isNext || isPrev) && (!inInput || e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault()
+        const curId = useStore.getState().selectedItemId
+        const curIdx = curId ? filteredItems.findIndex((it) => it.id === curId) : -1
+        let nextIdx: number
+        if (isNext) {
+          nextIdx = curIdx < 0 ? 0 : Math.min(filteredItems.length - 1, curIdx + 1)
+        } else {
+          nextIdx = curIdx <= 0 ? 0 : curIdx - 1
+        }
+        useStore.getState().setSelectedItemId(filteredItems[nextIdx].id)
+        return
+      }
+
+      if (e.key === 'Enter' && (!inInput || target?.closest('.search'))) {
+        const curId = useStore.getState().selectedItemId
+        const active = (curId && filteredItems.find((it) => it.id === curId)) || filteredItems[0]
+        if (!active) return
+        e.preventDefault()
+        if (e.shiftKey && active.data.kind === 'text') {
+          tryPaste(() => useStore.getState().pastePlain(active.id))
+        } else {
+          tryPaste(() => useStore.getState().paste(active.id))
+        }
+        return
+      }
+
+      if (inInput) return
+
+      const curId = useStore.getState().selectedItemId
+      const active = curId ? filteredItems.find((it) => it.id === curId) : null
+      if (!active) return
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault()
+        playButtonClickSound()
+        const idx = filteredItems.findIndex((it) => it.id === active.id)
+        const fallback = filteredItems[idx + 1]?.id ?? filteredItems[idx - 1]?.id ?? null
+        void useStore.getState().remove(active.id)
+        useStore.getState().setSelectedItemId(fallback)
+      } else if (e.key.toLowerCase() === 'p' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault()
+        playButtonClickSound()
+        void useStore.getState().togglePin(active.id, !active.pinned)
+      } else if (e.key.toLowerCase() === 'q' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault()
+        playButtonClickSound()
+        useStore.getState().toggleQueueItem(active.id)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [open, settingsOpen, emojiOpen, filteredItems])
 
   const isRight = settings.stickPosition === 'right'
   const isTop = settings.stickPosition === 'top'
@@ -852,12 +948,12 @@ export function Panel() {
           <>
             <div className="flare-horizontal flare-top-left" style={{ opacity: isVisuallyOpen ? 1 : 0 }}>
               <svg width="32" height="30" viewBox="0 0 32 30" fill="none" xmlns="http://www.w3.org/2000/svg" shapeRendering="geometricPrecision">
-                <path d="M 0 0 C 13.43 0 30 16.57 30 30 L 32 30 L 32 0 Z" fill="rgba(255, 255, 255, 0.78)" />
+                <path d="M 0 0 C 13.43 0 30 16.57 30 30 L 32 30 L 32 0 Z" fill="var(--flare-fill)" />
               </svg>
             </div>
             <div className="flare-horizontal flare-top-right" style={{ opacity: isVisuallyOpen ? 1 : 0 }}>
               <svg width="32" height="30" viewBox="0 0 32 30" fill="none" xmlns="http://www.w3.org/2000/svg" shapeRendering="geometricPrecision">
-                <path d="M 2 30 C 2 16.57 18.57 0 32 0 L 0 0 L 0 30 Z" fill="rgba(255, 255, 255, 0.78)" />
+                <path d="M 2 30 C 2 16.57 18.57 0 32 0 L 0 0 L 0 30 Z" fill="var(--flare-fill)" />
               </svg>
             </div>
           </>
@@ -866,12 +962,12 @@ export function Panel() {
           <>
             <div className="flare-top flare-right" style={{ opacity: isVisuallyOpen ? 1 : 0 }}>
               <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M 30 0 L 30 30 L 0 30 A 30 30 0 0 0 30 0 Z" fill="rgba(255, 255, 255, 0.78)" />
+                <path d="M 30 0 L 30 30 L 0 30 A 30 30 0 0 0 30 0 Z" fill="var(--flare-fill)" />
               </svg>
             </div>
             <div className="flare-bottom flare-right" style={{ opacity: isVisuallyOpen ? 1 : 0 }}>
               <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M 30 30 L 30 0 L 0 0 A 30 30 0 0 1 30 30 Z" fill="rgba(255, 255, 255, 0.78)" />
+                <path d="M 30 30 L 30 0 L 0 0 A 30 30 0 0 1 30 30 Z" fill="var(--flare-fill)" />
               </svg>
             </div>
           </>
@@ -879,12 +975,12 @@ export function Panel() {
           <>
             <div className="flare-top" style={{ opacity: isVisuallyOpen ? 1 : 0 }}>
               <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M 0 0 L 0 30 L 30 30 A 30 30 0 0 1 0 0 Z" fill="rgba(255, 255, 255, 0.78)" />
+                <path d="M 0 0 L 0 30 L 30 30 A 30 30 0 0 1 0 0 Z" fill="var(--flare-fill)" />
               </svg>
             </div>
             <div className="flare-bottom" style={{ opacity: isVisuallyOpen ? 1 : 0 }}>
               <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M 0 30 L 0 0 L 30 0 A 30 30 0 0 0 0 30 Z" fill="rgba(255, 255, 255, 0.78)" />
+                <path d="M 0 30 L 0 0 L 30 0 A 30 30 0 0 0 0 30 Z" fill="var(--flare-fill)" />
               </svg>
             </div>
           </>

@@ -1,5 +1,89 @@
+import { useSyncExternalStore } from 'react'
 import { useStore } from '../store/appStore'
-import { LANGUAGES, TRANSLATIONS, en } from './translations'
+import { LANGUAGES, type TranslationKeys } from './types'
+import en from './locales/en'
+import zhCN from './locales/zh-CN'
+
+export { LANGUAGES, type TranslationKeys }
+
+/**
+ * Only `en` (fallback) and `zh-CN` (primary product language) are bundled
+ * eagerly into the main renderer chunk. All other 29 locales are code-split
+ * and loaded on-demand when selected, trimming ~550 KB from initial JS parse
+ * and V8 heap.
+ */
+const loadedLocales: Record<string, TranslationKeys> = {
+  en,
+  'zh-CN': zhCN
+}
+
+const LOCALE_LOADERS: Record<string, () => Promise<{ default: TranslationKeys }>> = {
+  es: () => import('./locales/es'),
+  fr: () => import('./locales/fr'),
+  de: () => import('./locales/de'),
+  it: () => import('./locales/it'),
+  pt: () => import('./locales/pt'),
+  ru: () => import('./locales/ru'),
+  ja: () => import('./locales/ja'),
+  ko: () => import('./locales/ko'),
+  'zh-TW': () => import('./locales/zh-TW'),
+  hi: () => import('./locales/hi'),
+  ar: () => import('./locales/ar'),
+  fa: () => import('./locales/fa'),
+  bn: () => import('./locales/bn'),
+  tr: () => import('./locales/tr'),
+  vi: () => import('./locales/vi'),
+  pl: () => import('./locales/pl'),
+  nl: () => import('./locales/nl'),
+  sv: () => import('./locales/sv'),
+  id: () => import('./locales/id'),
+  uk: () => import('./locales/uk'),
+  el: () => import('./locales/el'),
+  cs: () => import('./locales/cs'),
+  ro: () => import('./locales/ro'),
+  hu: () => import('./locales/hu'),
+  da: () => import('./locales/da'),
+  fi: () => import('./locales/fi'),
+  th: () => import('./locales/th'),
+  he: () => import('./locales/he'),
+  no: () => import('./locales/no')
+}
+
+const inflight = new Set<string>()
+const listeners = new Set<() => void>()
+let localeRevision = 0
+
+function subscribeLocale(cb: () => void): () => void {
+  listeners.add(cb)
+  return () => {
+    listeners.delete(cb)
+  }
+}
+
+function getLocaleSnapshot(): number {
+  return localeRevision
+}
+
+export function ensureLocaleLoaded(langCode: string): void {
+  if (loadedLocales[langCode] || inflight.has(langCode)) return
+  const loader = LOCALE_LOADERS[langCode]
+  if (!loader) return
+  inflight.add(langCode)
+  void loader()
+    .then((mod) => {
+      if (mod?.default) {
+        loadedLocales[langCode] = mod.default
+        localeRevision++
+        for (const cb of listeners) cb()
+      }
+    })
+    .catch((err) => {
+      console.error(`[i18n] Failed to load locale "${langCode}":`, err)
+    })
+    .finally(() => {
+      inflight.delete(langCode)
+    })
+}
 
 /**
  * Resolves the active language code.
@@ -63,12 +147,12 @@ function getNestedProp(obj: any, path: string): string | undefined {
 /**
  * Main translation function.
  * E.g., t('header.searchPlaceholder')
- * E.g., t('behaviour.updateAvailableTitle', { version: '0.3.1' })
  */
 export function t(path: string, params?: Record<string, string | number>): string {
   const settingsLang = useStore.getState().settings.language
   const langCode = getResolvedLanguage(settingsLang)
-  const dict = TRANSLATIONS[langCode]
+  ensureLocaleLoaded(langCode)
+  const dict = loadedLocales[langCode]
 
   let val = dict ? getNestedProp(dict, path) : undefined
   if (!val) {
@@ -85,11 +169,13 @@ export function t(path: string, params?: Record<string, string | number>): strin
 }
 
 /**
- * Hook that subscribes to settings.language changes and returns the translation function t.
+ * Hook that subscribes to settings.language and lazy-locale readiness.
  */
 export function useTranslation() {
   const language = useStore((s) => s.settings.language)
+  useSyncExternalStore(subscribeLocale, getLocaleSnapshot, getLocaleSnapshot)
   const resolvedLang = getResolvedLanguage(language)
+  ensureLocaleLoaded(resolvedLang)
 
   // Update text direction for RTL languages like Arabic, Persian & Hebrew
   const g = globalThis as any

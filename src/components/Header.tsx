@@ -155,7 +155,7 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
               style={{
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#1d1d1f',
+                color: 'var(--text-primary)',
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase',
                 marginRight: 2
@@ -193,7 +193,7 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
               gridArea: '1 / 1 / 2 / 2',
               fontSize: 13,
               fontWeight: 600,
-              color: 'rgba(60, 60, 67, 0.6)',
+              color: 'var(--text-secondary)',
               letterSpacing: '0.01em',
               paddingLeft: 0,
               whiteSpace: 'nowrap',
@@ -278,7 +278,7 @@ export function Header({ isHorizontal = false, itemCount, clearProps }: HeaderPr
             }
           }}
           style={{
-            color: '#1d1d1f',
+            color: 'var(--text-primary)',
             background: 'transparent',
             border: 'none',
             boxShadow: 'none',

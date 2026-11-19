@@ -184,9 +184,15 @@ const api = {
   deleteBatchItems: (ids: string[]) => invoke('item:delete-batch', ids),
   clearItems: () => invoke('item:clear'),
   getFullText: (id: string) => invoke('item:get-full-text', id),
+  updateItemText: (id: string, text: string) => invoke('item:update-text', id, text),
+  searchItems: (query: string) => invoke('item:search', query),
+  syncPasteQueue: (ids: string[]) => invoke('queue:sync', ids),
+  pasteQueueNext: () => invoke('queue:paste-next'),
   copyItem: (id: string) => invoke('item:copy', id),
+  copyItemPlain: (id: string) => invoke('item:copy-plain', id),
   copySubitem: (req: import('../../shared/types').DragRequest) => invoke('item:copy-subitem', req),
   pasteItem: (id: string) => invoke('item:paste', id),
+  pasteItemPlain: (id: string) => invoke('item:paste-plain', id),
   pasteSubitem: (req: import('../../shared/types').DragRequest) => invoke('item:paste-subitem', req),
   pasteEmoji: (text: string) => invoke('emoji:paste', text),
   emojiGlyphs: (files: string[]) => invoke('emoji:glyphs', files),
@@ -234,6 +240,7 @@ const api = {
   onCursorEdge: (cb: (data: EventArgs<'window:cursor-edge'>[0]) => void) => on('window:cursor-edge', cb),
   onToast: (cb: (toast: { id: string; message: string; tone: 'info' | 'error' }) => void) => on('ui:toast', cb),
   onCopyFlare: (cb: () => void) => on('ui:copy-flare', cb),
+  onQueueUpdated: (cb: (ids: string[]) => void) => on('queue:updated', cb),
   onTutorialStep: (cb: (step: number) => void) => on('tutorial:step', cb),
 
   /* Drag helpers */

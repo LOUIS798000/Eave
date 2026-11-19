@@ -5,7 +5,7 @@
  * The store guards against partial/corrupt files by deep-merging onto the
  * defaults so a bad field never takes the whole app down.
  */
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, renameSync, rmSync } from 'node:fs'
 import { DEFAULT_SETTINGS, normalizeHoverOpenDelay, type Settings } from '../../shared/types'
 import {
   PANEL_WIDTH_DEFAULT,
@@ -83,6 +83,24 @@ function merge(base: Settings, patch: Partial<Settings>): Settings {
   if (typeof out.language !== 'string' || !out.language.trim()) {
     out.language = 'system'
   }
+  if (out.theme !== 'system' && out.theme !== 'light' && out.theme !== 'dark') {
+    out.theme = 'system'
+  }
+  if (Array.isArray(out.excludedApps)) {
+    const seen = new Set<string>()
+    out.excludedApps = out.excludedApps
+      .map((s) => (typeof s === 'string' ? s.trim() : ''))
+      .filter((s) => {
+        if (!s) return false
+        const key = s.toLowerCase()
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+  } else {
+    out.excludedApps = []
+  }
+  out.pinnedDefaultExpanded = Boolean(out.pinnedDefaultExpanded)
   // Drop the long-removed bounceAnimation key so old files stop carrying it.
   delete (out as unknown as Record<string, unknown>).bounceAnimation
   return out
@@ -110,7 +128,16 @@ export function saveSettings(patch: Partial<Settings>): Settings {
   const next = merge(loadSettings(), patch)
   cache = next
   try {
-    writeFileSync(PATHS.settingsFile(), JSON.stringify(next, null, 2), 'utf8')
+    const target = PATHS.settingsFile()
+    const tmp = `${target}.tmp`
+    const payload = JSON.stringify(next, null, 2)
+    writeFileSync(tmp, payload, 'utf8')
+    try {
+      renameSync(tmp, target)
+    } catch {
+      writeFileSync(target, payload, 'utf8')
+      try { rmSync(tmp, { force: true }) } catch { /* ignore */ }
+    }
   } catch {
     /* non-fatal; settings stay in memory */
   }

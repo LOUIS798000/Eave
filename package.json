@@ -1,6 +1,6 @@
 {
   "name": "eave",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "檐下 (Eave) — 从屏幕顶边滑出的毛玻璃搁板，收住你复制的一切。",
   "author": "Eave",
   "license": "Apache-2.0",
